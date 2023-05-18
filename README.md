@@ -1,16 +1,6 @@
-# flutter_runtime_ide
+## 备注
 
-A new Flutter project.
+采用 get_cli 进行开发，因为自己开发研究无所谓了。
+工作时间硬挤出来一小时进行开发，开发进度无法保证。
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 更新日志
