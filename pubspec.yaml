@@ -11,6 +11,7 @@ dependencies:
   file_picker: ^5.3.0
   path: ^1.8.2
   shared_preferences: ^2.1.1
+  darty_json_safe: ^1.0.1
   flutter:
     sdk: flutter
 
