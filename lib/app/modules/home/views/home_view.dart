@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
+import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 
 import 'package:get/get.dart';
 
@@ -58,17 +59,33 @@ class HomeView extends GetView<HomeController> {
                 itemBuilder: (context, index) {
                   PackageInfo packageInfo =
                       controller.packageConfig.value!.packages[index];
-                  return Container(
-                    padding: const EdgeInsets.all(15),
-                    child: Column(
-                      children: [
-                        _titleValueWidget("name", packageInfo.name),
-                        _titleValueWidget("rootUri", packageInfo.rootUri),
-                        _titleValueWidget("packageUri", packageInfo.packageUri),
-                        _titleValueWidget(
-                            "languageVersion", packageInfo.languageVersion),
-                      ],
-                    ),
+                  return Stack(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(15),
+                        child: Column(
+                          children: [
+                            _titleValueWidget("name", packageInfo.name),
+                            _titleValueWidget("rootUri", packageInfo.rootUri),
+                            _titleValueWidget(
+                                "packageUri", packageInfo.packageUri),
+                            _titleValueWidget(
+                                "languageVersion", packageInfo.languageVersion),
+                          ],
+                        ),
+                      ),
+                      Positioned.fill(
+                        right: 20,
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: IconButton(
+                            onPressed: () => controller
+                                .analyzerPackageCode(packageInfo.rootUri),
+                            icon: const Icon(Icons.analytics),
+                          ),
+                        ),
+                      ),
+                    ],
                   );
                 },
                 separatorBuilder: (context, index) => const Divider(),

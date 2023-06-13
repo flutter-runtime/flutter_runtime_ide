@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -18,13 +19,13 @@ class WelcomeController extends GetxController {
     init();
   }
 
-  Future<void> init() async {
+  FutureOr<void> init() async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     projectPaths.value = preferences.getStringList(projectPathsKey) ?? [];
   }
 
   // 打开 Flutter 项目
-  Future<void> openExitProject() async {
+  FutureOr<void> openExitProject() async {
     String? projectPath = await FilePicker.platform.getDirectoryPath(
       dialogTitle: "请选择 Flutter 项目的路径",
     );
