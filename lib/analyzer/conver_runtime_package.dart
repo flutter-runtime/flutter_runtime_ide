@@ -13,6 +13,7 @@ import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
+import 'package:pubspec_parse/pubspec_parse.dart';
 
 class ConverRuntimePackage {
   // 需要分析库的路径
@@ -21,6 +22,8 @@ class ConverRuntimePackage {
   final AnalysisContextCollection analysisContextCollection;
 
   final String outPutPath;
+
+  late Pubspec pubspec;
 
   ConverRuntimePackage.fromPath(this.packagePath, this.outPutPath)
       : analysisContextCollection = AnalysisContextCollection(
@@ -33,6 +36,9 @@ class ConverRuntimePackage {
   }
 
   FutureOr<void> analysisDartFileFromDir(String dir) async {
+    final sourceFile = join(packagePath, "pubspec.yaml");
+    pubspec = Pubspec.parse(await File(sourceFile).readAsString());
+
     // 获取到当前需要分析目录下面所有的子元素
     List<FileSystemEntity> entitys =
         await Directory(dir).list(recursive: true).toList();
@@ -90,27 +96,16 @@ class ConverRuntimePackage {
         // 获取枚举
         final enums = result.element.units[0].enums;
 
+        final sourcePath = entity.path.split(packageNamePath)[1];
+
         final data = {
-          "classes": classes.map((e) {
-            final name = e.name;
-            final fields = e.fields.where((element) => !element.isPrivate);
-            return {
-              "className": name,
-              "getFields": fields
-                  .map((e) => e.getter)
-                  .whereType<PropertyAccessorElement>()
-                  .map((e) {
-                return {
-                  "name": e.name,
-                };
-              })
-            };
-          }),
+          "pubName": pubspec.name,
+          'sourcePath': sourcePath.replaceFirst("/lib", ""),
+          "classes": classes.map((e) => e.toData),
         };
 
         final content = MustacheManager().render(fileMustache, data);
-        final outFile =
-            "$outPutPath/$packageNamePath${entity.path.split(packageNamePath)[1]}";
+        final outFile = "$outPutPath/$packageNamePath$sourcePath";
         final file = File(outFile);
         if (!await file.exists()) {
           await file.create(recursive: true);
@@ -123,6 +118,7 @@ class ConverRuntimePackage {
       }
       index++;
     }
+    await createPubspecFile();
     hideProgressHud();
     debugPrint("解析完毕!");
   }
@@ -139,8 +135,72 @@ class ConverRuntimePackage {
   }
 
   String get packageNamePath => basename(packagePath);
+
+  Future<void> createPubspecFile() async {
+    final pubspecFile = "$outPutPath/$packageNamePath/pubspec.yaml";
+    final specName = pubspec.name;
+    final pubspecContent = MustacheManager().render(pubspecMustache, {
+      "pubName": specName,
+      "pubPath": packagePath,
+    });
+    await File(pubspecFile).writeString(pubspecContent);
+  }
 }
 
 extension StringPrivate on String {
   bool get isPrivate => startsWith("_");
+}
+
+extension FileWriteString on File {
+  Future<void> writeString(String content) async {
+    if (!await exists()) {
+      await create();
+    }
+    await writeAsString(content);
+  }
+}
+
+extension ClassElementData on ClassElement {
+  Map get toData {
+    return {
+      "className": name,
+      "getFields": fields
+          .map((e) => e.getter)
+          .whereType<PropertyAccessorElement>()
+          .where((element) => !element.name.isPrivate)
+          .map((e) {
+        return e.toData;
+      }),
+      "methods": methods
+          .where((element) => !element.name.isPrivate)
+          .where((element) => element.name != "[]")
+          .map((e) => e.toData)
+    };
+  }
+}
+
+extension FieldElementData on PropertyAccessorElement {
+  Map get toData {
+    return {
+      "fieldName": name,
+      "isStatic": isStatic,
+    };
+  }
+}
+
+extension MethodElementData on MethodElement {
+  Map get toData {
+    return {
+      "methodName": name,
+      "parameters": parameters.map((e) => e.toData),
+    };
+  }
+}
+
+extension ParameterElementData on ParameterElement {
+  Map get toData {
+    return {
+      "parameterName": name,
+    };
+  }
 }

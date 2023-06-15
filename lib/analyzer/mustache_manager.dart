@@ -15,6 +15,8 @@ class MustacheManager {
       return Template(classMustache);
     } else if (name == "getFieldMustache") {
       return Template(getFieldMustache);
+    } else if (name == "methodMustache") {
+      return Template(methodMustache);
     } else {
       throw UnsupportedError("Unsupported partial: $name");
     }

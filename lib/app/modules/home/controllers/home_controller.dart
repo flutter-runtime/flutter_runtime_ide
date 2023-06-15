@@ -39,7 +39,7 @@ class HomeController extends GetxController {
   // [packagePath] 第三方库的路径
   FutureOr<void> analyzerPackageCode(String packagePath) async {
     await ConverRuntimePackage.fromPath(packagePath.replaceAll("file://", ""),
-            "${platformEnvironment["PWD"]}/.runtime")
+            "${platformEnvironment["HOME"]}/.runtime")
         .conver();
   }
 }
