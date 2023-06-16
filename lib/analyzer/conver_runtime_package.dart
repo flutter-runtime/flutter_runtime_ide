@@ -171,10 +171,21 @@ extension ClassElementData on ClassElement {
           .map((e) {
         return e.toData;
       }),
+      "setFields": fields
+          .map((e) => e.setter)
+          .whereType<PropertyAccessorElement>()
+          .where((element) => !element.name.isPrivate)
+          .map((e) {
+        return e.toData;
+      }),
       "methods": methods
           .where((element) => !element.name.isPrivate)
           .where((element) => element.name != "[]")
-          .map((e) => e.toData)
+          .map((e) => e.toData),
+      "constructors": constructors
+          .where((element) => !element.name.isPrivate)
+          .map((e) => e.toData),
+      "isAbstract": isAbstract,
     };
   }
 }
@@ -201,6 +212,17 @@ extension ParameterElementData on ParameterElement {
   Map get toData {
     return {
       "parameterName": name,
+      "isNamed": isNamed,
+    };
+  }
+}
+
+extension ConstructorElementData on ConstructorElement {
+  Map get toData {
+    return {
+      "constructorName": name,
+      "parameters": parameters.map((e) => e.toData),
+      "isName": name.isNotEmpty,
     };
   }
 }
