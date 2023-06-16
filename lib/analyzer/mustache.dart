@@ -62,15 +62,7 @@ const methodMustache = '''
 @override
 dynamic call(String methodName,[Map args = const {}]) {
   {{#methods}}
-  if (methodName == '{{methodName}}') return runtime.{{methodName}}(
-    {{#parameters}}
-      {{#isNamed}}
-        {{parameterName}}:createInstance("{{className}}",args["{{parameterName}}"]),
-      {{/isNamed}}
-      {{^isNamed}}
-        createInstance("{{className}}",args["{{parameterName}}"]),
-      {{/isNamed}}
-    {{/parameters}}
+  {{>functionMustache}}
   );
   {{/methods}}
 }
@@ -81,14 +73,14 @@ const constructorMustache = '''
 {{className}}? createRuntimeInstance(String constructorName,[Map args = const {}]) {
   {{^isAbstract}}
     {{#constructors}}
-      if (constructorName == "constructorName")
+      if (constructorName == "{{constructorName}}")
         return {{className}}{{#isName}}.{{constructorName}}{{/isName}}(
           {{#parameters}}
             {{#isNamed}}
-              {{parameterName}}:createInstance("{{className}}",args["{{parameterName}}"]),
+              {{parameterName}}:createInstance("{{className}}",args["{{parameterName}}"]){{>defaultValueMustache}},
             {{/isNamed}}
             {{^isNamed}}
-              createInstance("{{className}}",args["{{parameterName}}"]),
+              createInstance("{{className}}",args["{{parameterName}}"]){{>defaultValueMustache}},
             {{/isNamed}}
           {{/parameters}}
         );
@@ -96,6 +88,12 @@ const constructorMustache = '''
   {{/isAbstract}}
   return null;
 } 
+''';
+
+const defaultValueMustache = '''
+{{#hasDefaultValue}}
+  ?? {{defaultValueCode}}
+{{/hasDefaultValue}}
 ''';
 
 const pubspecMustache = '''
@@ -108,4 +106,60 @@ dependencies:
     path: /Users/king/Documents/flutter_runtime
   {{pubName}}:
     path: {{{pubPath}}}
+''';
+
+const globalMustache = '''
+// ignore_for_file: implementation_imports
+import 'package:flutter_runtime/flutter_runtime.dart';
+{{#paths}}
+import 'package:{{pubName}}{{{sourcePath}}}';
+{{/paths}}
+
+class \$GlobalRuntime\$ extends FlutterRuntime<dynamic> {
+ \$GlobalRuntime\$(super.runtime);
+
+  dynamic call(String methodName, [Map args = const {}]) {
+    {{#functions}}
+      if (methodName == '{{methodName}}') return {{methodName}}(
+    {{#parameters}}
+      {{#isNamed}}
+        {{parameterName}}:createInstance("",args["{{parameterName}}"]){{>defaultValueMustache}},
+      {{/isNamed}}
+      {{^isNamed}}
+        createInstance("",args["{{parameterName}}"]){{>defaultValueMustache}},
+      {{/isNamed}}
+    {{/parameters}}
+    );
+    {{/functions}}
+  }
+
+  @override
+  getField(String fieldName) {
+    
+  }
+  
+  @override
+  String get libraryPath => "";
+  
+  @override
+  String get packageName => "";
+  
+  @override
+  void setField(String fieldName, value) {
+  
+  }
+} 
+''';
+
+const functionMustache = '''
+if (methodName == '{{methodName}}') return runtime.{{methodName}}(
+    {{#parameters}}
+      {{#isNamed}}
+        {{parameterName}}:createInstance("{{className}}",args["{{parameterName}}"]){{>defaultValueMustache}},
+      {{/isNamed}}
+      {{^isNamed}}
+        createInstance("{{className}}",args["{{parameterName}}"]){{>defaultValueMustache}},
+      {{/isNamed}}
+    {{/parameters}}
+  
 ''';

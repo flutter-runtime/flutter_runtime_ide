@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ffi';
 import 'dart:io';
 import 'package:analyzer/dart/analysis/analysis_context.dart';
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
@@ -43,6 +44,10 @@ class ConverRuntimePackage {
     List<FileSystemEntity> entitys =
         await Directory(dir).list(recursive: true).toList();
     int index = 1;
+
+    Map<String, List<TopLevelVariableElement>> topLevelVariables = {};
+    Map<String, List<FunctionElement>> functions = {};
+
     for (FileSystemEntity entity in entitys) {
       showProgressHud(progress: index / entitys.length, text: entity.path);
       if (extension(entity.path) != ".dart") continue;
@@ -86,23 +91,37 @@ class ConverRuntimePackage {
         final classes = result.element.units[0].classes.where((element) {
           return !element.name.isPrivate;
         });
+        final sourcePath = entity.path.split(packageNamePath)[1];
 
-        // 获取全局变量
-        final topLevelVariables = result.element.units[0].topLevelVariables;
-        // 获取全局函数
-        final functions = result.element.units[0].functions;
+        final topLevelVariables0 = result.element.units[0].topLevelVariables
+            .where((element) => !element.name.isPrivate)
+            .toList();
+        if (topLevelVariables0.isNotEmpty) {
+          topLevelVariables[sourcePath] = topLevelVariables0;
+        }
+
+        final functions0 = result.element.units[0].functions
+            .where((element) => !element.name.isPrivate)
+            .toList();
+        ;
+        if (functions0.isNotEmpty) {
+          functions[sourcePath] = functions0;
+        }
+
         // 获取扩展
         final extensions = result.element.units[0].extensions;
         // 获取枚举
         final enums = result.element.units[0].enums;
-
-        final sourcePath = entity.path.split(packageNamePath)[1];
 
         final data = {
           "pubName": pubspec.name,
           'sourcePath': sourcePath.replaceFirst("/lib", ""),
           "classes": classes.map((e) => e.toData),
         };
+
+        if (extensions.isNotEmpty || enums.isNotEmpty) {
+          throw UnsupportedError("暂不支持扩展!");
+        }
 
         final content = MustacheManager().render(fileMustache, data);
         final outFile = "$outPutPath/$packageNamePath$sourcePath";
@@ -118,6 +137,35 @@ class ConverRuntimePackage {
       }
       index++;
     }
+
+    if (topLevelVariables.isNotEmpty) {
+      throw UnsupportedError("暂不支持扩展!");
+    }
+
+    Set<String> paths = {};
+    paths.addAll(topLevelVariables.keys);
+    paths.addAll(functions.keys);
+
+    final data = {
+      "paths":
+          paths.toList().map((e) => {"sourcePath": e.replaceFirst("/lib", "")}),
+      "pubName": pubspec.name,
+      "topLevelVariables": topLevelVariables.values
+          .fold<List<TopLevelVariableElement>>(
+              [],
+              (previousValue, element) =>
+                  previousValue..addAll(element)).map((e) => e.toData),
+      "functions": functions.values.fold<List<FunctionElement>>(
+          [],
+          (previousValue, element) =>
+              previousValue..addAll(element)).map((e) => e.toData),
+    };
+
+    final content = MustacheManager().render(globalMustache, data);
+    final outFile = "$outPutPath/$packageNamePath/lib/global_runtime.dart";
+    final file = File(outFile);
+    await file.writeString(content);
+
     await createPubspecFile();
     hideProgressHud();
     debugPrint("解析完毕!");
@@ -213,6 +261,8 @@ extension ParameterElementData on ParameterElement {
     return {
       "parameterName": name,
       "isNamed": isNamed,
+      "hasDefaultValue": hasDefaultValue,
+      "defaultValueCode": defaultValueCode,
     };
   }
 }
@@ -223,6 +273,23 @@ extension ConstructorElementData on ConstructorElement {
       "constructorName": name,
       "parameters": parameters.map((e) => e.toData),
       "isName": name.isNotEmpty,
+    };
+  }
+}
+
+extension FunctionElementData on FunctionElement {
+  Map get toData {
+    return {
+      "methodName": name,
+      "parameters": parameters.map((e) => e.toData),
+    };
+  }
+}
+
+extension TopLevelVariableElementData on TopLevelVariableElement {
+  Map get toData {
+    return {
+      "variableName": name,
     };
   }
 }
