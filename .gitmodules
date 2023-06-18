@@ -1,0 +1,3 @@
+[submodule "packages/flutter_runtime"]
+	path = packages/flutter_runtime
+	url = git@github.com:flutter-runtime/flutter_runtime.git
