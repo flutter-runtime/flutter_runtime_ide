@@ -4,7 +4,10 @@ import 'dart:io';
 import 'package:analyzer/dart/analysis/analysis_context.dart';
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/src/dart/element/element.dart';
+import 'package:analyzer/src/generated/source.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
@@ -69,7 +72,7 @@ class ConverRuntimePackage {
           // 获取 export  的路径
           String? exportPath = getRelativePath(element.uri);
           if (exportPath == null) {
-            logger.e("$element export  没有对应路径!");
+            // logger.e("$element export  没有对应路径!");
             continue;
           }
 
@@ -87,7 +90,7 @@ class ConverRuntimePackage {
           // 获取 import  的路径
           String? importPath = getRelativePath(element.uri);
           if (importPath == null) {
-            logger.e("$element import  没有对应路径!");
+            // logger.e("$element import  没有对应路径!");
             continue;
           }
           // if (element.combinators.isNotEmpty) {
@@ -99,7 +102,9 @@ class ConverRuntimePackage {
         final classes = result.element.units[0].classes.where((element) {
           return !element.name.isPrivate;
         });
-        final sourcePath = entity.path.split(packageNamePath)[1];
+        final libraryPath =
+            entity.path.split(packageNamePath)[1].replaceFirst("/lib", "");
+        final sourcePath = 'package:${pubspec.name}$libraryPath';
 
         final topLevelVariables0 = result.element.units[0].topLevelVariables
             .where((element) => !element.name.isPrivate)
@@ -122,24 +127,34 @@ class ConverRuntimePackage {
           extensions[sourcePath] = extensions0;
         }
         // 获取枚举
-        final enums0 = result.element.units[0].enums;
+        final enums0 = result.element.units[0].enums
+            .where((element) => !element.name.isPrivate)
+            .toList();
         if (enums0.isNotEmpty) {
           enums[sourcePath] = enums0;
         }
 
+        Set<String> paths = {sourcePath};
+
+        final importPathSets = classes.map((e) {
+          return e.importPathSets;
+        }).fold<Set<String>>({}, (previousValue, element) {
+          return previousValue..addAll(element);
+        });
+        paths.addAll(importPathSets);
+        final pathDatas = paths.map((e) => {"sourcePath": e}).toList();
+        logger.e("$paths\n$pathDatas");
+
         final data = {
           "pubName": pubspec.name,
-          'sourcePath': sourcePath.replaceFirst("/lib", ""),
+          'paths': pathDatas,
           "classes": classes.map((e) => e.toData),
         };
 
         final content = MustacheManager().render(fileMustache, data);
-        final outFile = "$outPutPath/$packageNamePath$sourcePath";
+        final outFile = "$outPutPath/$packageNamePath${'/lib$libraryPath'}";
         final file = File(outFile);
-        if (!await file.exists()) {
-          await file.create(recursive: true);
-        }
-        await file.writeAsString(content);
+        await file.writeString(content);
       } else if (result is NotLibraryButPartResult) {
         logger.v(result);
       } else {
@@ -151,31 +166,55 @@ class ConverRuntimePackage {
     Set<String> paths = {};
     paths.addAll(topLevelVariables.keys);
     paths.addAll(functions.keys);
+    paths.addAll(enums.keys);
+    paths.addAll(extensions.keys);
+
+    final getFieldDatas = topLevelVariables.values
+        .fold<List<TopLevelVariableElement>>(
+            [], (previousValue, element) => previousValue..addAll(element))
+        .map((element) => element.getter)
+        .whereType<PropertyAccessorElement>()
+        .map((e) {
+          return e.toData;
+        });
+    final setFieldDatas = topLevelVariables.values
+        .fold<List<TopLevelVariableElement>>(
+            [], (previousValue, element) => previousValue..addAll(element))
+        .map((element) => element.setter)
+        .whereType<PropertyAccessorElement>()
+        .map((e) => e.toData);
+
+    final functionDatas = functions.values.fold<List<FunctionElement>>([],
+        (previousValue, element) {
+      return previousValue..addAll(element);
+    }).map((e) {
+      for (var parameter in e.parameters) {
+        final defaultValueImportPath = parameter.defaultValueImportPath;
+        if (defaultValueImportPath != null) {
+          paths.add(defaultValueImportPath);
+        }
+      }
+      return e.toData;
+    });
+
+    final enumDatas =
+        enums.values.fold<List<EnumElement>>([], (previousValue, element) {
+      return previousValue..addAll(element);
+    }).map((e) {
+      return e.toData;
+    });
+
+    if (extensions.isNotEmpty) {
+      throw UnsupportedError("extensions is not supported!");
+    }
 
     final data = {
-      "paths":
-          paths.toList().map((e) => {"sourcePath": e.replaceFirst("/lib", "")}),
+      "paths": paths.toList().map((e) => {"sourcePath": e}),
       "pubName": pubspec.name,
-      "getFields": topLevelVariables.values
-          .fold<List<TopLevelVariableElement>>(
-              [], (previousValue, element) => previousValue..addAll(element))
-          .map((element) => element.getter)
-          .whereType<PropertyAccessorElement>()
-          .map((e) => e.toData),
-      "setFields": topLevelVariables.values
-          .fold<List<TopLevelVariableElement>>(
-              [], (previousValue, element) => previousValue..addAll(element))
-          .map((element) => element.setter)
-          .whereType<PropertyAccessorElement>()
-          .map((e) => e.toData),
-      "functions": functions.values.fold<List<FunctionElement>>([],
-          (previousValue, element) {
-        return previousValue..addAll(element);
-      }).map((e) => e.toData),
-      "enums":
-          enums.values.fold<List<EnumElement>>([], (previousValue, element) {
-        return previousValue..addAll(element);
-      }).map((e) => e.toData),
+      "getFields": getFieldDatas,
+      "setFields": setFieldDatas,
+      "functions": functionDatas,
+      "enums": enumDatas,
     };
 
     final content = MustacheManager().render(globalMustache, data);
@@ -243,22 +282,46 @@ extension ClassElementData on ClassElement {
           .map((e) {
         return e.toData;
       }),
-      "methods": methods
-          .where((element) => !element.name.isPrivate)
-          .where((element) => element.name != "[]")
-          .map((e) => e.toData),
+      "methods": _methods.map((e) => e.toData),
       "constructors": constructors
           .where((element) => !element.name.isPrivate)
           .map((e) => e.toData),
       "isAbstract": isAbstract,
     };
   }
+
+  Iterable<MethodElement> get _methods => methods
+      .where((element) => !element.name.isPrivate)
+      .where((element) => element.name != "[]");
+
+  Iterable<ConstructorElement> get _constructors =>
+      constructors.where((element) => !element.name.isPrivate);
+
+  Set<String> get importPathSets {
+    Set<String> paths = {};
+    for (var method in _methods) {
+      paths.addAll(method.parameters.map((e) {
+        return e.defaultValueImportPath;
+      }).whereType<String>());
+    }
+
+    for (var constructor in _constructors) {
+      paths.addAll(constructor.parameters.map((e) {
+        return e.defaultValueImportPath;
+      }).whereType<String>());
+    }
+    return paths;
+  }
 }
 
 extension FieldElementData on PropertyAccessorElement {
   Map get toData {
+    String fieldName = name.replaceAll("\$", "\\\$");
+    if (fieldName.endsWith("=")) {
+      fieldName = fieldName.substring(0, fieldName.length - 1);
+    }
     return {
-      "fieldName": name.replaceAll("\$", "\\\$"),
+      "fieldName": fieldName,
       'fieldValue': name,
       "isStatic": isStatic,
     };
@@ -267,10 +330,23 @@ extension FieldElementData on PropertyAccessorElement {
 
 extension MethodElementData on MethodElement {
   Map get toData {
+    final customCallCode = this.customCallCode;
     return {
       "methodName": name,
       "parameters": parameters.map((e) => e.toData),
+      'customCallCode': customCallCode,
+      'isCustomCall': customCallCode != null,
     };
+  }
+
+  String? get customCallCode {
+    if (name == '[]=' && parameters.length == 2) {
+      return '''runtime[args['${parameters[0].name}']] = args['${parameters[1].name}']''';
+    } else if (name == '==' && parameters.length == 1) {
+      return '''runtime == args['${parameters[0].name}']''';
+    } else {
+      return null;
+    }
   }
 }
 
@@ -291,6 +367,15 @@ extension ParameterElementData on ParameterElement {
       "defaultValueCode": defaultValueCode,
       "createInstanceCode": readArgCode,
     };
+  }
+
+  String? get defaultValueImportPath {
+    if (!hasDefaultValue || this is! DefaultParameterElementImpl) return null;
+    DefaultParameterElementImpl parameter = this as DefaultParameterElementImpl;
+    final constantInitializer = parameter.constantInitializer;
+    if (constantInitializer == null ||
+        constantInitializer is! PrefixedIdentifier) return null;
+    return constantInitializer.staticElement?.librarySource?.importPath;
   }
 }
 
@@ -393,8 +478,28 @@ extension DartTypeCode on DartType {
 
 extension EnumElementData on EnumElement {
   Map get toData {
+    EnumElementImpl impl = this as EnumElementImpl;
     return {
       "enumName": name,
+      'constructors': impl.constants.map((e) {
+        return {
+          "constructorName": e.name,
+        };
+      }).toList()
     };
+  }
+}
+
+extension SourceImport on Source {
+  String? get importPath {
+    final packages =
+        Get.find<HomeController>().packageConfig.value?.packages ?? [];
+    List<PackageInfo> infos = packages.where((element) {
+      return fullName.startsWith(element.rootUri.replaceFirst("file://", ""));
+    }).toList();
+    if (infos.isEmpty) return null;
+    PackageInfo info = infos[0];
+    final path = fullName.split("/lib/").last;
+    return 'package:${info.name}/$path';
   }
 }

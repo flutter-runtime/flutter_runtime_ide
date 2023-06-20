@@ -14,10 +14,13 @@ class \${{className}}\$ extends FlutterRuntime<{{className}}>{
 ''';
 
 const fileMustache = '''
+// ignore_for_file: implementation_imports, unused_import
 import 'dart:async';
 import 'package:flutter_runtime/flutter_runtime.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
-import 'package:{{pubName}}{{{sourcePath}}}';
+{{#paths}}
+import '{{{sourcePath}}}';
+{{/paths}}
 
 {{#classes}}
 {{>classMustache}}
@@ -57,7 +60,6 @@ const methodMustache = '''
 dynamic call(String methodName,[Map args = const {}]) {
   {{#methods}}
   {{>functionMustache}}
-  );
   {{/methods}}
 }
 ''';
@@ -104,11 +106,11 @@ dependencies:
 ''';
 
 const globalMustache = '''
-// ignore_for_file: implementation_imports
+// ignore_for_file: implementation_imports, unused_import
 import 'package:flutter_runtime/flutter_runtime.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 {{#paths}}
-import 'package:{{pubName}}{{{sourcePath}}}';
+import '{{{sourcePath}}}';
 {{/paths}}
 
 class \$GlobalRuntime\$ extends FlutterRuntime<dynamic> {
@@ -142,11 +144,28 @@ class \$GlobalRuntime\$ extends FlutterRuntime<dynamic> {
       if (fieldName == "{{fieldName}}") {{fieldName}} = value;
     {{/setFields}}
   }
+
+  dynamic getEnumValue(String enumName, String constructorName) {
+    {{#enums}}
+      if (enumName == "{{enumName}}"){
+        {{#constructors}}
+          if (constructorName == '{{constructorName}}') {
+            return {{enumName}}.{{constructorName}};
+          }
+        {{/constructors}}
+      }
+    {{/enums}}
+    return null;  
+  }
 } 
 ''';
 
 const functionMustache = '''
-if (methodName == '{{methodName}}') return runtime.{{methodName}}(
+{{#isCustomCall}}
+  if (methodName == '{{methodName}}') return {{{customCallCode}}};
+{{/isCustomCall}}
+{{^isCustomCall}}
+  if (methodName == '{{methodName}}') return runtime.{{methodName}}(
     {{#parameters}}
       {{#isNamed}}
         {{parameterName}}:{{>createInstanceMustache}}{{>defaultValueMustache}},
@@ -155,7 +174,8 @@ if (methodName == '{{methodName}}') return runtime.{{methodName}}(
         {{>createInstanceMustache}}{{>defaultValueMustache}},
       {{/isNamed}}
     {{/parameters}}
-  
+  );
+{{/isCustomCall}}
 ''';
 
 const createInstanceMustache = '''
