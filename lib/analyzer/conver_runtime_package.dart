@@ -5,12 +5,18 @@ import 'package:analyzer/dart/analysis/analysis_context.dart';
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
+import 'package:analyzer/dart/element/type.dart';
+import 'package:darty_json_safe/darty_json_safe.dart';
 // import 'package:analyzer/file_system/file_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
+import 'package:flutter_runtime_ide/app/data/package_config.dart';
+import 'package:flutter_runtime_ide/app/modules/home/controllers/home_controller.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
+import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
@@ -47,6 +53,8 @@ class ConverRuntimePackage {
 
     Map<String, List<TopLevelVariableElement>> topLevelVariables = {};
     Map<String, List<FunctionElement>> functions = {};
+    Map<String, List<ExtensionElement>> extensions = {};
+    Map<String, List<EnumElement>> enums = {};
 
     for (FileSystemEntity entity in entitys) {
       showProgressHud(progress: index / entitys.length, text: entity.path);
@@ -82,9 +90,9 @@ class ConverRuntimePackage {
             logger.e("$element import  没有对应路径!");
             continue;
           }
-          if (element.combinators.isNotEmpty) {
-            throw UnimplementedError();
-          }
+          // if (element.combinators.isNotEmpty) {
+          //   throw UnimplementedError();
+          // }
         }
 
         // 获取当前页面【class】元素
@@ -109,19 +117,21 @@ class ConverRuntimePackage {
         }
 
         // 获取扩展
-        final extensions = result.element.units[0].extensions;
+        final extensions0 = result.element.units[0].extensions;
+        if (extensions0.isNotEmpty) {
+          extensions[sourcePath] = extensions0;
+        }
         // 获取枚举
-        final enums = result.element.units[0].enums;
+        final enums0 = result.element.units[0].enums;
+        if (enums0.isNotEmpty) {
+          enums[sourcePath] = enums0;
+        }
 
         final data = {
           "pubName": pubspec.name,
           'sourcePath': sourcePath.replaceFirst("/lib", ""),
           "classes": classes.map((e) => e.toData),
         };
-
-        if (extensions.isNotEmpty || enums.isNotEmpty) {
-          throw UnsupportedError("暂不支持扩展!");
-        }
 
         final content = MustacheManager().render(fileMustache, data);
         final outFile = "$outPutPath/$packageNamePath$sourcePath";
@@ -138,10 +148,6 @@ class ConverRuntimePackage {
       index++;
     }
 
-    if (topLevelVariables.isNotEmpty) {
-      throw UnsupportedError("暂不支持扩展!");
-    }
-
     Set<String> paths = {};
     paths.addAll(topLevelVariables.keys);
     paths.addAll(functions.keys);
@@ -150,15 +156,26 @@ class ConverRuntimePackage {
       "paths":
           paths.toList().map((e) => {"sourcePath": e.replaceFirst("/lib", "")}),
       "pubName": pubspec.name,
-      "topLevelVariables": topLevelVariables.values
+      "getFields": topLevelVariables.values
           .fold<List<TopLevelVariableElement>>(
-              [],
-              (previousValue, element) =>
-                  previousValue..addAll(element)).map((e) => e.toData),
-      "functions": functions.values.fold<List<FunctionElement>>(
-          [],
-          (previousValue, element) =>
-              previousValue..addAll(element)).map((e) => e.toData),
+              [], (previousValue, element) => previousValue..addAll(element))
+          .map((element) => element.getter)
+          .whereType<PropertyAccessorElement>()
+          .map((e) => e.toData),
+      "setFields": topLevelVariables.values
+          .fold<List<TopLevelVariableElement>>(
+              [], (previousValue, element) => previousValue..addAll(element))
+          .map((element) => element.setter)
+          .whereType<PropertyAccessorElement>()
+          .map((e) => e.toData),
+      "functions": functions.values.fold<List<FunctionElement>>([],
+          (previousValue, element) {
+        return previousValue..addAll(element);
+      }).map((e) => e.toData),
+      "enums":
+          enums.values.fold<List<EnumElement>>([], (previousValue, element) {
+        return previousValue..addAll(element);
+      }).map((e) => e.toData),
     };
 
     final content = MustacheManager().render(globalMustache, data);
@@ -241,7 +258,8 @@ extension ClassElementData on ClassElement {
 extension FieldElementData on PropertyAccessorElement {
   Map get toData {
     return {
-      "fieldName": name,
+      "fieldName": name.replaceAll("\$", "\\\$"),
+      'fieldValue': name,
       "isStatic": isStatic,
     };
   }
@@ -258,11 +276,20 @@ extension MethodElementData on MethodElement {
 
 extension ParameterElementData on ParameterElement {
   Map get toData {
+    // ignore: no_leading_underscores_for_local_identifiers
+    // late bool _isOptional;
+    // if (isNamed) {
+    //   _isOptional = isOptional;
+    // } else {
+    //   _isOptional = type.nullabilitySuffix == NullabilitySuffix.question;
+    // }
+    String readArgCode = '''args['$name']''';
     return {
       "parameterName": name,
       "isNamed": isNamed,
       "hasDefaultValue": hasDefaultValue,
       "defaultValueCode": defaultValueCode,
+      "createInstanceCode": readArgCode,
     };
   }
 }
@@ -290,6 +317,84 @@ extension TopLevelVariableElementData on TopLevelVariableElement {
   Map get toData {
     return {
       "variableName": name,
+    };
+  }
+}
+
+extension DartTypeCode on DartType {
+  String readArgCode(
+    String name,
+    bool isOptional, {
+    String argsName = 'args',
+  }) {
+    if (isDartCoreInt) {
+      return '''JSON($argsName)["$name"].int${isOptional ? "" : "Value"}''';
+    } else if (isDartCoreString) {
+      return '''JSON($argsName)["$name"].string${isOptional ? "" : "Value"}''';
+    } else if (isDartCoreDouble) {
+      return '''JSON($argsName)["$name"].double${isOptional ? "" : "Value"}''';
+    } else if (isDartCoreBool) {
+      return '''JSON($argsName)["$name"].bool${isOptional ? "" : "Value"}''';
+    } else if (isDartCoreIterable || isDartCoreList) {
+      if (this is InterfaceType) {
+        final typeArguments = (this as InterfaceType).typeArguments;
+        if (typeArguments.length != 1) {
+          return throw UnsupportedError("${toString()} not support!");
+        }
+        DartType typeArgument = typeArguments[0];
+        late String typeArgumentCode;
+        if (typeArgument.isDartCoreString) {
+          typeArgumentCode = "e as String";
+        } else if (typeArgument.isDartCoreInt) {
+          typeArgumentCode = "e as int";
+        } else if (typeArgument.isDartCoreDouble) {
+          typeArgumentCode = "e as double";
+        } else if (typeArgument.isDartCoreBool) {
+          typeArgumentCode = "e as bool";
+        } else {
+          typeArgumentCode = createInstanceCode(typeArgument);
+        }
+        String code =
+            '''JSON($argsName)["$name"].list${isOptional ? '?' : 'Value'}.map((e) => $typeArgumentCode)''';
+        if (isDartCoreList) {
+          code += ".toList()";
+        }
+        return code;
+      } else {
+        throw UnsupportedError("not support!");
+      }
+    } else {
+      return createInstanceCode(this);
+    }
+  }
+
+  String createInstanceCode(DartType type) {
+    final librarySource = type.element?.librarySource;
+    if (librarySource != null) {
+      final fullName = librarySource.fullName;
+      final packages =
+          Get.find<HomeController>().packageConfig.value?.packages ?? [];
+      List<PackageInfo> infos = packages.where((element) {
+        return fullName.startsWith(element.rootUri.replaceFirst("file://", ""));
+      }).toList();
+      if (infos.length == 1) {
+        PackageInfo info = infos[0];
+        String libraryPath = fullName.replaceFirst(
+            join(info.rootUri.replaceFirst("file://", ""), info.packageUri),
+            "");
+        return '''createInstance("${info.name}", '$libraryPath', '${type.name}', )''';
+      } else if (fullName.contains("dart-sdk")) {
+        return '''createInstance("dart_sdk", '${fullName.split("/dart-sdk/lib/").last}', '${type.name}', )''';
+      }
+    }
+    return '''createInstance("", '', '', )''';
+  }
+}
+
+extension EnumElementData on EnumElement {
+  Map get toData {
+    return {
+      "enumName": name,
     };
   }
 }

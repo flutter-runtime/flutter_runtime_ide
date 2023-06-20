@@ -23,5 +23,6 @@ class MustacheManager {
         "constructorMustache": constructorMustache,
         "defaultValueMustache": defaultValueMustache,
         "functionMustache": functionMustache,
+        "createInstanceMustache": createInstanceMustache,
       };
 }

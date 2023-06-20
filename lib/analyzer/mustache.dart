@@ -10,19 +10,13 @@ class \${{className}}\$ extends FlutterRuntime<{{className}}>{
 {{>methodMustache}}
 
 {{>constructorMustache}}
-
-@override
-String get libraryPath => '{{{sourcePath}}}';
-
-@override
-String get packageName => '{{pubName}}';
-
 }
 ''';
 
 const fileMustache = '''
 import 'dart:async';
 import 'package:flutter_runtime/flutter_runtime.dart';
+import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:{{pubName}}{{{sourcePath}}}';
 
 {{#classes}}
@@ -70,17 +64,17 @@ dynamic call(String methodName,[Map args = const {}]) {
 
 const constructorMustache = '''
 
-{{className}}? createRuntimeInstance(String constructorName,[Map args = const {}]) {
+{{className}}? createRuntimeInstance(String constructorName,[Map args = const {},]) {
   {{^isAbstract}}
     {{#constructors}}
       if (constructorName == "{{constructorName}}")
         return {{className}}{{#isName}}.{{constructorName}}{{/isName}}(
           {{#parameters}}
             {{#isNamed}}
-              {{parameterName}}:createInstance("{{className}}",args["{{parameterName}}"]){{>defaultValueMustache}},
+              {{parameterName}}:{{>createInstanceMustache}}{{>defaultValueMustache}},
             {{/isNamed}}
             {{^isNamed}}
-              createInstance("{{className}}",args["{{parameterName}}"]){{>defaultValueMustache}},
+              {{>createInstanceMustache}}{{>defaultValueMustache}},
             {{/isNamed}}
           {{/parameters}}
         );
@@ -106,11 +100,13 @@ dependencies:
     path: /Users/king/Documents/flutter_runtime
   {{pubName}}:
     path: {{{pubPath}}}
+  darty_json_safe: ^1.0.1
 ''';
 
 const globalMustache = '''
 // ignore_for_file: implementation_imports
 import 'package:flutter_runtime/flutter_runtime.dart';
+import 'package:darty_json_safe/darty_json_safe.dart';
 {{#paths}}
 import 'package:{{pubName}}{{{sourcePath}}}';
 {{/paths}}
@@ -123,10 +119,10 @@ class \$GlobalRuntime\$ extends FlutterRuntime<dynamic> {
       if (methodName == '{{methodName}}') return {{methodName}}(
     {{#parameters}}
       {{#isNamed}}
-        {{parameterName}}:createInstance("",args["{{parameterName}}"]){{>defaultValueMustache}},
+        {{parameterName}}:{{>createInstanceMustache}}{{>defaultValueMustache}},
       {{/isNamed}}
       {{^isNamed}}
-        createInstance("",args["{{parameterName}}"]){{>defaultValueMustache}},
+        {{>createInstanceMustache}}{{>defaultValueMustache}},
       {{/isNamed}}
     {{/parameters}}
     );
@@ -135,18 +131,16 @@ class \$GlobalRuntime\$ extends FlutterRuntime<dynamic> {
 
   @override
   getField(String fieldName) {
-    
+    {{#getFields}}
+        if (fieldName == '{{fieldName}}') return {{fieldValue}};
+    {{/getFields}}
   }
-  
-  @override
-  String get libraryPath => "";
-  
-  @override
-  String get packageName => "";
-  
+    
   @override
   void setField(String fieldName, value) {
-  
+    {{#setFields}}
+      if (fieldName == "{{fieldName}}") {{fieldName}} = value;
+    {{/setFields}}
   }
 } 
 ''';
@@ -155,11 +149,15 @@ const functionMustache = '''
 if (methodName == '{{methodName}}') return runtime.{{methodName}}(
     {{#parameters}}
       {{#isNamed}}
-        {{parameterName}}:createInstance("{{className}}",args["{{parameterName}}"]){{>defaultValueMustache}},
+        {{parameterName}}:{{>createInstanceMustache}}{{>defaultValueMustache}},
       {{/isNamed}}
       {{^isNamed}}
-        createInstance("{{className}}",args["{{parameterName}}"]){{>defaultValueMustache}},
+        {{>createInstanceMustache}}{{>defaultValueMustache}},
       {{/isNamed}}
     {{/parameters}}
   
+''';
+
+const createInstanceMustache = '''
+{{{createInstanceCode}}}
 ''';

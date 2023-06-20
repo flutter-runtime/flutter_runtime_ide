@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:get/get.dart';
@@ -14,6 +15,11 @@ class HomeController extends GetxController {
 
   /// 当前工程的第三方库的配置
   var packageConfig = Rx<PackageConfig?>(null);
+
+  // 用来过滤搜索
+  TextEditingController searchController = TextEditingController();
+  // 进行展示的包列表
+  var displayPackages = <PackageInfo>[].obs;
 
   HomeController() {
     progectPath.value = Get.arguments as String;
@@ -33,13 +39,25 @@ class HomeController extends GetxController {
     // 读取文件内容
     String content = await File(packageConfigPath).readAsString();
     packageConfig.value = PackageConfig.fromJson(jsonDecode(content));
+    search();
   }
 
   // 分析第三方库代码
   // [packagePath] 第三方库的路径
   FutureOr<void> analyzerPackageCode(String packagePath) async {
-    await ConverRuntimePackage.fromPath(packagePath.replaceAll("file://", ""),
-            "${platformEnvironment["HOME"]}/.runtime")
-        .conver();
+    ConverRuntimePackage package = ConverRuntimePackage.fromPath(
+        packagePath.replaceAll("file://", ""),
+        "${platformEnvironment["HOME"]}/.runtime");
+    await package.conver();
+  }
+
+  search() {
+    if (searchController.text.isEmpty) {
+      displayPackages.value = packageConfig.value!.packages;
+    } else {
+      displayPackages.value = packageConfig.value!.packages
+          .where((element) => element.name.contains(searchController.text))
+          .toList();
+    }
   }
 }

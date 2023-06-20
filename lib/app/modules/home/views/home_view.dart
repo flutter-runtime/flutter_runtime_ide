@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
@@ -54,44 +55,53 @@ class HomeView extends GetView<HomeController> {
                 ],
               ),
             ),
-            Expanded(
-              child: ListView.separated(
-                itemBuilder: (context, index) {
-                  PackageInfo packageInfo =
-                      controller.packageConfig.value!.packages[index];
-                  return Stack(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(15),
-                        child: Column(
-                          children: [
-                            _titleValueWidget("name", packageInfo.name),
-                            _titleValueWidget("rootUri", packageInfo.rootUri),
-                            _titleValueWidget(
-                                "packageUri", packageInfo.packageUri),
-                            _titleValueWidget(
-                                "languageVersion", packageInfo.languageVersion),
-                          ],
-                        ),
-                      ),
-                      Positioned.fill(
-                        right: 20,
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: IconButton(
-                            onPressed: () => controller
-                                .analyzerPackageCode(packageInfo.rootUri),
-                            icon: const Icon(Icons.analytics),
+            CupertinoTextField(
+              placeholder: "输入关键词过滤",
+              controller: controller.searchController,
+              onChanged: (value) {
+                controller.search();
+              },
+            ),
+            Obx(() {
+              final packages = controller.displayPackages;
+              return Expanded(
+                child: ListView.separated(
+                  itemBuilder: (context, index) {
+                    PackageInfo packageInfo = packages[index];
+                    return Stack(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(15),
+                          child: Column(
+                            children: [
+                              _titleValueWidget("name", packageInfo.name),
+                              _titleValueWidget("rootUri", packageInfo.rootUri),
+                              _titleValueWidget(
+                                  "packageUri", packageInfo.packageUri),
+                              _titleValueWidget("languageVersion",
+                                  packageInfo.languageVersion),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
-                  );
-                },
-                separatorBuilder: (context, index) => const Divider(),
-                itemCount: controller.packageConfig.value?.packages.length ?? 0,
-              ),
-            )
+                        Positioned.fill(
+                          right: 20,
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: IconButton(
+                              onPressed: () => controller
+                                  .analyzerPackageCode(packageInfo.rootUri),
+                              icon: const Icon(Icons.analytics),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  separatorBuilder: (context, index) => const Divider(),
+                  itemCount: packages.length,
+                ),
+              );
+            })
           ],
         ),
       ),
