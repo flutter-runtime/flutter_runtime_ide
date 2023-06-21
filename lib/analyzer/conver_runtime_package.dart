@@ -246,6 +246,8 @@ class ConverRuntimePackage {
     final pubspecContent = MustacheManager().render(pubspecMustache, {
       "pubName": specName,
       "pubPath": packagePath,
+      'flutterRuntimePath':
+          join(shellEnvironment['PWD']!, 'packages', 'flutter_runtime')
     });
     await File(pubspecFile).writeString(pubspecContent);
   }

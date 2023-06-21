@@ -1,6 +1,0 @@
-class $CommandRunner$ {
-
-}
-class $Command$ {
-
-}

@@ -99,7 +99,7 @@ environment:
 
 dependencies:
   flutter_runtime:
-    path: /Users/king/Documents/flutter_runtime
+    path: {{{flutterRuntimePath}}}
   {{pubName}}:
     path: {{{pubPath}}}
   darty_json_safe: ^1.0.1
