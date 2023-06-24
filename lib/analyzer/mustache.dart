@@ -1,7 +1,7 @@
 const classMustache = '''
-class \${{className}}\$ extends FlutterRuntime<{{className}}>{
+class {{className}} extends FlutterRuntime<{{{runtimeType}}}>{
 
-\${{className}}\$(super.runtime);
+{{className}}(super.runtime);
 
 {{>getFieldMustache}}
 
@@ -32,10 +32,10 @@ const getFieldMustache = '''
 dynamic getField(String fieldName) {
   {{#getFields}}
   {{#isStatic}}
-  if (fieldName == "{{fieldName}}") return {{className}}.{{fieldName}};
+  if (fieldName == "{{fieldName}}") return {{{staticPrefix}}}{{fieldValue}};
   {{/isStatic}}
   {{^isStatic}}
-  if (fieldName == "{{fieldName}}") return runtime.{{fieldName}};
+  if (fieldName == "{{fieldName}}") return {{{prefix}}}{{fieldValue}};
   {{/isStatic}}
   {{/getFields}}
 }
@@ -46,10 +46,10 @@ const setFieldMustache = '''
 void setField(String fieldName, dynamic value) {
   {{#setFields}}
     {{#isStatic}}
-      if (fieldName == "{{fieldName}}") {{className}}.{{fieldName}} = value;
+      if (fieldName == "{{fieldName}}") {{{prefix}}}{{fieldValue}} = value;
     {{/isStatic}}
     {{^isStatic}}
-      if (fieldName == "{{fieldName}}") runtime.{{fieldName}} = value;
+      if (fieldName == "{{fieldName}}") {{{prefix}}}{{fieldValue}} = value;
     {{/isStatic}}
   {{/setFields}}
 }
@@ -66,11 +66,11 @@ dynamic call(String methodName,[Map args = const {}]) {
 
 const constructorMustache = '''
 
-{{className}}? createRuntimeInstance(String constructorName,[Map args = const {},]) {
+{{{runtimeType}}}? createRuntimeInstance(String constructorName,[Map args = const {},]) {
   {{^isAbstract}}
     {{#constructors}}
       if (constructorName == "{{constructorName}}")
-        return {{className}}{{#isName}}.{{constructorName}}{{/isName}}(
+        return {{runtimeType}}{{#isName}}.{{constructorName}}{{/isName}}(
           {{#parameters}}
             {{#isNamed}}
               {{parameterName}}:{{>createInstanceMustache}}{{>defaultValueMustache}},
@@ -88,7 +88,7 @@ const constructorMustache = '''
 
 const defaultValueMustache = '''
 {{#hasDefaultValue}}
-  ?? {{defaultValueCode}}
+  ?? {{{defaultValueCode}}}
 {{/hasDefaultValue}}
 ''';
 
@@ -105,67 +105,12 @@ dependencies:
   darty_json_safe: ^1.0.1
 ''';
 
-const globalMustache = '''
-// ignore_for_file: implementation_imports, unused_import
-import 'package:flutter_runtime/flutter_runtime.dart';
-import 'package:darty_json_safe/darty_json_safe.dart';
-{{#paths}}
-import '{{{sourcePath}}}';
-{{/paths}}
-
-class \$GlobalRuntime\$ extends FlutterRuntime<dynamic> {
- \$GlobalRuntime\$(super.runtime);
-
-  dynamic call(String methodName, [Map args = const {}]) {
-    {{#functions}}
-      if (methodName == '{{methodName}}') return {{methodName}}(
-    {{#parameters}}
-      {{#isNamed}}
-        {{parameterName}}:{{>createInstanceMustache}}{{>defaultValueMustache}},
-      {{/isNamed}}
-      {{^isNamed}}
-        {{>createInstanceMustache}}{{>defaultValueMustache}},
-      {{/isNamed}}
-    {{/parameters}}
-    );
-    {{/functions}}
-  }
-
-  @override
-  getField(String fieldName) {
-    {{#getFields}}
-        if (fieldName == '{{fieldName}}') return {{fieldValue}};
-    {{/getFields}}
-  }
-    
-  @override
-  void setField(String fieldName, value) {
-    {{#setFields}}
-      if (fieldName == "{{fieldName}}") {{fieldName}} = value;
-    {{/setFields}}
-  }
-
-  dynamic getEnumValue(String enumName, String constructorName) {
-    {{#enums}}
-      if (enumName == "{{enumName}}"){
-        {{#constructors}}
-          if (constructorName == '{{constructorName}}') {
-            return {{enumName}}.{{constructorName}};
-          }
-        {{/constructors}}
-      }
-    {{/enums}}
-    return null;  
-  }
-} 
-''';
-
 const functionMustache = '''
 {{#isCustomCall}}
   if (methodName == '{{methodName}}') return {{{customCallCode}}};
 {{/isCustomCall}}
 {{^isCustomCall}}
-  if (methodName == '{{methodName}}') return runtime.{{methodName}}(
+  if (methodName == '{{methodName}}') return {{{prefix}}}{{methodName}}(
     {{#parameters}}
       {{#isNamed}}
         {{parameterName}}:{{>createInstanceMustache}}{{>defaultValueMustache}},

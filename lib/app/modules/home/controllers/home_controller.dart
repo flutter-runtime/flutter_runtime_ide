@@ -6,7 +6,6 @@ import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'dart:async';
-
 import 'package:process_run/process_run.dart';
 
 class HomeController extends GetxController {
@@ -46,8 +45,10 @@ class HomeController extends GetxController {
   // [packagePath] 第三方库的路径
   FutureOr<void> analyzerPackageCode(String packagePath) async {
     ConverRuntimePackage package = ConverRuntimePackage.fromPath(
-        packagePath.replaceAll("file://", ""),
-        "${platformEnvironment["HOME"]}/.runtime");
+      packagePath.replaceAll("file://", ""),
+      "${platformEnvironment["HOME"]}/.runtime",
+      packageConfig.value!,
+    );
     await package.conver();
   }
 

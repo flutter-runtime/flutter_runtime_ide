@@ -33,4 +33,6 @@ class PackageInfo {
     packageUri = jsonValue["packageUri"].stringValue;
     languageVersion = jsonValue["languageVersion"].stringValue;
   }
+
+  String get packagePath => rootUri.replaceFirst("file://", "");
 }
