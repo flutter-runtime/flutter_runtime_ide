@@ -4,6 +4,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
@@ -40,8 +41,8 @@ class FileRuntimeGenerate {
   String generateCode() {
     for (var unit in units) {
       _classs.addAll(unit.classes.where((element) => !element.name.isPrivate));
-      _extensions
-          .addAll(unit.extensions.where((element) => !element.name!.isPrivate));
+      _extensions.addAll(unit.extensions.where((element) =>
+          Unwrap(element.name).map((e) => !e.isPrivate).defaultValue(true)));
       _topLevelVariables.addAll(
           unit.topLevelVariables.where((element) => !element.name.isPrivate));
       _functions
@@ -52,20 +53,6 @@ class FileRuntimeGenerate {
           .addAll(unit.typeAliases.where((element) => !element.name.isPrivate));
       _accessors
           .addAll(unit.accessors.where((element) => !element.name.isPrivate));
-    }
-    // 验证后续可能存在一样的情况需要修复的逻辑
-    if (units.length != 1) {
-      assertNames(units.map((e) => e.classes.map((e) => e.name)).toList());
-      assertNames(units
-          .map((e) => e.extensions.map((e) => e.name).whereType<String>())
-          .toList());
-      assertNames(
-          units.map((e) => e.topLevelVariables.map((e) => e.name)).toList());
-      assertNames(units.map((e) => e.functions.map((e) => e.name)).toList());
-      assertNames(units.map((e) => e.enums.map((e) => e.name)).toList());
-      assertNames(units.map((e) => e.mixins.map((e) => e.name)).toList());
-      assertNames(units.map((e) => e.typeAliases.map((e) => e.name)).toList());
-      assertNames(units.map((e) => e.accessors.map((e) => e.name)).toList());
     }
     final classes = _classs
         .where((element) {
@@ -82,6 +69,8 @@ class FileRuntimeGenerate {
     classes.add(toGlobalClass());
     classes.addAll(_extensions.map((e) => toExtensionData(e)).toList());
     classes.addAll(_enums.map((e) => toEnumData(e)).toList());
+    classes.addAll(_mixins.map((e) => toMixinData(e)).toList());
+
     final data = {
       "pubName": info.name,
       "classes": classes,
@@ -98,6 +87,8 @@ class FileRuntimeGenerate {
         .whereType<PropertyAccessorElementImpl>()
         .map((e) => toPropertyAccessorData(e))
         .toList();
+    getFields.addAll(_typeAliases.map((e) => toTypeAliasData(e)).toList());
+
     final setFields = _topLevelVariables
         .map((e) => e.setter)
         .whereType<PropertyAccessorElementImpl>()
@@ -197,11 +188,47 @@ class FileRuntimeGenerate {
   }
 
   Map<String, dynamic> toMixinData(MixinElementImpl element) {
-    return {};
+    final getFields = element.fields
+        .map((e) => e.getter)
+        .whereType<PropertyAccessorElementImpl>()
+        .where((element) => !element.name.isPrivate)
+        .map((e) {
+      return toPropertyAccessorData(e);
+    }).toList();
+    final setFields = element.fields
+        .map((e) => e.setter)
+        .whereType<PropertyAccessorElementImpl>()
+        .where((element) => !element.name.isPrivate)
+        .map((e) {
+      return toPropertyAccessorData(e);
+    }).toList();
+    final methods = element.methods
+        .where((element) => !element.isPrivate)
+        .map((e) => toMethodData(e))
+        .toList();
+    final constructors = element.constructors
+        .where((element) => !element.name.isPrivate)
+        .map((e) => toConstructorData(e))
+        .toList();
+    return {
+      "className": '\$${element.name}\$',
+      "getFields": getFields,
+      "setFields": setFields,
+      "methods": methods,
+      "constructors": constructors,
+      "isAbstract": false,
+      'runtimeType': element.name,
+      'prefix': 'runtime.',
+      'staticPrefix': '${element.name}.',
+    };
   }
 
   Map<String, dynamic> toTypeAliasData(TypeAliasElementImpl element) {
-    return {};
+    return {
+      "fieldName": element.name.replaceAll("\$", "\\\$"),
+      'fieldValue': element.name,
+      "isStatic": true,
+    };
   }
 
   Map<String, dynamic> toFunctionData(FunctionElementImpl element) {
@@ -277,12 +304,6 @@ class FileRuntimeGenerate {
     };
   }
 
-  Map<String, dynamic> toTopLevelVariableData(
-    TopLevelVariableElementImpl element,
-  ) {
-    return {};
-  }
-
   Map<String, dynamic> toMethodData(MethodElementImpl element) {
     String? customCallCode;
     if (element.name == '[]=' && element.parameters.length == 2) {
@@ -292,6 +313,9 @@ class FileRuntimeGenerate {
       customCallCode = '''runtime == args['${element.parameters[0].name}']''';
     } else if (element.name == '[]') {
       customCallCode = '''runtime[args['${element.parameters[0].name}']]''';
+    } else if (['<', '<=', '>', '>='].contains(element.name)) {
+      customCallCode =
+          '''runtime ${element.name} args['${element.parameters[0].name}']''';
     }
     final parameters = element.parameters
         .map((e) => toParametersData(e as ParameterElementImpl))
@@ -322,8 +346,8 @@ class FileRuntimeGenerate {
     String readArgCode = '''args['${element.name}']''';
     DartType findType = element.type;
 
-    if (findType is TypeParameterType && findType.bound.name == 'Object') {
-      readArgCode += "as Object";
+    if (findType is TypeParameterType) {
+      readArgCode += "as ${findType.bound.name}";
     }
     // if (isDartCoreObject) {
     //   readArgCode += "as Object";

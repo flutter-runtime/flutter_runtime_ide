@@ -107,10 +107,10 @@ dependencies:
 
 const functionMustache = '''
 {{#isCustomCall}}
-  if (methodName == '{{methodName}}') return {{{customCallCode}}};
+  if (methodName == '{{{methodName}}}') return {{{customCallCode}}};
 {{/isCustomCall}}
 {{^isCustomCall}}
-  if (methodName == '{{methodName}}') return {{>prefixMustache}}{{methodName}}(
+  if (methodName == '{{{methodName}}}') return {{>prefixMustache}}{{{methodName}}}(
     {{#parameters}}
       {{#isNamed}}
         {{parameterName}}:{{>createInstanceMustache}}{{>defaultValueMustache}},
