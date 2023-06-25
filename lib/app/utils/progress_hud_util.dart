@@ -15,16 +15,19 @@ void showProgressHud({
     controller.text(text);
   }
   controller.progress(progress);
+  if (!JSON(Get.isDialogOpen).boolValue) {
+    Get.dialog(const ProgressHudView());
+  }
+
   if (progress >= 1) {
     Future.delayed(const Duration(milliseconds: 500)).then(
       (value) => hideProgressHud(),
     );
   }
-  if (!JSON(Get.isDialogOpen).boolValue) {
-    Get.dialog(const ProgressHudView());
-  }
 }
 
 void hideProgressHud() {
-  Get.back();
+  if (JSON(Get.isDialogOpen).boolValue) {
+    Get.back();
+  }
 }

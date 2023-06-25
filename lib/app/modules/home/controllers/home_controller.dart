@@ -52,6 +52,12 @@ class HomeController extends GetxController {
     await package.conver();
   }
 
+  Future<void> analyzerAllPackageCode() async {
+    for (var package in packageConfig.value!.packages) {
+      await analyzerPackageCode(package.rootUri);
+    }
+  }
+
   search() {
     if (searchController.text.isEmpty) {
       displayPackages.value = packageConfig.value!.packages;

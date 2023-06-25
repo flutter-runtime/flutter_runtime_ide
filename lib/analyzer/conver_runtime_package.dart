@@ -59,6 +59,8 @@ class ConverRuntimePackage {
       return element.packagePath == packagePath;
     });
 
+    showProgressHud(progress: 0, text: '开始分析: $dir');
+
     // 获取到当前需要分析目录下面所有的子元素
     List<FileSystemEntity> entitys =
         await Directory(dir).list(recursive: true).toList();

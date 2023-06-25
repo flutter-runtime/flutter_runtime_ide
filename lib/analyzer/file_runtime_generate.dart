@@ -1,5 +1,7 @@
 // ignore_for_file: implementation_imports
 
+import 'dart:math';
+
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/dart/element/element.dart';
@@ -42,7 +44,7 @@ class FileRuntimeGenerate {
     for (var unit in units) {
       _classs.addAll(unit.classes.where((element) => !element.name.isPrivate));
       _extensions.addAll(unit.extensions.where((element) =>
-          Unwrap(element.name).map((e) => !e.isPrivate).defaultValue(true)));
+          Unwrap(element.name).map((e) => !e.isPrivate).defaultValue(false)));
       _topLevelVariables.addAll(
           unit.topLevelVariables.where((element) => !element.name.isPrivate));
       _functions
@@ -290,6 +292,7 @@ class FileRuntimeGenerate {
         .map((e) {
       importPathSets.add(e);
     });
+
     final runtimeType = element.extendedType.runtimeName;
     return {
       "className": '\$${element.name}\$',
@@ -313,7 +316,7 @@ class FileRuntimeGenerate {
       customCallCode = '''runtime == args['${element.parameters[0].name}']''';
     } else if (element.name == '[]') {
       customCallCode = '''runtime[args['${element.parameters[0].name}']]''';
-    } else if (['<', '<=', '>', '>='].contains(element.name)) {
+    } else if (['<', '<=', '>', '>=', '+', '&', '|'].contains(element.name)) {
       customCallCode =
           '''runtime ${element.name} args['${element.parameters[0].name}']''';
     }
@@ -406,11 +409,16 @@ extension DartTypeName on DartType {
     if (findType.typeArguments.isEmpty) return name0;
     final typeArguments = findType.typeArguments
         .map((e) {
-          if (e is! TypeParameterType) return null;
-          return e.bound.name;
+          if (e is InterfaceType) return e.name;
+          if (e is TypeParameterType) return e.bound.name;
+          if (e is InvalidType) {
+            logger.e(this);
+          }
+          return null;
         })
         .whereType<String>()
         .toList();
+    if (typeArguments.isEmpty) return name0;
     return '$name0<${typeArguments.join(",")}>';
   }
 }

@@ -16,7 +16,10 @@ class HomeView extends GetView<HomeController> {
         title: const Text('首页'),
         centerTitle: true,
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.analytics))
+          IconButton(
+            onPressed: () => controller.analyzerAllPackageCode(),
+            icon: const Icon(Icons.analytics),
+          )
         ],
       ),
       body: Obx(
