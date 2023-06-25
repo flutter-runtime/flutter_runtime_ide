@@ -70,6 +70,7 @@ class FileRuntimeGenerate {
     final classes = _classs
         .where((element) {
           final metadata = element.metadata;
+          if (metadata.isEmpty) return true;
           return metadata.any((element) {
             return (element as ElementAnnotationImpl).annotationAst.name.name !=
                 "visibleForTesting";
@@ -178,10 +179,10 @@ class FileRuntimeGenerate {
         .where((element) => !element.isPrivate)
         .map((e) => toMethodData(e))
         .toList();
-    final constructors = element.constructors
-        .where((element) => !element.name.isPrivate)
-        .map((e) => toConstructorData(e))
-        .toList();
+    // final constructors = element.constructors
+    //     .where((element) => !element.name.isPrivate)
+    //     .map((e) => toConstructorData(e))
+    //     .toList();
     return {
       "className": '\$${element.name}\$',
       "getFields": getFields,
@@ -221,6 +222,7 @@ class FileRuntimeGenerate {
       "parameters": parameters,
       'customCallCode': customCallCode,
       'isCustomCall': customCallCode != null,
+      'isStatic': element.isStatic,
     };
   }
 
@@ -299,6 +301,7 @@ class FileRuntimeGenerate {
       "parameters": parameters,
       'customCallCode': customCallCode,
       'isCustomCall': customCallCode != null,
+      'isStatic': element.isStatic,
     };
   }
 
@@ -325,7 +328,6 @@ class FileRuntimeGenerate {
     // if (isDartCoreObject) {
     //   readArgCode += "as Object";
     // }
-
     final defaultValueImportPath0 = defaultValueImportPath(element);
     if (defaultValueImportPath0 != null) {
       importPathSets.add(defaultValueImportPath0);
@@ -341,15 +343,13 @@ class FileRuntimeGenerate {
   }
 
   String? defaultValueImportPath(ParameterElementImpl element) {
-    if (element.type.name == 'Code') {
-      return null;
-    }
-    if (!element.hasDefaultValue || element is! DefaultParameterElementImpl) {
+    if (!element.hasDefaultValue || element is! ConstVariableElement) {
       return null;
     }
     final constantInitializer = element.constantInitializer;
-    if (constantInitializer == null ||
-        constantInitializer is! PrefixedIdentifier) return null;
+    if (constantInitializer == null || constantInitializer is! Identifier) {
+      return null;
+    }
     final librarySource = constantInitializer.staticElement?.librarySource;
     if (librarySource == null) return null;
     final importPath0 = importPath(librarySource);

@@ -46,10 +46,10 @@ const setFieldMustache = '''
 void setField(String fieldName, dynamic value) {
   {{#setFields}}
     {{#isStatic}}
-      if (fieldName == "{{fieldName}}") {{{prefix}}}{{fieldValue}} = value;
+      if (fieldName == "{{fieldName}}") {{>prefixMustache}}{{fieldValue}} = value;
     {{/isStatic}}
     {{^isStatic}}
-      if (fieldName == "{{fieldName}}") {{{prefix}}}{{fieldValue}} = value;
+      if (fieldName == "{{fieldName}}") {{>prefixMustache}}{{fieldValue}} = value;
     {{/isStatic}}
   {{/setFields}}
 }
@@ -110,7 +110,7 @@ const functionMustache = '''
   if (methodName == '{{methodName}}') return {{{customCallCode}}};
 {{/isCustomCall}}
 {{^isCustomCall}}
-  if (methodName == '{{methodName}}') return {{{prefix}}}{{methodName}}(
+  if (methodName == '{{methodName}}') return {{>prefixMustache}}{{methodName}}(
     {{#parameters}}
       {{#isNamed}}
         {{parameterName}}:{{>createInstanceMustache}}{{>defaultValueMustache}},
@@ -125,4 +125,13 @@ const functionMustache = '''
 
 const createInstanceMustache = '''
 {{{createInstanceCode}}}
+''';
+
+const prefixMustache = '''
+{{#isStatic}}
+{{{staticPrefix}}}
+{{/isStatic}}
+{{^isStatic}}
+{{{prefix}}}
+{{/isStatic}}
 ''';
