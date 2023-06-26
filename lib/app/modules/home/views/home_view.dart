@@ -91,8 +91,10 @@ class HomeView extends GetView<HomeController> {
                           child: Align(
                             alignment: Alignment.centerRight,
                             child: IconButton(
-                              onPressed: () => controller
-                                  .analyzerPackageCode(packageInfo.rootUri),
+                              onPressed: () {
+                                controller
+                                    .analyzerPackageCode(packageInfo.name);
+                              },
                               icon: const Icon(Icons.analytics),
                             ),
                           ),

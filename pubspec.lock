@@ -12,10 +12,9 @@ packages:
   analyzer:
     dependency: "direct main"
     description:
-      name: analyzer
-      sha256: ea3d8652bda62982addfd92fdc2d0214e5f82e43325104990d4f4c4a2a313562
-      url: "https://pub.flutter-io.cn"
-    source: hosted
+      path: "/Users/king/.pub-cache/hosted/pub.flutter-io.cn/analyzer-5.13.0"
+      relative: false
+    source: path
     version: "5.13.0"
   args:
     dependency: transitive

@@ -3,10 +3,10 @@
 import 'dart:math';
 
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
@@ -286,14 +286,7 @@ class FileRuntimeGenerate {
         .where((element) => !element.isPrivate)
         .map((e) => toMethodData(e))
         .toList();
-    Unwrap(element.extendedType.element)
-        .map((e) => e.librarySource)
-        .map((e) => importPath(e))
-        .map((e) {
-      importPathSets.add(e);
-    });
-
-    final runtimeType = element.extendedType.runtimeName;
+    final runtimeType = runtimeNameWithType(element.extendedType);
     return {
       "className": '\$${element.name}\$',
       "getFields": getFields,
@@ -377,38 +370,36 @@ class FileRuntimeGenerate {
     if (constantInitializer == null || constantInitializer is! Identifier) {
       return null;
     }
-    final librarySource = constantInitializer.staticElement?.librarySource;
-    if (librarySource == null) return null;
-    final importPath0 = importPath(librarySource);
+    final library = constantInitializer.staticElement?.library;
+    if (library == null) return null;
+    final importPath0 = importPathFromLibrary(library);
     return importPath0;
   }
 
-  String? importPath(Source source) {
+  String? importPath(String sourcePath) {
     final packages = packageConfig.packages;
     List<PackageInfo> infos = packages.where((element) {
-      return source.fullName
-          .startsWith(element.rootUri.replaceFirst("file://", ""));
+      return sourcePath.startsWith(element.rootUri);
     }).toList();
     if (infos.isEmpty) return null;
     PackageInfo info = infos[0];
-    final path = source.fullName.split("/lib/").last;
+    final path = sourcePath.split("/lib/").last;
     return 'package:${info.name}/$path';
   }
-}
 
-extension StringPrivate on String {
-  bool get isPrivate => startsWith("_");
-}
-
-extension DartTypeName on DartType {
-  String? get runtimeName {
-    final name0 = name;
+  String? runtimeNameWithType(DartType dartType) {
+    Unwrap(importPathFromType(dartType)).map((e) {
+      importPathSets.add(e);
+    });
+    final name0 = dartType.name;
     if (name0 == null) return null;
-    DartType findType = this;
-    if (findType is! InterfaceType) return name0;
-    if (findType.typeArguments.isEmpty) return name0;
-    final typeArguments = findType.typeArguments
+    if (dartType is! InterfaceType) return name0;
+    if (dartType.typeArguments.isEmpty) return name0;
+    final typeArguments = dartType.typeArguments
         .map((e) {
+          Unwrap(importPathFromType(e)).map((e) {
+            importPathSets.add(e);
+          });
           if (e is InterfaceType) return e.name;
           if (e is TypeParameterType) return e.bound.name;
           if (e is InvalidType) {
@@ -421,4 +412,22 @@ extension DartTypeName on DartType {
     if (typeArguments.isEmpty) return name0;
     return '$name0<${typeArguments.join(",")}>';
   }
+
+  String? importPathFromLibrary(LibraryElement library) {
+    if (library.isInSdk) {
+      final names = library.name.split('.');
+      return names.join(":");
+    }
+    return importPath(library.identifier);
+  }
+
+  String? importPathFromType(DartType dartType) {
+    final library = dartType.element?.library;
+    if (library == null) return null;
+    return importPathFromLibrary(library);
+  }
+}
+
+extension StringPrivate on String {
+  bool get isPrivate => startsWith("_");
 }

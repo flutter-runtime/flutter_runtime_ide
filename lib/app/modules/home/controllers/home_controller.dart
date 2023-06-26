@@ -20,6 +20,8 @@ class HomeController extends GetxController {
   // 进行展示的包列表
   var displayPackages = <PackageInfo>[].obs;
 
+  late PackageDependency _dependency;
+
   HomeController() {
     progectPath.value = Get.arguments as String;
     readPackageConfig();
@@ -35,6 +37,20 @@ class HomeController extends GetxController {
       return;
     }
 
+    // 获取依赖详细配置
+    final flutter = await which("flutter");
+    List<ProcessResult> results =
+        await Shell().run('''$flutter pub deps --json''');
+    final result = results[0];
+    if (result.errText.isNotEmpty) {
+      Get.snackbar("错误!", result.errText);
+      return;
+    }
+
+    String depsContent = result.stdout;
+    final depsJson = json.decode(depsContent);
+    _dependency = PackageDependency.fromJson(depsJson);
+
     // 读取文件内容
     String content = await File(packageConfigPath).readAsString();
     packageConfig.value = PackageConfig.fromJson(jsonDecode(content));
@@ -43,18 +59,18 @@ class HomeController extends GetxController {
 
   // 分析第三方库代码
   // [packagePath] 第三方库的路径
-  FutureOr<void> analyzerPackageCode(String packagePath) async {
-    ConverRuntimePackage package = ConverRuntimePackage.fromPath(
-      packagePath.replaceAll("file://", ""),
+  FutureOr<void> analyzerPackageCode(String packageName) async {
+    ConverRuntimePackage package = ConverRuntimePackage(
       "${platformEnvironment["HOME"]}/.runtime",
       packageConfig.value!,
+      _dependency,
     );
-    await package.conver();
+    await package.conver(packageName);
   }
 
   Future<void> analyzerAllPackageCode() async {
     for (var package in packageConfig.value!.packages) {
-      await analyzerPackageCode(package.rootUri);
+      await analyzerPackageCode(package.name);
     }
   }
 

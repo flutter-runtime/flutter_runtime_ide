@@ -9,32 +9,34 @@ class AnalyzerPackageManager {
   static final AnalyzerPackageManager _instance = AnalyzerPackageManager._();
   AnalyzerPackageManager._();
   factory AnalyzerPackageManager() => _instance;
-
-  final Map<String, SomeResolvedLibraryResult> _libraries = {};
+  // 存储每个文件对应解析结果的缓存
+  final Map<String, Map<String, SomeResolvedLibraryResult>> _libraries = {};
+  // 存储每一个库对应分析的上下文
   final Map<String, AnalysisContextCollection> _collections = {};
 
-  Future<SomeResolvedLibraryResult?> getResolvedLibrary(
+  // 根据库的路径和文件的路径获取分析结果
+  // [packagePath] 库对应路径
+  // [libraryPath] 文件对应路径
+  Future<SomeResolvedLibraryResult> getResolvedLibrary(
     String packagePath,
     String libraryPath,
   ) async {
-    final key = _libraryPath(packagePath, libraryPath);
-    if (_libraries.containsKey(key)) {
-      return _libraries[key];
+    Map<String, SomeResolvedLibraryResult> results = this.results(packagePath);
+
+    if (results.containsKey(libraryPath)) {
+      return results[libraryPath]!;
     }
-    final collection = getAnalysisContextCollection(packagePath);
+    final collection = _getAnalysisContextCollection(packagePath);
     final result = await collection
         .contextFor(libraryPath)
         .currentSession
         .getResolvedLibrary(libraryPath);
-    _libraries[key] = result;
+    results[libraryPath] = result;
+    _libraries[packagePath] = results;
     return result;
   }
 
-  String _libraryPath(String packagePath, String libraryPath) {
-    return md5("$packagePath:$libraryPath");
-  }
-
-  AnalysisContextCollection getAnalysisContextCollection(String packagePath) {
+  AnalysisContextCollection _getAnalysisContextCollection(String packagePath) {
     AnalysisContextCollection? collection = _collections[packagePath];
     if (collection != null) {
       return collection;
@@ -45,5 +47,9 @@ class AnalyzerPackageManager {
     );
     _collections[packagePath] = contextCollection;
     return contextCollection;
+  }
+
+  Map<String, SomeResolvedLibraryResult> results(String packagePath) {
+    return _libraries[packagePath] ?? {};
   }
 }

@@ -14,6 +14,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 // import 'package:analyzer/file_system/file_system.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/file_runtime_generate.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
@@ -29,82 +30,45 @@ import 'package:pubspec_parse/pubspec_parse.dart';
 
 // 将指定库转换为运行时库
 class ConverRuntimePackage {
-  // 需要分析库的路径
-  final String packagePath;
-  // 分析的上下文
-  final AnalysisContextCollection analysisContextCollection;
   // 输入的路径
   final String outPutPath;
   // 总体的依赖配置
   final PackageConfig packageConfig;
-
-  late PackageInfo _info;
+  // 存储依赖的层级关系
+  final PackageDependency packageDependency;
 
   /// 创建转换器
-  ConverRuntimePackage.fromPath(
-    this.packagePath,
+  ConverRuntimePackage(
     this.outPutPath,
     this.packageConfig,
-  ) : analysisContextCollection = AnalysisContextCollection(
-          sdkPath: getDartPath(),
-          includedPaths: [join(packagePath, "lib")],
-        );
-
-  FutureOr<void> conver() async {
-    await analysisDartFileFromDir(join(packagePath, "lib"));
-  }
-
-  FutureOr<void> analysisDartFileFromDir(String dir) async {
-    _info = packageConfig.packages.firstWhere((element) {
-      return element.packagePath == packagePath;
-    });
-
-    showProgressHud(progress: 0, text: '开始分析: $dir');
-
-    // 获取到当前需要分析目录下面所有的子元素
-    List<FileSystemEntity> entitys =
-        await Directory(dir).list(recursive: true).toList();
-    int index = 1;
-
-    for (FileSystemEntity entity in entitys) {
-      showProgressHud(progress: index / entitys.length, text: entity.path);
-      if (extension(entity.path) != ".dart") continue;
-      // 根据文件路径获取到分析上下文
-      SomeResolvedLibraryResult result = await getResolvedLibrary(entity.path);
-      if (result is ResolvedLibraryResultImpl) {
-        final units = result.element.units
-            .whereType<CompilationUnitElementImpl>()
-            .toList();
-        final libraryPath =
-            entity.path.split(packageNamePath)[1].replaceFirst("/lib", "");
-        final sourcePath = 'package:${_info.name}$libraryPath';
-        FileRuntimeGenerate generate = FileRuntimeGenerate(
-          sourcePath,
-          packageConfig,
-          _info,
-          units,
-        );
-        final generateCode = generate.generateCode();
-
-        final outFile = "$outPutPath/$packageNamePath${'/lib$libraryPath'}";
-        final file = File(outFile);
-        await file.writeString(generateCode);
-      } else if (result is NotLibraryButPartResult) {
-        logger.v(result);
-      } else {
-        throw UnimplementedError(result.runtimeType.toString());
-      }
-      index++;
+    this.packageDependency,
+  );
+  // 将指定的库转换为运行时库
+  // [packageName] 需要转换的库的名字
+  Future<void> conver(String packageName) async {
+    List<PackageInfo> infos = getPackages(packageName)
+        .map((e) {
+          final packages = packageConfig.packages
+              .where((element) => element.name == e.name)
+              .toList();
+          if (packages.isEmpty) return null;
+          return packages[0];
+        })
+        .whereType<PackageInfo>()
+        .toList();
+    if (infos.isEmpty) return;
+    DateTime start = DateTime.now();
+    for (var info in infos) {
+      _PreAnalysisDartFile analysisDartFile = _PreAnalysisDartFile(info);
+      await analysisDartFile.analysis();
+      final resusts = AnalyzerPackageManager()
+          .results(info.rootUri.replaceFirst("file://", ""));
+      logger.v(resusts);
     }
-
-    await createPubspecFile();
-    hideProgressHud();
-    debugPrint("解析完毕!");
-  }
-
-  Future<SomeResolvedLibraryResult> getResolvedLibrary(String path) async {
-    AnalysisContext context = analysisContextCollection.contextFor(path);
-    return context.currentSession.getResolvedLibrary(path);
+    DateTime end = DateTime.now();
+    logger.i("解析代码完毕, 耗时:${end.difference(start).inMilliseconds}");
+    await _GenerateDartFile(infos[0], outPutPath, packageConfig).analysis();
+    logger.i("生成运行时库完毕");
   }
 
   // 获取路径
@@ -113,18 +77,32 @@ class ConverRuntimePackage {
     return null;
   }
 
-  String get packageNamePath => basename(packagePath);
+  // String get packageNamePath => basename(packagePath);
 
-  Future<void> createPubspecFile() async {
-    final pubspecFile = "$outPutPath/$packageNamePath/pubspec.yaml";
-    final specName = _info.name;
-    final pubspecContent = MustacheManager().render(pubspecMustache, {
-      "pubName": specName,
-      "pubPath": packagePath,
-      'flutterRuntimePath':
-          join(shellEnvironment['PWD']!, 'packages', 'flutter_runtime')
-    });
-    await File(pubspecFile).writeString(pubspecContent);
+  // Future<void> createPubspecFile(PackageInfo info) async {
+  //   final pubspecFile = "$outPutPath/$packageNamePath/pubspec.yaml";
+  //   final specName = info.name;
+  //   final pubspecContent = MustacheManager().render(pubspecMustache, {
+  //     "pubName": specName,
+  //     "pubPath": packagePath,
+  //     'flutterRuntimePath':
+  //         join(shellEnvironment['PWD']!, 'packages', 'flutter_runtime')
+  //   });
+  //   await File(pubspecFile).writeString(pubspecContent);
+  // }
+
+  List<PackageDependencyInfo> getPackages(String packageName) {
+    List<PackageDependencyInfo> packages = [];
+    final info = JSON(packageDependency.packages
+            .where((element) => element.name == packageName)
+            .toList())[0]
+        .rawValue;
+    if (info == null) return packages;
+    packages.add(info);
+    for (var package in info.dependencies) {
+      packages.addAll(getPackages(package));
+    }
+    return packages;
   }
 }
 
@@ -138,5 +116,79 @@ extension FileWriteString on File {
       await create(recursive: true);
     }
     await writeAsString(content);
+  }
+}
+
+abstract class _AnalysisDartFile {
+  final PackageInfo info;
+  late String packagePath;
+  late String analysisDir;
+  _AnalysisDartFile(this.info);
+
+  Future<void> analysis() async {
+    packagePath = info.rootUri.replaceFirst("file://", "");
+    analysisDir = join(packagePath, info.packageUri);
+    // 获取到当前需要分析目录下面所有的子元素
+    List<FileSystemEntity> entitys =
+        await Directory(analysisDir).list(recursive: true).toList();
+    for (FileSystemEntity entity in entitys) {
+      final filePath = entity.path;
+      if (extension(filePath) != ".dart") continue;
+      logger.v(filePath);
+      // 根据文件路径获取到分析上下文
+      await analysisDartFile(filePath);
+    }
+  }
+
+  Future<void> analysisDartFile(String filePath) async {
+    throw UnimplementedError();
+  }
+}
+
+class _PreAnalysisDartFile extends _AnalysisDartFile {
+  _PreAnalysisDartFile(PackageInfo info) : super(info);
+
+  @override
+  Future<void> analysisDartFile(String filePath) async {
+    await AnalyzerPackageManager().getResolvedLibrary(packagePath, filePath);
+  }
+}
+
+class _GenerateDartFile extends _AnalysisDartFile {
+  final String outPutPath;
+  final PackageConfig packageConfig;
+  _GenerateDartFile(PackageInfo info, this.outPutPath, this.packageConfig)
+      : super(info);
+
+  @override
+  Future<void> analysisDartFile(String filePath) async {
+    final result = await AnalyzerPackageManager().getResolvedLibrary(
+      packagePath,
+      filePath,
+    );
+
+    if (result is ResolvedLibraryResultImpl) {
+      final units =
+          result.element.units.whereType<CompilationUnitElementImpl>().toList();
+      final libraryPath =
+          filePath.split(packagePath)[1].replaceFirst("/lib", "");
+      final sourcePath = 'package:${info.name}$libraryPath';
+      FileRuntimeGenerate generate = FileRuntimeGenerate(
+        sourcePath,
+        packageConfig,
+        info,
+        units,
+      );
+      final generateCode = generate.generateCode();
+
+      final outFile =
+          "$outPutPath/${packagePath.split('/').last}${'/lib$libraryPath'}";
+      final file = File(outFile);
+      await file.writeString(generateCode);
+    } else if (result is NotLibraryButPartResult) {
+      logger.v(result);
+    } else {
+      throw UnimplementedError(result.runtimeType.toString());
+    }
   }
 }

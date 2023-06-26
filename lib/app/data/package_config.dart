@@ -36,3 +36,57 @@ class PackageInfo {
 
   String get packagePath => rootUri.replaceFirst("file://", "");
 }
+
+class PackageDependency {
+  late String root;
+  late List<String> executables;
+  late List<PackageDependencyInfo> packages;
+  late List<PackageDependencySDK> sdks;
+
+  PackageDependency.fromJson(Map<String, dynamic> json) {
+    final jsonValue = JSON(json);
+    root = jsonValue["root"].stringValue;
+    executables = jsonValue["executables"]
+        .listValue
+        .map((e) => JSON(e).stringValue)
+        .toList();
+    packages = jsonValue["packages"]
+        .listValue
+        .map((e) => PackageDependencyInfo.fromJson(e))
+        .toList();
+    sdks = jsonValue["sdks"]
+        .listValue
+        .map((e) => PackageDependencySDK.fromJson(e))
+        .toList();
+  }
+}
+
+class PackageDependencyInfo {
+  late String name;
+  late String version;
+  late String kind;
+  late String source;
+  late List<String> dependencies;
+  PackageDependencyInfo.fromJson(Map<String, dynamic> json) {
+    final jsonValue = JSON(json);
+    name = jsonValue["name"].stringValue;
+    version = jsonValue["version"].stringValue;
+    kind = jsonValue["kind"].stringValue;
+    source = jsonValue["source"].stringValue;
+    dependencies = jsonValue["dependencies"]
+        .listValue
+        .map((e) => JSON(e).stringValue)
+        .toList();
+  }
+}
+
+class PackageDependencySDK {
+  late String name;
+  late String version;
+
+  PackageDependencySDK.fromJson(Map<String, dynamic> json) {
+    final jsonValue = JSON(json);
+    name = jsonValue["name"].stringValue;
+    version = jsonValue["version"].stringValue;
+  }
+}

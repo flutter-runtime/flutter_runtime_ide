@@ -13,6 +13,7 @@ dependencies:
   shared_preferences: ^2.1.1
   darty_json_safe: ^1.0.1
   analyzer: ^5.13.0
+
   mustache_template: ^2.0.0
   process_run: ^0.13.0
   liquid_progress_indicator: ^0.4.0
@@ -26,6 +27,10 @@ dev_dependencies:
   flutter_lints: ^2.0.0
   flutter_test:
     sdk: flutter
+
+dependency_overrides:
+  analyzer:
+    path: /Users/king/.pub-cache/hosted/pub.flutter-io.cn/analyzer-5.13.0
 
 flutter:
   uses-material-design: true
