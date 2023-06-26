@@ -29,8 +29,8 @@ dev_dependencies:
     sdk: flutter
 
 dependency_overrides:
-  analyzer:
-    path: /Users/king/.pub-cache/hosted/pub.flutter-io.cn/analyzer-5.13.0
+  # analyzer:
+  #   path: /Users/king/.pub-cache/hosted/pub.flutter-io.cn/analyzer-5.13.0
 
 flutter:
   uses-material-design: true

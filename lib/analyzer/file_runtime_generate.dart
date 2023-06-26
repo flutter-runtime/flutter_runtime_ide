@@ -7,17 +7,21 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
+import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
+import 'package:analyzer/src/dart/analysis/results.dart';
 
 class FileRuntimeGenerate {
   final String sourcePath;
   final PackageConfig packageConfig;
   final PackageInfo info;
-  final List<CompilationUnitElementImpl> units;
+  final ResolvedLibraryResultImpl library;
+  late List<CompilationUnitElementImpl> _units;
 
   final List<ClassElementImpl> _classs = [];
   final List<ExtensionElementImpl> _extensions = [];
@@ -31,17 +35,22 @@ class FileRuntimeGenerate {
 
   Set<String> importPathSets = {};
 
+  List<ImportAnalysis> importAnalysis = [];
+
   FileRuntimeGenerate(
     this.sourcePath,
     this.packageConfig,
     this.info,
-    this.units,
+    this.library,
+    this.importAnalysis,
   ) {
     importPathSets.add(sourcePath);
   }
 
-  String generateCode() {
-    for (var unit in units) {
+  Future<String> generateCode() async {
+    _units =
+        library.element.units.whereType<CompilationUnitElementImpl>().toList();
+    for (var unit in _units) {
       _classs.addAll(unit.classes.where((element) => !element.name.isPrivate));
       _extensions.addAll(unit.extensions.where((element) =>
           Unwrap(element.name).map((e) => !e.isPrivate).defaultValue(false)));

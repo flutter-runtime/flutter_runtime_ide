@@ -16,6 +16,7 @@ import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/file_runtime_generate.dart';
+import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
@@ -27,6 +28,7 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 import 'package:pubspec_parse/pubspec_parse.dart';
+import 'package:analyzer/src/dart/ast/ast.dart';
 
 // 将指定库转换为运行时库
 class ConverRuntimePackage {
@@ -168,18 +170,18 @@ class _GenerateDartFile extends _AnalysisDartFile {
     );
 
     if (result is ResolvedLibraryResultImpl) {
-      final units =
-          result.element.units.whereType<CompilationUnitElementImpl>().toList();
       final libraryPath =
           filePath.split(packagePath)[1].replaceFirst("/lib", "");
       final sourcePath = 'package:${info.name}$libraryPath';
+      final importAnalysisList = await getImportAnalysis(result);
       FileRuntimeGenerate generate = FileRuntimeGenerate(
         sourcePath,
         packageConfig,
         info,
-        units,
+        result,
+        importAnalysisList,
       );
-      final generateCode = generate.generateCode();
+      final generateCode = await generate.generateCode();
 
       final outFile =
           "$outPutPath/${packagePath.split('/').last}${'/lib$libraryPath'}";
@@ -189,6 +191,65 @@ class _GenerateDartFile extends _AnalysisDartFile {
       logger.v(result);
     } else {
       throw UnimplementedError(result.runtimeType.toString());
+    }
+  }
+
+  Future<List<ImportAnalysis>> getImportAnalysis(
+      SomeResolvedLibraryResult result) async {
+    if (result is! ResolvedLibraryResultImpl) return [];
+    List<ImportAnalysis> imports = [];
+    for (var unit in result.units) {
+      for (var element in unit.unit.directives) {
+        if (element is! NamespaceDirectiveImpl) continue;
+        final uriContent = element.uri.stringValue;
+        if (uriContent == 'package:ffi/ffi.dart') {
+          SomeResolvedLibraryResult asResult = await AnalyzerPackageManager()
+              .getResolvedLibrary(packagePath, '');
+        }
+        String? asName;
+        if (element is ImportDirectiveImpl) {
+          asName = element.asKeyword?.stringValue;
+        }
+        final shownNames = element.combinators
+            .whereType<ShowCombinatorImpl>()
+            .map((e) => e.shownNames.map((e) => e.name).toList())
+            .fold<List<String>>(
+          [],
+          (previousValue, element) => previousValue..addAll(element),
+        );
+        final hideNames = element.combinators
+            .whereType<HideCombinatorImpl>()
+            .map((e) => e.hiddenNames.map((e) => e.name).toList())
+            .fold<List<String>>(
+          [],
+          (previousValue, element) => previousValue..addAll(element),
+        );
+        imports.add(ImportAnalysis(
+          uriContent,
+          result,
+          showNames: shownNames,
+          hideNames: hideNames,
+          asName: asName,
+        ));
+      }
+    }
+    return imports;
+  }
+
+  Future<SomeResolvedLibraryResult?> getLibrary(String uriContent) async {
+    if (uriContent.startsWith("package:")) {
+      // package:ffi/ffi.dart
+      final content = uriContent.replaceFirst("package:", "");
+      final contentPaths = content.split('/');
+      final packageName = contentPaths[0];
+      contentPaths.removeAt(0);
+      final info = packageConfig.packages
+          .firstWhere((element) => element.name == packageName);
+      final prefix = info.rootUri.replaceFirst("file://", "").split('lib')[0];
+      final packagePath = join(prefix, 'lib', contentPaths.join('/'));
+      return AnalyzerPackageManager().getResolvedLibrary(prefix, packagePath);
+    } else {
+      return null;
     }
   }
 }

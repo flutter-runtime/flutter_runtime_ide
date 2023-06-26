@@ -1,7 +1,10 @@
 // 用于缓存分析的内容
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
 import 'package:path/path.dart';
+import 'package:analyzer/src/dart/analysis/results.dart';
 
 import '../common/common_function.dart';
 
@@ -22,17 +25,21 @@ class AnalyzerPackageManager {
     String libraryPath,
   ) async {
     Map<String, SomeResolvedLibraryResult> results = this.results(packagePath);
-
+    late SomeResolvedLibraryResult result;
     if (results.containsKey(libraryPath)) {
-      return results[libraryPath]!;
+      result = results[libraryPath]!;
+    } else {
+      final collection = _getAnalysisContextCollection(packagePath);
+      result = await collection
+          .contextFor(libraryPath)
+          .currentSession
+          .getResolvedLibrary(libraryPath);
+      results[libraryPath] = result;
+      _libraries[packagePath] = results;
     }
-    final collection = _getAnalysisContextCollection(packagePath);
-    final result = await collection
-        .contextFor(libraryPath)
-        .currentSession
-        .getResolvedLibrary(libraryPath);
-    results[libraryPath] = result;
-    _libraries[packagePath] = results;
+    if (libraryPath.endsWith('lib/ffi.dart')) {
+      logger.e(libraryPath);
+    }
     return result;
   }
 
