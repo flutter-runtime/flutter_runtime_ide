@@ -4,6 +4,7 @@ import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 
 import 'package:get/get.dart';
+import 'package:loading_indicator/loading_indicator.dart';
 
 import '../controllers/home_controller.dart';
 

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
+import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'dart:async';
@@ -24,7 +25,9 @@ class HomeController extends GetxController {
 
   HomeController() {
     progectPath.value = Get.arguments as String;
-    readPackageConfig();
+    Future.delayed(Duration.zero).then((value) async {
+      await readPackageConfig();
+    });
   }
 
   // 读取当前工程的第三方库的配置
@@ -36,7 +39,7 @@ class HomeController extends GetxController {
       Get.snackbar("错误!", "请先执行 flutter pub get");
       return;
     }
-
+    showHUD();
     // 获取依赖详细配置
     final flutter = await which("flutter");
     List<ProcessResult> results =
@@ -55,6 +58,7 @@ class HomeController extends GetxController {
     String content = await File(packageConfigPath).readAsString();
     packageConfig.value = PackageConfig.fromJson(jsonDecode(content));
     search();
+    hideHUD();
   }
 
   // 分析第三方库代码
@@ -69,6 +73,8 @@ class HomeController extends GetxController {
   }
 
   Future<void> analyzerAllPackageCode() async {
+    showProgressHud();
+    return;
     for (var package in packageConfig.value!.packages) {
       await analyzerPackageCode(package.name);
     }

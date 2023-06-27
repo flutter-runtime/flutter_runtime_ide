@@ -60,17 +60,34 @@ class ConverRuntimePackage {
         .toList();
     if (infos.isEmpty) return;
     DateTime start = DateTime.now();
+    int count = infos.length + 1;
+    double progressIndex = 1.0 / count;
+    double currentProgress = 0;
+    int index = 0;
+    await showProgressHud();
     for (var info in infos) {
       _PreAnalysisDartFile analysisDartFile = _PreAnalysisDartFile(info);
+      analysisDartFile.progress.listen((p0) {
+        double progress = currentProgress + p0 * progressIndex;
+        updateProgressHud(progress: progress);
+      });
       await analysisDartFile.analysis();
-      final resusts = AnalyzerPackageManager()
+      AnalyzerPackageManager()
           .results(info.rootUri.replaceFirst("file://", ""));
-      logger.v(resusts);
+      index += 1;
+      currentProgress = progressIndex * index;
     }
     DateTime end = DateTime.now();
     logger.i("解析代码完毕, 耗时:${end.difference(start).inMilliseconds}");
-    await _GenerateDartFile(infos[0], outPutPath, packageConfig).analysis();
+    _GenerateDartFile analysisDartFile =
+        _GenerateDartFile(infos[0], outPutPath, packageConfig);
+    analysisDartFile.progress.listen((p0) {
+      double progress = currentProgress + p0 * progressIndex;
+      updateProgressHud(progress: progress);
+    });
+    await analysisDartFile.analysis();
     logger.i("生成运行时库完毕");
+    updateProgressHud(progress: 1.0);
   }
 
   // 获取路径
@@ -125,6 +142,7 @@ abstract class _AnalysisDartFile {
   final PackageInfo info;
   late String packagePath;
   late String analysisDir;
+  var progress = 0.0.obs;
   _AnalysisDartFile(this.info);
 
   Future<void> analysis() async {
@@ -133,12 +151,16 @@ abstract class _AnalysisDartFile {
     // 获取到当前需要分析目录下面所有的子元素
     List<FileSystemEntity> entitys =
         await Directory(analysisDir).list(recursive: true).toList();
+    int count = entitys.length;
+    int current = 0;
     for (FileSystemEntity entity in entitys) {
       final filePath = entity.path;
       if (extension(filePath) != ".dart") continue;
       logger.v(filePath);
       // 根据文件路径获取到分析上下文
       await analysisDartFile(filePath);
+      current += 1;
+      progress.value = current / count;
     }
   }
 
@@ -201,11 +223,17 @@ class _GenerateDartFile extends _AnalysisDartFile {
     for (var unit in result.units) {
       for (var element in unit.unit.directives) {
         if (element is! NamespaceDirectiveImpl) continue;
-        final uriContent = element.uri.stringValue;
-        if (uriContent == 'package:ffi/ffi.dart') {
-          SomeResolvedLibraryResult asResult = await AnalyzerPackageManager()
-              .getResolvedLibrary(packagePath, '');
-        }
+        final uriContent = Unwrap(element.element).map((e) {
+              if (e is! LibraryImportElementImpl) return null;
+              final fullName = e.importedLibrary?.source.fullName;
+              if (fullName == null) return fullName;
+              final infos = packageConfig.packages
+                  .where((e) => fullName.startsWith(e.packageUri))
+                  .toList();
+              if (infos.isEmpty) return null;
+              return 'package:${infos[0].name}lib/${fullName.split('lib')[1]}';
+            }).value ??
+            element.uri.stringValue;
         String? asName;
         if (element is ImportDirectiveImpl) {
           asName = element.asKeyword?.stringValue;
@@ -226,7 +254,6 @@ class _GenerateDartFile extends _AnalysisDartFile {
         );
         imports.add(ImportAnalysis(
           uriContent,
-          result,
           showNames: shownNames,
           hideNames: hideNames,
           asName: asName,

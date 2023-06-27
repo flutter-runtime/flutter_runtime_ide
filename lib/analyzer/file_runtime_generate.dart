@@ -45,6 +45,7 @@ class FileRuntimeGenerate {
     this.importAnalysis,
   ) {
     importPathSets.add(sourcePath);
+    importAnalysis.add(ImportAnalysis(sourcePath));
   }
 
   Future<String> generateCode() async {
@@ -87,7 +88,17 @@ class FileRuntimeGenerate {
       "classes": classes,
     };
     // logger.e(importPathSets);
-    final pathDatas = importPathSets.map((e) => {"sourcePath": e}).toList();
+    final pathDatas = importAnalysis.map((e) {
+      return {
+        "sourcePath": e.uriContent,
+        'asName': e.asName,
+        'hasAsName': e.asName != null,
+        'hasShowNames': e.showNames.isNotEmpty,
+        'hasHideNames': e.hideNames.isNotEmpty,
+        'showContent': e.showNames.join(","),
+        'hideContent': e.hideNames.join(','),
+      };
+    }).toList();
     data['paths'] = pathDatas;
     return MustacheManager().render(fileMustache, data);
   }
