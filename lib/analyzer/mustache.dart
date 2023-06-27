@@ -136,3 +136,10 @@ const prefixMustache = '''
 {{{prefix}}}
 {{/isStatic}}
 ''';
+
+const importMustache = '''
+import '{{{uriContent}}} {{#hasAsName}}as {{asName}}{{/hasAsName}}'
+{{#hasShowNames}}{{/hasShowNames}} show {{{showContent}}}
+{{#hasHideNames}}{{/hasHideNames}} hide {{{hideContent}}}
+;
+''';
