@@ -2,6 +2,7 @@
 
 import 'dart:math';
 
+import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
@@ -15,6 +16,7 @@ import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:analyzer/src/generated/source.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:analyzer/src/dart/analysis/results.dart';
+import 'package:analyzer/src/dart/ast/ast.dart';
 
 class FileRuntimeGenerate {
   final String sourcePath;
@@ -66,6 +68,7 @@ class FileRuntimeGenerate {
       _accessors
           .addAll(unit.accessors.where((element) => !element.name.isPrivate));
     }
+
     final classes = _classs
         .where((element) {
           final metadata = element.metadata;
@@ -138,6 +141,9 @@ class FileRuntimeGenerate {
   }
 
   Map<String, dynamic> toClassData(ClassElementImpl element) {
+    bool isStructAndUnionSubClass =
+        ['Struct', 'Union'].contains(element.supertype?.name);
+
     final getFields = element.fields
         .map((e) => e.getter)
         .whereType<PropertyAccessorElementImpl>()
@@ -158,6 +164,12 @@ class FileRuntimeGenerate {
         .toList();
     final constructors = element.constructors
         .where((element) => !element.name.isPrivate)
+        .where((element) {
+          if (element.name == '' && isStructAndUnionSubClass) {
+            return false;
+          }
+          return true;
+        })
         .map((e) => toConstructorData(e))
         .toList();
     return {
@@ -306,7 +318,11 @@ class FileRuntimeGenerate {
         .where((element) => !element.isPrivate)
         .map((e) => toMethodData(e))
         .toList();
-    final runtimeType = runtimeNameWithType(element.extendedType);
+    // final runtimeType = runtimeNameWithType(element.extendedType);
+    final runtimeType = Unwrap(element.name)
+        .map((e) => getExtensionDeclaration(e))
+        .map((e) => getExtensionOnType(e))
+        .value;
     return {
       "className": '\$${element.name}\$',
       "getFields": getFields,
@@ -445,6 +461,25 @@ class FileRuntimeGenerate {
     final library = dartType.element?.library;
     if (library == null) return null;
     return importPathFromLibrary(library);
+  }
+
+  ExtensionDeclarationImpl? getExtensionDeclaration(
+    String name,
+  ) {
+    final impls = library.units.map((e) {
+      return e.unit.declarations
+          .whereType<ExtensionDeclarationImpl>()
+          .where((element) => element.name?.lexeme == name)
+          .toList();
+    }).fold<List<ExtensionDeclarationImpl>>([],
+        (previousValue, element) => previousValue..addAll(element)).toList();
+    if (impls.isEmpty) return null;
+    return impls.first;
+  }
+
+  String? getExtensionOnType(ExtensionDeclarationImpl impl) {
+    final type = impl.extendedType;
+    return type.toSource();
   }
 }
 

@@ -86,6 +86,7 @@ class ConverRuntimePackage {
       updateProgressHud(progress: progress);
     });
     await analysisDartFile.analysis();
+    await createPubspecFile(infos[0]);
     logger.i("生成运行时库完毕");
     updateProgressHud(progress: 1.0);
   }
@@ -96,19 +97,19 @@ class ConverRuntimePackage {
     return null;
   }
 
-  // String get packageNamePath => basename(packagePath);
-
-  // Future<void> createPubspecFile(PackageInfo info) async {
-  //   final pubspecFile = "$outPutPath/$packageNamePath/pubspec.yaml";
-  //   final specName = info.name;
-  //   final pubspecContent = MustacheManager().render(pubspecMustache, {
-  //     "pubName": specName,
-  //     "pubPath": packagePath,
-  //     'flutterRuntimePath':
-  //         join(shellEnvironment['PWD']!, 'packages', 'flutter_runtime')
-  //   });
-  //   await File(pubspecFile).writeString(pubspecContent);
-  // }
+  Future<void> createPubspecFile(PackageInfo info) async {
+    String packagePath = info.rootUri.replaceFirst("file://", '');
+    String packageNamePath = basename(packagePath);
+    final pubspecFile = "$outPutPath/$packageNamePath/pubspec.yaml";
+    final specName = info.name;
+    final pubspecContent = MustacheManager().render(pubspecMustache, {
+      "pubName": specName,
+      "pubPath": packagePath,
+      'flutterRuntimePath':
+          join(shellEnvironment['PWD']!, 'packages', 'flutter_runtime')
+    });
+    await File(pubspecFile).writeString(pubspecContent);
+  }
 
   List<PackageDependencyInfo> getPackages(String packageName) {
     List<PackageDependencyInfo> packages = [];
@@ -228,10 +229,10 @@ class _GenerateDartFile extends _AnalysisDartFile {
               final fullName = e.importedLibrary?.source.fullName;
               if (fullName == null) return fullName;
               final infos = packageConfig.packages
-                  .where((e) => fullName.startsWith(e.packageUri))
+                  .where((e) => fullName.startsWith(e.packagePath))
                   .toList();
               if (infos.isEmpty) return null;
-              return 'package:${infos[0].name}lib/${fullName.split('lib')[1]}';
+              return 'package:${infos[0].name}${fullName.split('lib')[1]}';
             }).value ??
             element.uri.stringValue;
         String? asName;

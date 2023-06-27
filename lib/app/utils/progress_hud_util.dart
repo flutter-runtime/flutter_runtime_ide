@@ -13,7 +13,10 @@ Future<void> showProgressHud() async {
   ProgressHudViewController controller = Get.find<ProgressHudViewController>();
   controller.reset();
   if (!JSON(Get.isDialogOpen).boolValue) {
-    Get.dialog(const ProgressHudView());
+    Get.dialog(
+      const ProgressHudView(),
+      transitionDuration: Duration.zero,
+    );
     await Future.delayed(Get.defaultDialogTransitionDuration);
   }
 }
