@@ -29,6 +29,7 @@ import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 import 'package:pubspec_parse/pubspec_parse.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
+import 'package:analyzer/src/dart/resolver/scope.dart';
 
 // 将指定库转换为运行时库
 class ConverRuntimePackage {
@@ -223,22 +224,25 @@ class _GenerateDartFile extends _AnalysisDartFile {
     List<ImportAnalysis> imports = [];
     for (var unit in result.units) {
       for (var element in unit.unit.directives) {
-        if (element is! NamespaceDirectiveImpl) continue;
+        if (element is! ImportDirectiveImpl) continue;
         final uriContent = Unwrap(element.element).map((e) {
-              if (e is! LibraryImportElementImpl) return null;
               final fullName = e.importedLibrary?.source.fullName;
               if (fullName == null) return fullName;
+
               final infos = packageConfig.packages
                   .where((e) => fullName.startsWith(e.packagePath))
                   .toList();
               if (infos.isEmpty) return null;
-              return 'package:${infos[0].name}${fullName.split('lib')[1]}';
+              return 'package:${infos[0].name}/${fullName.split('/lib/')[1]}';
             }).value ??
             element.uri.stringValue;
-        String? asName;
-        if (element is ImportDirectiveImpl) {
-          asName = element.asKeyword?.stringValue;
-        }
+        Namespace? nameSpace = await Unwrap(uriContent).map((e) async {
+          final result = await getLibrary(e);
+          if (result is! ResolvedLibraryResultImpl) return null;
+          return result.element.exportNamespace;
+        }).value;
+
+        String? asName = element.prefix?.name;
         final shownNames = element.combinators
             .whereType<ShowCombinatorImpl>()
             .map((e) => e.shownNames.map((e) => e.name).toList())
@@ -258,6 +262,7 @@ class _GenerateDartFile extends _AnalysisDartFile {
           showNames: shownNames,
           hideNames: hideNames,
           asName: asName,
+          exportNamespace: nameSpace,
         ));
       }
     }
@@ -265,6 +270,8 @@ class _GenerateDartFile extends _AnalysisDartFile {
   }
 
   Future<SomeResolvedLibraryResult?> getLibrary(String uriContent) async {
+    String? packagePath;
+    String? libraryPath;
     if (uriContent.startsWith("package:")) {
       // package:ffi/ffi.dart
       final content = uriContent.replaceFirst("package:", "");
@@ -273,11 +280,13 @@ class _GenerateDartFile extends _AnalysisDartFile {
       contentPaths.removeAt(0);
       final info = packageConfig.packages
           .firstWhere((element) => element.name == packageName);
-      final prefix = info.rootUri.replaceFirst("file://", "").split('lib')[0];
-      final packagePath = join(prefix, 'lib', contentPaths.join('/'));
-      return AnalyzerPackageManager().getResolvedLibrary(prefix, packagePath);
-    } else {
-      return null;
+      packagePath = info.rootUri.replaceFirst("file://", "").split('lib')[0];
+      libraryPath = join(packagePath, 'lib', contentPaths.join('/'));
     }
+    if (packagePath == null || libraryPath == null) return null;
+    return AnalyzerPackageManager().getResolvedLibrary(
+      packagePath,
+      libraryPath,
+    );
   }
 }

@@ -19,7 +19,7 @@ import 'dart:async';
 import 'package:flutter_runtime/flutter_runtime.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 {{#paths}}
-import '{{{sourcePath}}}';
+{{>importMustache}}
 {{/paths}}
 
 {{#classes}}
@@ -66,7 +66,7 @@ dynamic call(String methodName,[Map args = const {}]) {
 
 const constructorMustache = '''
 
-{{{runtimeType}}}? createRuntimeInstance(String constructorName,[Map args = const {},]) {
+{{{instanceType}}} createRuntimeInstance(String constructorName,[Map args = const {},]) {
   {{^isAbstract}}
     {{#constructors}}
       if (constructorName == "{{constructorName}}")
@@ -138,8 +138,9 @@ const prefixMustache = '''
 ''';
 
 const importMustache = '''
-import '{{{uriContent}}} {{#hasAsName}}as {{asName}}{{/hasAsName}}'
-{{#hasShowNames}}{{/hasShowNames}} show {{{showContent}}}
-{{#hasHideNames}}{{/hasHideNames}} hide {{{hideContent}}}
+import '{{{uriContent}}}'
+{{#hasAsName}} as {{asName}}{{/hasAsName}}
+{{#hasShowNames}} show {{{showContent}}}{{/hasShowNames}} 
+{{#hasHideNames}} hide {{{hideContent}}}{{/hasHideNames}} 
 ;
 ''';

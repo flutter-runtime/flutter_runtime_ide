@@ -37,9 +37,6 @@ class AnalyzerPackageManager {
       results[libraryPath] = result;
       _libraries[packagePath] = results;
     }
-    if (libraryPath.endsWith('lib/ffi.dart')) {
-      logger.e(libraryPath);
-    }
     return result;
   }
 

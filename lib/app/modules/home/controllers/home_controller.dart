@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
+import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'dart:async';
@@ -69,7 +70,15 @@ class HomeController extends GetxController {
       packageConfig.value!,
       _dependency,
     );
-    await package.conver(packageName);
+    try {
+      await package.conver(packageName);
+    } catch (e) {
+      if (e is Error) {
+        logger.e(e.stackTrace.toString());
+      } else {
+        logger.e(e.toString());
+      }
+    }
   }
 
   Future<void> analyzerAllPackageCode() async {

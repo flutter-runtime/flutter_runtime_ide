@@ -25,5 +25,6 @@ class MustacheManager {
         "functionMustache": functionMustache,
         "createInstanceMustache": createInstanceMustache,
         'prefixMustache': prefixMustache,
+        'importMustache': importMustache,
       };
 }

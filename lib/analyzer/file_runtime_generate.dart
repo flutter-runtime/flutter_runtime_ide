@@ -17,6 +17,7 @@ import 'package:analyzer/src/generated/source.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:analyzer/src/dart/analysis/results.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
+import 'package:process_run/process_run.dart';
 
 class FileRuntimeGenerate {
   final String sourcePath;
@@ -47,7 +48,9 @@ class FileRuntimeGenerate {
     this.importAnalysis,
   ) {
     importPathSets.add(sourcePath);
-    importAnalysis.add(ImportAnalysis(sourcePath));
+    importAnalysis.add(ImportAnalysis(
+      sourcePath,
+    ));
   }
 
   Future<String> generateCode() async {
@@ -68,6 +71,8 @@ class FileRuntimeGenerate {
       _accessors
           .addAll(unit.accessors.where((element) => !element.name.isPrivate));
     }
+
+    await addImportHideNames();
 
     final classes = _classs
         .where((element) {
@@ -93,7 +98,7 @@ class FileRuntimeGenerate {
     // logger.e(importPathSets);
     final pathDatas = importAnalysis.map((e) {
       return {
-        "sourcePath": e.uriContent,
+        "uriContent": e.uriContent,
         'asName': e.asName,
         'hasAsName': e.asName != null,
         'hasShowNames': e.showNames.isNotEmpty,
@@ -128,6 +133,7 @@ class FileRuntimeGenerate {
       "constructors": [],
       "isAbstract": false,
       'runtimeType': 'dynamic',
+      'instanceType': 'dynamic',
       'prefix': '',
       'staticPrefix': '',
     };
@@ -180,6 +186,7 @@ class FileRuntimeGenerate {
       "constructors": constructors,
       "isAbstract": element.isAbstract,
       'runtimeType': element.name,
+      'instanceType': '${element.name}?',
       'prefix': 'runtime.',
       'staticPrefix': '${element.name}.',
     };
@@ -216,6 +223,7 @@ class FileRuntimeGenerate {
       "constructors": [],
       "isAbstract": false,
       'runtimeType': element.name,
+      'instanceType': "${element.name}?",
       'prefix': 'runtime.',
       'staticPrefix': '${element.name}.',
     };
@@ -252,6 +260,7 @@ class FileRuntimeGenerate {
       "constructors": constructors,
       "isAbstract": false,
       'runtimeType': element.name,
+      'instanceType': '${element.name}?',
       'prefix': 'runtime.',
       'staticPrefix': '${element.name}.',
     };
@@ -323,6 +332,11 @@ class FileRuntimeGenerate {
         .map((e) => getExtensionDeclaration(e))
         .map((e) => getExtensionOnType(e))
         .value;
+
+    String? instanceType = Unwrap(runtimeType).map((e) {
+      if (e.endsWith("?")) return e;
+      return "$e?";
+    }).value;
     return {
       "className": '\$${element.name}\$',
       "getFields": getFields,
@@ -331,6 +345,7 @@ class FileRuntimeGenerate {
       "constructors": [],
       "isAbstract": false,
       'runtimeType': runtimeType,
+      'instanceType': instanceType,
       'prefix': '${element.name}(runtime).',
       'staticPrefix': '${element.name}.',
     };
@@ -376,14 +391,12 @@ class FileRuntimeGenerate {
     ParameterElementImpl element,
   ) {
     String readArgCode = '''args['${element.name}']''';
-    DartType findType = element.type;
-
-    if (findType is TypeParameterType) {
-      readArgCode += "as ${findType.bound.name}";
+    String? displayTypeString =
+        element.getDisplayString(withNullability: false);
+    if (displayTypeString.contains('InvalidType')) {
+      displayTypeString = getParameterTypeString(element);
     }
-    // if (isDartCoreObject) {
-    //   readArgCode += "as Object";
-    // }
+    readArgCode += ' as $displayTypeString';
     final defaultValueImportPath0 = defaultValueImportPath(element);
     if (defaultValueImportPath0 != null) {
       importPathSets.add(defaultValueImportPath0);
@@ -466,8 +479,13 @@ class FileRuntimeGenerate {
   ExtensionDeclarationImpl? getExtensionDeclaration(
     String name,
   ) {
+    if (name == 'Join') {
+      logger.e(library);
+    }
     final impls = library.units.map((e) {
-      return e.unit.declarations
+      final declarations = e.unit.declarations.toList();
+
+      return declarations
           .whereType<ExtensionDeclarationImpl>()
           .where((element) => element.name?.lexeme == name)
           .toList();
@@ -478,8 +496,151 @@ class FileRuntimeGenerate {
   }
 
   String? getExtensionOnType(ExtensionDeclarationImpl impl) {
+    final typeParameters = <String, dynamic>{};
+    Unwrap(impl.typeParameters).map((e) {
+      for (TypeParameterImpl e in e.typeParameters) {
+        final name = e.name.lexeme;
+        final type = getTypeArgumentName(e);
+        typeParameters[name] = type;
+      }
+      return e.typeParameters;
+    });
     final type = impl.extendedType;
-    return type.toSource();
+    var source = type.toSource();
+    for (var element in typeParameters.keys) {
+      source = source.replaceAll(element, typeParameters[element]);
+    }
+    return source;
+  }
+
+  // 给引入的库隐藏对应的名字 防止命名冲突
+  Future<void> addImportHideNames() async {
+    final needHideNames = <String>[];
+    needHideNames.addAll(_classs.map((e) => e.name).toList());
+    needHideNames
+        .addAll(_extensions.map((e) => e.name).whereType<String>().toList());
+
+    for (var analysis in importAnalysis) {
+      if (analysis.showNames.isNotEmpty || analysis.hideNames.isNotEmpty) {
+        continue;
+      }
+      List<String> hideNames = [];
+
+      for (var name in needHideNames) {
+        final exportNames = analysis.exportNamespace?.definedNames.keys ?? [];
+        if (exportNames.contains(name)) {
+          hideNames.add(name);
+        }
+      }
+      analysis.hideNames = hideNames;
+    }
+  }
+
+  String? getTypeArgumentName(TypeParameterImpl impl) {
+    final bound = impl.bound;
+    if (bound == null) return 'dynamic';
+    if (bound is NamedTypeImpl) return bound.name2.lexeme;
+    if (bound is TypeParameterImpl) {
+      return getTypeArgumentName(bound as TypeParameterImpl);
+    }
+    throw UnimplementedError();
+  }
+
+  String? getParameterTypeString(ParameterElementImpl elementImpl) {
+    List<Element?> elements = [elementImpl];
+    var element = elementImpl.enclosingElement;
+    while (element != null && element is! CompilationUnitElementImpl) {
+      elements.add(element);
+      element = element.enclosingElement;
+    }
+    elements = elements.reversed.toList();
+    if (elements.isEmpty) return null;
+    AstNode? member;
+    for (var e in elements) {
+      if (e is ClassElementImpl) {
+        final classs = library.units.map((element) {
+          return element.unit.declarations
+              .whereType<ClassDeclarationImpl>()
+              .where((element) => element.name.lexeme == e.name)
+              .toList();
+        }).fold<List<ClassDeclarationImpl>>([], (previousValue, element) {
+          return previousValue..addAll(element);
+        }).toList();
+        if (classs.isEmpty) return null;
+        member = classs.first;
+      } else if (e is MethodElementImpl) {
+        if (member != null && member is ClassDeclarationImpl) {
+          final methods = member.members
+              .whereType<MethodDeclarationImpl>()
+              .where((element) => element.name.lexeme == e.name)
+              .toList();
+          if (methods.isEmpty) return null;
+          member = methods.first;
+        } else {
+          throw UnimplementedError(e.toString());
+        }
+      } else if (e is ConstructorElementImpl) {
+        if (member != null && member is ClassDeclarationImpl) {
+          final constructors = member.members
+              .whereType<ConstructorDeclarationImpl>()
+              .where((element) => element.name?.lexeme == e.name)
+              .toList();
+          if (constructors.isEmpty) return null;
+          member = constructors.first;
+        } else {
+          throw UnimplementedError(e.toString());
+        }
+      } else if (e is FunctionElementImpl) {
+        final functions = library.units.map((element) {
+          return element.unit.declarations
+              .whereType<FunctionDeclarationImpl>()
+              .where((element) => element.name.lexeme == e.name);
+        }).fold<List<FunctionDeclarationImpl>>([], (previousValue, element) {
+          return previousValue..addAll(element);
+        });
+        if (functions.isEmpty) return null;
+        member = functions.first;
+      } else if (e is ParameterElementImpl) {
+        List<FormalParameterImpl> parameters;
+        if (member != null && member is MethodDeclarationImpl) {
+          parameters = member.parameters?.parameters.toList() ?? [];
+          // parameters = parameters.where((element) {
+          //   if (element is DefaultFormalParameterImpl) {
+          //     return element.name?.lexeme == e.name;
+          //   } else {
+          //     throw UnimplementedError(element.toString());
+          //   }
+          // }).toList();
+          // if (parameters.isEmpty) return null;
+          // member = parameters.first;
+        } else if (member != null && member is FunctionDeclarationImpl) {
+          parameters = member.functionExpression.parameters?.parameters ?? [];
+        } else {
+          throw UnimplementedError(e.toString());
+        }
+        parameters = parameters.where((element) {
+          return element.name?.lexeme == e.name;
+        }).toList();
+        if (parameters.isEmpty) return null;
+        member = parameters.first;
+      }
+    }
+    if (member == null || member is! FormalParameterImpl) return null;
+    if (member is DefaultFormalParameterImpl) {
+      final parameter = member.parameter;
+      if (parameter is SimpleFormalParameterImpl) {
+        final type = parameter.type;
+        if (type is NamedTypeImpl) {
+          return type.name2.lexeme;
+        } else {
+          throw UnimplementedError(type.toString());
+        }
+      } else {
+        throw UnimplementedError(parameter.toString());
+      }
+    } else {
+      throw UnimplementedError(member.toString());
+    }
   }
 }
 
