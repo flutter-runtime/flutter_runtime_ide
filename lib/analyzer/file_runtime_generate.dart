@@ -391,12 +391,14 @@ class FileRuntimeGenerate {
     ParameterElementImpl element,
   ) {
     String readArgCode = '''args['${element.name}']''';
-    String? displayTypeString =
-        element.getDisplayString(withNullability: false);
-    if (displayTypeString.contains('InvalidType')) {
+    String? displayTypeString = getBoundName(element.type);
+    if (displayTypeString?.contains('InvalidType') ?? false) {
       displayTypeString = getParameterTypeString(element);
     }
-    readArgCode += ' as $displayTypeString';
+    if (displayTypeString == 'Object') {
+      readArgCode += ' as $displayTypeString';
+    }
+    // readArgCode += ' as $displayTypeString';
     final defaultValueImportPath0 = defaultValueImportPath(element);
     if (defaultValueImportPath0 != null) {
       importPathSets.add(defaultValueImportPath0);
@@ -409,6 +411,14 @@ class FileRuntimeGenerate {
       "createInstanceCode": readArgCode,
       // 'isDartCoreObject': element.type.isDartCoreObject,
     };
+  }
+
+  String? getBoundName(DartType type) {
+    if (type is TypeParameterType) {
+      return getBoundName(type.bound);
+    } else {
+      return type.toString();
+    }
   }
 
   String? defaultValueImportPath(ParameterElementImpl element) {
@@ -625,21 +635,22 @@ class FileRuntimeGenerate {
         member = parameters.first;
       }
     }
-    if (member == null || member is! FormalParameterImpl) return null;
+    if (member == null) return null;
+    var parameter = member;
     if (member is DefaultFormalParameterImpl) {
-      final parameter = member.parameter;
-      if (parameter is SimpleFormalParameterImpl) {
-        final type = parameter.type;
-        if (type is NamedTypeImpl) {
-          return type.name2.lexeme;
-        } else {
-          throw UnimplementedError(type.toString());
-        }
+      parameter = member.parameter;
+    }
+    if (parameter is SimpleFormalParameter) {
+      final type = parameter.type;
+      if (type is NamedTypeImpl) {
+        return type.toSource();
+      } else if (type is GenericFunctionTypeImpl) {
+        return 'dynamic';
       } else {
-        throw UnimplementedError(parameter.toString());
+        throw UnimplementedError(type.toString());
       }
     } else {
-      throw UnimplementedError(member.toString());
+      throw UnimplementedError();
     }
   }
 }
