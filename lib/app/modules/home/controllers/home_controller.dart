@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
@@ -58,6 +59,10 @@ class HomeController extends GetxController {
     // 读取文件内容
     String content = await File(packageConfigPath).readAsString();
     packageConfig.value = PackageConfig.fromJson(jsonDecode(content));
+
+    // 读取修复的配置
+    await AnalyzerPackageManager().loadFixRuntimeConfiguration(
+        join(platformEnvironment["HOME"]!, '.runtime'));
     search();
     hideHUD();
   }

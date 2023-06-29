@@ -9,6 +9,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
+import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
@@ -24,6 +25,7 @@ class FileRuntimeGenerate {
   final PackageConfig packageConfig;
   final PackageInfo info;
   final ResolvedLibraryResultImpl library;
+  final FixConfig? fixConfig;
   late List<CompilationUnitElementImpl> _units;
 
   final List<ClassElementImpl> _classs = [];
@@ -45,8 +47,9 @@ class FileRuntimeGenerate {
     this.packageConfig,
     this.info,
     this.library,
-    this.importAnalysis,
-  ) {
+    this.importAnalysis, {
+    this.fixConfig,
+  }) {
     importPathSets.add(sourcePath);
     importAnalysis.add(ImportAnalysis(
       sourcePath,
@@ -74,17 +77,16 @@ class FileRuntimeGenerate {
 
     await addImportHideNames();
 
-    final classes = _classs
-        .where((element) {
-          final metadata = element.metadata;
-          if (metadata.isEmpty) return true;
-          return metadata.any((element) {
-            return (element as ElementAnnotationImpl).annotationAst.name.name !=
-                "visibleForTesting";
-          });
-        })
-        .map((e) => toClassData(e))
-        .toList();
+    final classes = _classs.where((element) {
+      final metadata = element.metadata;
+      if (metadata.isEmpty) return true;
+      return metadata.any((element) {
+        return (element as ElementAnnotationImpl).annotationAst.name.name !=
+            "visibleForTesting";
+      });
+    }).map((e) {
+      return toClassData(e, classConfig: fixConfig?.getClassConfig(e.name));
+    }).toList();
     // assert(_extensions.isEmpty);
     classes.add(toGlobalClass());
     classes.addAll(_extensions.map((e) => toExtensionData(e)).toList());
@@ -146,7 +148,10 @@ class FileRuntimeGenerate {
     assert(allNames.length == filterNames.length);
   }
 
-  Map<String, dynamic> toClassData(ClassElementImpl element) {
+  Map<String, dynamic> toClassData(
+    ClassElementImpl element, {
+    FixClassConfig? classConfig,
+  }) {
     bool isStructAndUnionSubClass =
         ['Struct', 'Union'].contains(element.supertype?.name);
 
@@ -164,10 +169,11 @@ class FileRuntimeGenerate {
         .map((e) {
       return toPropertyAccessorData(e);
     }).toList();
-    final methods = element.methods
-        .where((element) => !element.isPrivate)
-        .map((e) => toMethodData(e))
-        .toList();
+    final methods =
+        element.methods.where((element) => !element.isPrivate).map((e) {
+      return toMethodData(e,
+          methodConfig: classConfig?.getMethodConfig(e.name));
+    }).toList();
     final constructors = element.constructors
         .where((element) => !element.name.isPrivate)
         .where((element) {
@@ -351,7 +357,10 @@ class FileRuntimeGenerate {
     };
   }
 
-  Map<String, dynamic> toMethodData(MethodElementImpl element) {
+  Map<String, dynamic> toMethodData(
+    MethodElementImpl element, {
+    FixMethodConfig? methodConfig,
+  }) {
     String? customCallCode;
     if (element.name == '[]=' && element.parameters.length == 2) {
       customCallCode =
@@ -364,9 +373,10 @@ class FileRuntimeGenerate {
       customCallCode =
           '''runtime ${element.name} args['${element.parameters[0].name}']''';
     }
-    final parameters = element.parameters
-        .map((e) => toParametersData(e as ParameterElementImpl))
-        .toList();
+    final parameters = element.parameters.map((e) {
+      return toParametersData(e as ParameterElementImpl,
+          parameterConfig: methodConfig?.getParameterConfig(e.name));
+    }).toList();
     return {
       "methodName": element.name,
       "parameters": parameters,
@@ -388,21 +398,30 @@ class FileRuntimeGenerate {
   }
 
   Map<String, dynamic> toParametersData(
-    ParameterElementImpl element,
-  ) {
+    ParameterElementImpl element, {
+    FixParameterConfig? parameterConfig,
+  }) {
     String readArgCode = '''args['${element.name}']''';
-    String? displayTypeString = getBoundName(element.type);
-    if (displayTypeString?.contains('InvalidType') ?? false) {
-      displayTypeString = getParameterTypeString(element);
+    // String? displayTypeString = getTypeDisplayName(element.type);
+
+    // if (displayTypeString?.contains('InvalidType') ?? false) {
+    //   displayTypeString = getParameterTypeString(element);
+    // }
+    // if (displayTypeString == 'Object') {
+    //   readArgCode += ' as $displayTypeString';
+    // }
+    final asName = getParameterAsName(element);
+    if (asName != null) {
+      // readArgCode += ' as $asName';
     }
-    if (displayTypeString == 'Object') {
-      readArgCode += ' as $displayTypeString';
+    if (parameterConfig?.type != null) {
+      readArgCode += ' as ${parameterConfig!.type}';
     }
     // readArgCode += ' as $displayTypeString';
-    final defaultValueImportPath0 = defaultValueImportPath(element);
-    if (defaultValueImportPath0 != null) {
-      importPathSets.add(defaultValueImportPath0);
-    }
+    // final defaultValueImportPath0 = defaultValueImportPath(element);
+    // if (defaultValueImportPath0 != null) {
+    //   importPathSets.add(defaultValueImportPath0);
+    // }
     return {
       "parameterName": element.name,
       "isNamed": element.isNamed,
@@ -413,12 +432,54 @@ class FileRuntimeGenerate {
     };
   }
 
+  String? getParameterAsName(ParameterElementImpl impl) {
+    String? asName = impl.type.toString();
+    if (asName.contains('InvalidType')) {
+      asName = getParameterTypeString(impl);
+    }
+    var enclosingElement = impl.enclosingElement;
+    List<TypeParameterElement> typeParameters = [];
+    while (enclosingElement != null &&
+        enclosingElement is! CompilationUnitElementImpl) {
+      if (enclosingElement is TypeParameterizedElement) {
+        typeParameters.addAll(enclosingElement.typeParameters);
+        // if (typeParameters.isNotEmpty) {
+        //   for (var e in typeParameters) {
+        //     String? typeValue;
+        //     if (e.bound != null) {
+        //       typeValue = e.bound?.name;
+        //     } else if (e is TypeParameterElementImpl) {
+        //       typeValue = e.defaultType?.name;
+        //     } else {
+        //       throw UnimplementedError();
+        //     }
+        //     asName = asName?.replaceAll(e.name, typeValue ?? '');
+        //   }
+        // }
+        enclosingElement = enclosingElement.enclosingElement;
+      } else {
+        throw UnimplementedError();
+      }
+    }
+    return asName;
+  }
+
   String? getBoundName(DartType type) {
     if (type is TypeParameterType) {
       return getBoundName(type.bound);
     } else {
-      return type.toString();
+      return type.name;
     }
+  }
+
+  String? getTypeDisplayName(DartType type) {
+    var boundName = getBoundName(type);
+    final typeArguments = type.getTypeArguments();
+    if (typeArguments.isNotEmpty) {
+      boundName =
+          "$boundName<${typeArguments.map((e) => getTypeDisplayName(e)).join(', ')}>";
+    }
+    return boundName;
   }
 
   String? defaultValueImportPath(ParameterElementImpl element) {
@@ -568,63 +629,47 @@ class FileRuntimeGenerate {
     AstNode? member;
     for (var e in elements) {
       if (e is ClassElementImpl) {
-        final classs = library.units.map((element) {
-          return element.unit.declarations
-              .whereType<ClassDeclarationImpl>()
-              .where((element) => element.name.lexeme == e.name)
-              .toList();
-        }).fold<List<ClassDeclarationImpl>>([], (previousValue, element) {
-          return previousValue..addAll(element);
-        }).toList();
+        final classs = library.getClasss(e);
         if (classs.isEmpty) return null;
         member = classs.first;
       } else if (e is MethodElementImpl) {
+        List<MethodDeclarationImpl>? methods;
+
         if (member != null && member is ClassDeclarationImpl) {
-          final methods = member.members
-              .whereType<MethodDeclarationImpl>()
-              .where((element) => element.name.lexeme == e.name)
-              .toList();
-          if (methods.isEmpty) return null;
-          member = methods.first;
+          methods = member.getMethods(e);
+        } else if (member != null && member is MixinDeclarationImpl) {
+          methods = member.getMethods(e);
+        } else if (member != null && member is ExtensionDeclarationImpl) {
+          methods = member.getMethods(e);
         } else {
           throw UnimplementedError(e.toString());
         }
+        if (methods.isEmpty) return null;
+        member = methods.first;
+      } else if (e is MixinElementImpl) {
+        final mixins = library.getMixins(e);
+        if (mixins.isEmpty) return null;
+        member = mixins.first;
       } else if (e is ConstructorElementImpl) {
         if (member != null && member is ClassDeclarationImpl) {
-          final constructors = member.members
-              .whereType<ConstructorDeclarationImpl>()
-              .where((element) => element.name?.lexeme == e.name)
-              .toList();
+          final constructors = member.getConstructors(e);
           if (constructors.isEmpty) return null;
           member = constructors.first;
         } else {
           throw UnimplementedError(e.toString());
         }
       } else if (e is FunctionElementImpl) {
-        final functions = library.units.map((element) {
-          return element.unit.declarations
-              .whereType<FunctionDeclarationImpl>()
-              .where((element) => element.name.lexeme == e.name);
-        }).fold<List<FunctionDeclarationImpl>>([], (previousValue, element) {
-          return previousValue..addAll(element);
-        });
+        final functions = library.getFunctions(e);
         if (functions.isEmpty) return null;
         member = functions.first;
       } else if (e is ParameterElementImpl) {
         List<FormalParameterImpl> parameters;
         if (member != null && member is MethodDeclarationImpl) {
           parameters = member.parameters?.parameters.toList() ?? [];
-          // parameters = parameters.where((element) {
-          //   if (element is DefaultFormalParameterImpl) {
-          //     return element.name?.lexeme == e.name;
-          //   } else {
-          //     throw UnimplementedError(element.toString());
-          //   }
-          // }).toList();
-          // if (parameters.isEmpty) return null;
-          // member = parameters.first;
         } else if (member != null && member is FunctionDeclarationImpl) {
           parameters = member.functionExpression.parameters?.parameters ?? [];
+        } else if (member != null && member is ConstructorDeclarationImpl) {
+          parameters = member.parameters.parameters;
         } else {
           throw UnimplementedError(e.toString());
         }
@@ -633,6 +678,10 @@ class FileRuntimeGenerate {
         }).toList();
         if (parameters.isEmpty) return null;
         member = parameters.first;
+      } else if (e is ExtensionElementImpl) {
+        final mixins = library.getExtensions(e);
+        if (mixins.isEmpty) return null;
+        member = mixins.first;
       }
     }
     if (member == null) return null;
@@ -650,11 +699,99 @@ class FileRuntimeGenerate {
         throw UnimplementedError(type.toString());
       }
     } else {
-      throw UnimplementedError();
+      return null;
     }
   }
 }
 
 extension StringPrivate on String {
   bool get isPrivate => startsWith("_");
+}
+
+extension on ResolvedLibraryResultImpl {
+  List<ClassDeclarationImpl> getClasss(ClassElementImpl impl) {
+    return units.map((element) {
+      return element.unit.declarations
+          .whereType<ClassDeclarationImpl>()
+          .where((element) => element.name.lexeme == impl.name)
+          .toList();
+    }).fold<List<ClassDeclarationImpl>>([], (previousValue, element) {
+      return previousValue..addAll(element);
+    }).toList();
+  }
+
+  List<MixinDeclarationImpl> getMixins(MixinElementImpl impl) {
+    return units.map((element) {
+      return element.unit.declarations
+          .whereType<MixinDeclarationImpl>()
+          .where((element) => element.name.lexeme == impl.name);
+    }).fold<List<MixinDeclarationImpl>>([], (previousValue, element) {
+      return previousValue..addAll(element);
+    }).toList();
+  }
+
+  List<FunctionDeclarationImpl> getFunctions(FunctionElementImpl impl) {
+    return units.map((element) {
+      return element.unit.declarations
+          .whereType<FunctionDeclarationImpl>()
+          .where((element) => element.name.lexeme == impl.name);
+    }).fold<List<FunctionDeclarationImpl>>([], (previousValue, element) {
+      return previousValue..addAll(element);
+    });
+  }
+
+  List<ExtensionDeclarationImpl> getExtensions(ExtensionElementImpl impl) {
+    return units.map((element) {
+      return element.unit.declarations
+          .whereType<ExtensionDeclarationImpl>()
+          .where((element) => element.name?.lexeme == impl.name);
+    }).fold<List<ExtensionDeclarationImpl>>([], (previousValue, element) {
+      return previousValue..addAll(element);
+    });
+  }
+}
+
+extension on ClassDeclarationImpl {
+  List<MethodDeclarationImpl> getMethods(MethodElementImpl impl) {
+    return members
+        .whereType<MethodDeclarationImpl>()
+        .where((element) => element.name.lexeme == impl.name)
+        .toList();
+  }
+
+  List<ConstructorDeclarationImpl> getConstructors(
+      ConstructorElementImpl impl) {
+    return members
+        .whereType<ConstructorDeclarationImpl>()
+        .where((element) => element.name?.lexeme == impl.name)
+        .toList();
+  }
+}
+
+extension on MixinDeclarationImpl {
+  List<MethodDeclarationImpl> getMethods(MethodElementImpl impl) {
+    return members
+        .whereType<MethodDeclarationImpl>()
+        .where((element) => element.name.lexeme == impl.name)
+        .toList();
+  }
+}
+
+extension on ExtensionDeclarationImpl {
+  List<MethodDeclarationImpl> getMethods(MethodElementImpl impl) {
+    return members
+        .whereType<MethodDeclarationImpl>()
+        .where((element) => element.name.lexeme == impl.name)
+        .toList();
+  }
+}
+
+extension on DartType {
+  List<DartType> getTypeArguments() {
+    if (this is ParameterizedType) {
+      return (this as ParameterizedType).typeArguments;
+    } else {
+      return [];
+    }
+  }
 }

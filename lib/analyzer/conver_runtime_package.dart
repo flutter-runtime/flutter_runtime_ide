@@ -31,6 +31,8 @@ import 'package:pubspec_parse/pubspec_parse.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
 import 'package:analyzer/src/dart/resolver/scope.dart';
 
+import 'fix_runtime_configuration.dart';
+
 // 将指定库转换为运行时库
 class ConverRuntimePackage {
   // 输入的路径
@@ -39,6 +41,8 @@ class ConverRuntimePackage {
   final PackageConfig packageConfig;
   // 存储依赖的层级关系
   final PackageDependency packageDependency;
+
+  List<FixConfig> fixConfig = [];
 
   /// 创建转换器
   ConverRuntimePackage(
@@ -60,6 +64,10 @@ class ConverRuntimePackage {
         .whereType<PackageInfo>()
         .toList();
     if (infos.isEmpty) return;
+
+    //先出之前生成的库缓存
+    await _deleteExitCache(infos[0]);
+
     DateTime start = DateTime.now();
     int count = infos.length + 1;
     double progressIndex = 1.0 / count;
@@ -125,6 +133,15 @@ class ConverRuntimePackage {
     }
     return packages;
   }
+
+  Future<void> _deleteExitCache(PackageInfo info) async {
+    String packagePath = info.rootUri.replaceFirst("file://", '');
+    String packageNamePath = basename(packagePath);
+    final cachePath = "$outPutPath/$packageNamePath";
+    if (await File(cachePath).exists()) {
+      await File(cachePath).delete(recursive: true);
+    }
+  }
 }
 
 extension StringPrivate on String {
@@ -188,15 +205,20 @@ class _GenerateDartFile extends _AnalysisDartFile {
 
   @override
   Future<void> analysisDartFile(String filePath) async {
+    FixRuntimeConfiguration? fixRuntimeConfiguration =
+        AnalyzerPackageManager().getFixRuntimeConfiguration(info);
+    final libraryPath =
+        filePath.split(packagePath)[1].replaceFirst("/lib/", "");
+    FixConfig? fixConfig = fixRuntimeConfiguration?.fixs
+        .firstWhereOrNull((element) => element.path == libraryPath);
+
     final result = await AnalyzerPackageManager().getResolvedLibrary(
       packagePath,
       filePath,
     );
 
     if (result is ResolvedLibraryResultImpl) {
-      final libraryPath =
-          filePath.split(packagePath)[1].replaceFirst("/lib", "");
-      final sourcePath = 'package:${info.name}$libraryPath';
+      final sourcePath = 'package:${info.name}/$libraryPath';
       final importAnalysisList = await getImportAnalysis(result);
       FileRuntimeGenerate generate = FileRuntimeGenerate(
         sourcePath,
@@ -204,11 +226,12 @@ class _GenerateDartFile extends _AnalysisDartFile {
         info,
         result,
         importAnalysisList,
+        fixConfig: fixConfig,
       );
       final generateCode = await generate.generateCode();
 
       final outFile =
-          "$outPutPath/${packagePath.split('/').last}${'/lib$libraryPath'}";
+          "$outPutPath/${packagePath.split('/').last}${'/lib/$libraryPath'}";
       final file = File(outFile);
       await file.writeString(generateCode);
     } else if (result is NotLibraryButPartResult) {
