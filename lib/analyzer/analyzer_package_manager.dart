@@ -24,6 +24,7 @@ class AnalyzerPackageManager {
   final Map<String, AnalysisContextCollection> _collections = {};
 
   List<FixRuntimeConfiguration> fixRuntimeConfiguration = [];
+  PackageConfig? packageConfig;
 
   // 根据库的路径和文件的路径获取分析结果
   // [packagePath] 库对应路径

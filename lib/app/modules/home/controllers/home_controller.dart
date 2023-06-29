@@ -53,12 +53,21 @@ class HomeController extends GetxController {
     }
 
     String depsContent = result.stdout;
+    depsContent = depsContent.replaceFirst('''
+─────────────────────────────────────────────────────────┐
+│ A new version of Flutter is available!                  │
+│                                                         │
+│ To update to the latest version, run "flutter upgrade". │
+└─────────────────────────────────────────────────────────┘
+
+''', '');
     final depsJson = json.decode(depsContent);
     _dependency = PackageDependency.fromJson(depsJson);
 
     // 读取文件内容
     String content = await File(packageConfigPath).readAsString();
     packageConfig.value = PackageConfig.fromJson(jsonDecode(content));
+    AnalyzerPackageManager().packageConfig = packageConfig.value;
 
     // 读取修复的配置
     await AnalyzerPackageManager().loadFixRuntimeConfiguration(

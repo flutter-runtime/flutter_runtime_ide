@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
+import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_config_view.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 
 import 'package:get/get.dart';
@@ -20,6 +21,14 @@ class HomeView extends GetView<HomeController> {
           IconButton(
             onPressed: () => controller.analyzerAllPackageCode(),
             icon: const Icon(Icons.analytics),
+          ),
+          IconButton(
+            onPressed: () {
+              Get.dialog(const Dialog(
+                child: FixConfigView(),
+              ));
+            },
+            icon: const Icon(Icons.bug_report),
           )
         ],
       ),

@@ -256,6 +256,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.2.0"
+  menu_button:
+    dependency: "direct main"
+    description:
+      name: menu_button
+      sha256: "46913c3b4f5cc10b204b9c338dce336eed6608eb635e026e9338502d71fbb15c"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "1.4.2+1"
   meta:
     dependency: transitive
     description:
