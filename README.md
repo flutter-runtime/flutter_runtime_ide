@@ -1,5 +1,3 @@
-# 目前在分支 [5-支持将依赖的库生成为动态运行库](https://github.com/flutter-runtime/flutter_runtime_ide/tree/5-支持将依赖的库生成为动态运行库) 开发中......
-
 ## 备注
 
 采用 get_cli 进行开发，因为自己开发研究无所谓了。
@@ -11,6 +9,10 @@
 - 2019年 Macbook Pro
 - macOS 13.3
 - flutter 3.3.10
+
+## 下一步计划
+
+- 新增配置页面可以自定义修复生成的运行库
 
 ## 更新日志
 
