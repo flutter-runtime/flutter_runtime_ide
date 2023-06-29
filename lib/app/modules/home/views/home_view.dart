@@ -1,7 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
+import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 
 import 'package:get/get.dart';
+import 'package:loading_indicator/loading_indicator.dart';
 
 import '../controllers/home_controller.dart';
 
@@ -14,7 +17,10 @@ class HomeView extends GetView<HomeController> {
         title: const Text('首页'),
         centerTitle: true,
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.analytics))
+          IconButton(
+            onPressed: () => controller.analyzerAllPackageCode(),
+            icon: const Icon(Icons.analytics),
+          )
         ],
       ),
       body: Obx(
@@ -53,28 +59,55 @@ class HomeView extends GetView<HomeController> {
                 ],
               ),
             ),
-            Expanded(
-              child: ListView.separated(
-                itemBuilder: (context, index) {
-                  PackageInfo packageInfo =
-                      controller.packageConfig.value!.packages[index];
-                  return Container(
-                    padding: const EdgeInsets.all(15),
-                    child: Column(
+            CupertinoTextField(
+              placeholder: "输入关键词过滤",
+              controller: controller.searchController,
+              onChanged: (value) {
+                controller.search();
+              },
+            ),
+            Obx(() {
+              final packages = controller.displayPackages;
+              return Expanded(
+                child: ListView.separated(
+                  itemBuilder: (context, index) {
+                    PackageInfo packageInfo = packages[index];
+                    return Stack(
                       children: [
-                        _titleValueWidget("name", packageInfo.name),
-                        _titleValueWidget("rootUri", packageInfo.rootUri),
-                        _titleValueWidget("packageUri", packageInfo.packageUri),
-                        _titleValueWidget(
-                            "languageVersion", packageInfo.languageVersion),
+                        Container(
+                          padding: const EdgeInsets.all(15),
+                          child: Column(
+                            children: [
+                              _titleValueWidget("name", packageInfo.name),
+                              _titleValueWidget("rootUri", packageInfo.rootUri),
+                              _titleValueWidget(
+                                  "packageUri", packageInfo.packageUri),
+                              _titleValueWidget("languageVersion",
+                                  packageInfo.languageVersion),
+                            ],
+                          ),
+                        ),
+                        Positioned.fill(
+                          right: 20,
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: IconButton(
+                              onPressed: () {
+                                controller
+                                    .analyzerPackageCode(packageInfo.name);
+                              },
+                              icon: const Icon(Icons.analytics),
+                            ),
+                          ),
+                        ),
                       ],
-                    ),
-                  );
-                },
-                separatorBuilder: (context, index) => const Divider(),
-                itemCount: controller.packageConfig.value?.packages.length ?? 0,
-              ),
-            )
+                    );
+                  },
+                  separatorBuilder: (context, index) => const Divider(),
+                  itemCount: packages.length,
+                ),
+              );
+            })
           ],
         ),
       ),
