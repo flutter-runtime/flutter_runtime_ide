@@ -27,10 +27,5 @@ class AppPages {
       page: () => const WelcomeView(),
       binding: WelcomeBinding(),
     ),
-    GetPage(
-      name: _Paths.FIX_CONFIG,
-      page: () => const FixConfigView(),
-      binding: FixConfigBinding(),
-    ),
   ];
 }

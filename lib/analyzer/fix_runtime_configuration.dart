@@ -4,7 +4,9 @@ import 'package:get/get.dart';
 class FixRuntimeConfiguration {
   late String name;
   late String version;
-  late List<FixConfig> fixs;
+  List<FixConfig> fixs = [];
+
+  FixRuntimeConfiguration();
 
   FixRuntimeConfiguration.fromJson(Map<String, dynamic> json) {
     final jsonValue = JSON(json);
@@ -17,7 +19,8 @@ class FixRuntimeConfiguration {
 
 class FixConfig {
   late String path;
-  late List<FixClassConfig> classs;
+  List<FixClassConfig> classs = [];
+  FixConfig();
   FixConfig.fromJson(Map<String, dynamic> json) {
     final jsonValue = JSON(json);
     path = jsonValue["path"].stringValue;
@@ -33,7 +36,8 @@ class FixConfig {
 
 class FixClassConfig {
   late String name;
-  late List<FixMethodConfig> methods;
+  List<FixMethodConfig> methods = [];
+  FixClassConfig();
   FixClassConfig.fromJson(Map<String, dynamic> json) {
     final jsonValue = JSON(json);
     name = jsonValue["name"].stringValue;
@@ -49,7 +53,8 @@ class FixClassConfig {
 
 class FixMethodConfig {
   late String name;
-  late List<FixParameterConfig> parameters;
+  List<FixParameterConfig> parameters = [];
+  FixMethodConfig();
   FixMethodConfig.fromJson(Map<String, dynamic> json) {
     final jsonValue = JSON(json);
     name = jsonValue["name"].stringValue;
@@ -66,6 +71,7 @@ class FixMethodConfig {
 class FixParameterConfig {
   late String name;
   late String type;
+  FixParameterConfig();
   FixParameterConfig.fromJson(Map<String, dynamic> json) {
     final jsonValue = JSON(json);
     name = jsonValue["name"].stringValue;

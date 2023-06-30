@@ -53,14 +53,8 @@ class HomeController extends GetxController {
     }
 
     String depsContent = result.stdout;
-    depsContent = depsContent.replaceFirst('''
-─────────────────────────────────────────────────────────┐
-│ A new version of Flutter is available!                  │
-│                                                         │
-│ To update to the latest version, run "flutter upgrade". │
-└─────────────────────────────────────────────────────────┘
-
-''', '');
+    final startIndex = depsContent.indexOf('{');
+    depsContent = depsContent.substring(startIndex);
     final depsJson = json.decode(depsContent);
     _dependency = PackageDependency.fromJson(depsJson);
 

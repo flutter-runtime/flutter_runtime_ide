@@ -84,4 +84,11 @@ class AnalyzerPackageManager {
     if (configurations.isEmpty) return null;
     return configurations.first;
   }
+
+  List<String> getPackageLibraryPaths(String packagePath) {
+    return Unwrap(_libraries[packagePath]).map((e) {
+          return e.keys.toList();
+        }).value ??
+        [];
+  }
 }

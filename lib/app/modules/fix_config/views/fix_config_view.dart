@@ -1,23 +1,34 @@
+import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
+import 'package:flutter_runtime_ide/app/data/package_config.dart';
+import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/add_package_controller.dart';
+import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_file_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/views/add_package_view.dart';
+import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_select_view.dart';
 
 import 'package:get/get.dart';
 
 import '../controllers/fix_config_controller.dart';
+import 'fix_file_view.dart';
 
-class FixConfigView extends GetView<FixConfigController> {
-  const FixConfigView({Key? key}) : super(key: key);
+class FixConfigView extends StatelessWidget {
+  final FixConfigController controller;
+  const FixConfigView({Key? key, required this.controller}) : super(key: key);
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(FixConfigController());
     return Scaffold(
       appBar: AppBar(
         title: const Text('修复配置'),
         centerTitle: true,
-        leading: Container(),
         actions: [
           IconButton(
-            onPressed: () => _showAddPackageView(),
+            onPressed: () async {
+              final result = await _showAddPackageView();
+              if (result != null) {
+                controller.addPackage(result);
+              }
+            },
             icon: const Icon(Icons.add),
           )
         ],
@@ -32,8 +43,13 @@ class FixConfigView extends GetView<FixConfigController> {
                 style: TextStyle(color: Colors.red.shade600),
               ),
             ),
-            TextField(
-              decoration: InputDecoration(hintText: '请输入名字'),
+            Expanded(
+              child: FixSelectView(
+                controller: controller.selectController,
+                onTap: (item) => Unwrap(item).map((e) {
+                  _showFixFileView(e.item);
+                }),
+              ),
             ),
           ],
         ),
@@ -41,9 +57,16 @@ class FixConfigView extends GetView<FixConfigController> {
     );
   }
 
-  void _showAddPackageView() {
+  Future<PackageInfo?> _showAddPackageView() async {
+    final controller = AddPackageController();
+    return Get.dialog<PackageInfo>(
+      Dialog(child: AddPackageView(controller: controller)),
+    );
+  }
+
+  void _showFixFileView(FixRuntimeConfiguration config) {
     Get.dialog(
-      const Dialog(child: AddPackageView()),
+      Dialog(child: FixFileView(controller: FixFileController(config))),
     );
   }
 }
