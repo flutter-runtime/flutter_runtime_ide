@@ -30,6 +30,7 @@ class FixRuntimeConfiguration extends FixSelectItem {
 class FixConfig extends FixSelectItem {
   late String path;
   List<FixClassConfig> classs = [];
+  List<FixExtensionConfig> extensions = [];
 
   @override
   String get name => path;
@@ -42,12 +43,17 @@ class FixConfig extends FixSelectItem {
         .listValue
         .map((e) => FixClassConfig.fromJson(e))
         .toList();
+    extensions = jsonValue["extensions"]
+        .listValue
+        .map((e) => FixExtensionConfig.fromJson(e))
+        .toList();
   }
 
   Map<String, dynamic> toJson() {
     return {
       "path": path,
       "classs": classs.map((e) => e.toJson()).toList(),
+      "extensions": extensions.map((e) => e.toJson()).toList(),
     };
   }
 
@@ -120,6 +126,25 @@ class FixParameterConfig extends FixSelectItem {
     return {
       "name": name,
       "type": type,
+    };
+  }
+}
+
+class FixExtensionConfig extends FixSelectItem {
+  @override
+  late String name;
+  bool isEnable = true;
+  FixExtensionConfig();
+  FixExtensionConfig.fromJson(Map<String, dynamic> json) {
+    final jsonValue = JSON(json);
+    name = jsonValue["name"].stringValue;
+    isEnable = jsonValue["isEnable"].bool ?? true;
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "name": name,
+      "isEnable": isEnable,
     };
   }
 }

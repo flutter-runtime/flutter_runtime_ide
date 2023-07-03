@@ -27,7 +27,7 @@ class _FixClassViewState extends State<FixClassView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 1, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -38,7 +38,13 @@ class _FixClassViewState extends State<FixClassView>
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () => _showAddClassConfig(),
+            onPressed: () {
+              if (_tabController.index == 0) {
+                _showAddClassConfig();
+              } else if (_tabController.index == 1) {
+                _showAddExtensionConfig();
+              }
+            },
             icon: const Icon(Icons.add),
           )
         ],
@@ -52,6 +58,12 @@ class _FixClassViewState extends State<FixClassView>
                   'Class',
                   style: TextStyle(color: Colors.green.shade300),
                 ),
+              ),
+              Tab(
+                child: Text(
+                  'Extension',
+                  style: TextStyle(color: Colors.green.shade300),
+                ),
               )
             ],
             controller: _tabController,
@@ -61,11 +73,17 @@ class _FixClassViewState extends State<FixClassView>
               controller: _tabController,
               children: [
                 FixSelectView(
-                  controller: widget.controller.selectController,
+                  controller: widget.controller.selectClassController,
                   onTap: (item) => Unwrap(item).map((e) {
                     return _showFixMethodView(e);
                   }),
-                )
+                ),
+                FixSelectView(
+                  controller: widget.controller.selectExtensionController,
+                  onTap: (item) => Unwrap(item).map((e) {
+                    // return _showFixMethodView(e);
+                  }),
+                ),
               ],
             ),
           ),
@@ -75,7 +93,7 @@ class _FixClassViewState extends State<FixClassView>
   }
 
   _showFixMethodView(FixClassConfig config) async {
-    final element = widget.controller.getElement(config.name);
+    final element = widget.controller.getClassElement(config.name);
     if (element == null) return;
     final controller = FixMethodController(config, element);
     Get.dialog(Dialog(child: FixMethodView(controller)));
@@ -85,6 +103,13 @@ class _FixClassViewState extends State<FixClassView>
     final result =
         await showSelectItemDialog(widget.controller.allEmptyClassConfig);
     if (result == null) return;
-    widget.controller.addConfig(result);
+    widget.controller.addClassConfig(result);
+  }
+
+  _showAddExtensionConfig() async {
+    final result =
+        await showSelectItemDialog(widget.controller.allEmptyExtensionConfig);
+    if (result == null) return;
+    widget.controller.addExtensionConfig(result);
   }
 }

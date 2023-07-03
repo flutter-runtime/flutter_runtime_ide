@@ -9,10 +9,12 @@ import 'package:get/get.dart';
 class FixClassController extends GetxController {
   final FixConfig config;
   final String fullPath;
-  late FixSelectController<FixClassConfig> selectController;
+  late FixSelectController<FixClassConfig> selectClassController;
+  late FixSelectController<FixExtensionConfig> selectExtensionController;
   late SomeResolvedLibraryResult? _library;
   FixClassController(this.config, this.fullPath) {
-    selectController = FixSelectController(config.classs);
+    selectClassController = FixSelectController(config.classs);
+    selectExtensionController = FixSelectController(config.extensions);
     _library = AnalyzerPackageManager().getResult(fullPath);
   }
 
@@ -20,9 +22,17 @@ class FixClassController extends GetxController {
     return allClasss.map((e) => FixClassConfig()..name = e.name).toList();
   }
 
-  void addConfig(FixClassConfig result) {
-    selectController.add(result);
-    config.classs = selectController.items;
+  List<FixExtensionConfig> get allEmptyExtensionConfig =>
+      allExtensions.map((e) => FixExtensionConfig()..name = e.name!).toList();
+
+  void addClassConfig(FixClassConfig result) {
+    selectClassController.add(result);
+    config.classs = selectClassController.items;
+  }
+
+  void addExtensionConfig(FixExtensionConfig result) {
+    selectExtensionController.add(result);
+    config.extensions = selectExtensionController.items;
   }
 
   List<ClassElement> get allClasss {
@@ -36,7 +46,19 @@ class FixClassController extends GetxController {
         .toList();
   }
 
-  ClassElement? getElement(String className) {
+  List<ExtensionElement> get allExtensions {
+    if (_library is! ResolvedLibraryResult) return [];
+    ResolvedLibraryResult result = _library as ResolvedLibraryResult;
+    return result.element.units
+        .map((e) => e.extensions)
+        .expand((e) => e)
+        .toList()
+        .where(
+            (element) => element.name != null && !element.name!.startsWith('_'))
+        .toList();
+  }
+
+  ClassElement? getClassElement(String className) {
     return allClasss.firstWhereOrNull((element) => element.name == className);
   }
 }
