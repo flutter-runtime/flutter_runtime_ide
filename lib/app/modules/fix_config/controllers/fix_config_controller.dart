@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_select_controller.dart';
+import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
+import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart';
 
@@ -52,5 +54,29 @@ class FixConfigController extends GetxController {
       ..name = baseName.split('-')[0]
       ..version = baseName.split('-')[1];
     selectController.add(config);
+  }
+
+  PackageInfo? getPackageInfo(FixRuntimeConfiguration configuration) {
+    final packages = AnalyzerPackageManager().packageConfig?.packages ?? [];
+    return packages.firstWhereOrNull((element) => element.packagePath
+        .endsWith('${configuration.name}-${configuration.version}'));
+  }
+
+  Future<void> saveConfig() async {
+    final items = selectController.items;
+    final configs = AnalyzerPackageManager().fixRuntimeConfiguration;
+    for (var item in items) {
+      final index = configs.indexOf(item);
+      if (index == -1) {
+        configs.add(item);
+      } else {
+        configs[index] = item;
+      }
+    }
+    AnalyzerPackageManager().fixRuntimeConfiguration = configs;
+    showHUD();
+    await AnalyzerPackageManager()
+        .saveFixRuntimeConfiguration(AnalyzerPackageManager.defaultRuntimePath);
+    hideHUD();
   }
 }

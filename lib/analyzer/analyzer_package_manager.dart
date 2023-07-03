@@ -11,6 +11,7 @@ import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:path/path.dart';
 import 'package:analyzer/src/dart/analysis/results.dart';
+import 'package:process_run/process_run.dart';
 
 import '../common/common_function.dart';
 
@@ -77,6 +78,13 @@ class AnalyzerPackageManager {
     }).toList();
   }
 
+  Future<void> saveFixRuntimeConfiguration(String root) async {
+    final jsonValue = fixRuntimeConfiguration.map((e) => e.toJson()).toList();
+    final jsonText = jsonEncode(jsonValue);
+    final savePath = join(root, '.fix_runtime.json');
+    await File(savePath).writeAsString(jsonText);
+  }
+
   FixRuntimeConfiguration? getFixRuntimeConfiguration(PackageInfo info) {
     final path = basename(info.rootUri);
     final configurations = fixRuntimeConfiguration
@@ -99,5 +107,12 @@ class AnalyzerPackageManager {
       }
     }
     return null;
+  }
+
+  static String get defaultRuntimePath {
+    return join(
+      platformEnvironment['HOME']!,
+      '.runtime',
+    );
   }
 }

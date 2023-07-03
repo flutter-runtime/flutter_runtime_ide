@@ -22,6 +22,7 @@ class FixClassController extends GetxController {
 
   void addConfig(FixClassConfig result) {
     selectController.add(result);
+    config.classs = selectController.items;
   }
 
   List<ClassElement> get allClasss {

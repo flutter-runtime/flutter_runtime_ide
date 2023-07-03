@@ -23,5 +23,6 @@ class FixParameterController extends GetxController {
 
   void addConfig(FixParameterConfig result) {
     selectController.add(result);
+    config.parameters = selectController.items;
   }
 }

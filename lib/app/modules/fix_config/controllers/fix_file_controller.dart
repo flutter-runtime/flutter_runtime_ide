@@ -27,6 +27,7 @@ class FixFileController extends GetxController {
   void addConfig(String path) {
     final config = FixConfig()..path = path;
     selectController.add(config);
+    configuration.fixs = selectController.items;
   }
 
   String? getFullPath(FixConfig config) {

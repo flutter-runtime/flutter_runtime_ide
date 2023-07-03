@@ -19,6 +19,7 @@ class FixMethodController extends GetxController {
 
   void addConfig(FixMethodConfig result) {
     selectController.add(result);
+    config.methods = selectController.items;
   }
 
   MethodElement? getMethod(String name) {

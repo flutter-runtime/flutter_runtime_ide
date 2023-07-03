@@ -34,7 +34,7 @@ class FixConfigView extends StatelessWidget {
           ),
           // 保存按钮
           IconButton(
-            onPressed: () {},
+            onPressed: () => controller.saveConfig(),
             icon: const Icon(Icons.save),
           ),
         ],
@@ -70,6 +70,14 @@ class FixConfigView extends StatelessWidget {
   }
 
   void _showFixFileView(FixRuntimeConfiguration config) {
+    final packageInfo = controller.getPackageInfo(config);
+    if (packageInfo == null) return;
+    final librarys = AnalyzerPackageManager()
+        .getPackageLibraryPaths(packageInfo.packagePath);
+    if (librarys.isEmpty) {
+      Get.snackbar('未分析！', '请先分析库: ${config.name}');
+      return;
+    }
     Get.dialog(
       Dialog(child: FixFileView(controller: FixFileController(config))),
     );

@@ -17,6 +17,14 @@ class FixRuntimeConfiguration extends FixSelectItem {
     fixs =
         jsonValue["fixs"].listValue.map((e) => FixConfig.fromJson(e)).toList();
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "name": name,
+      "version": version,
+      "fixs": fixs.map((e) => e.toJson()).toList(),
+    };
+  }
 }
 
 class FixConfig extends FixSelectItem {
@@ -34,6 +42,13 @@ class FixConfig extends FixSelectItem {
         .listValue
         .map((e) => FixClassConfig.fromJson(e))
         .toList();
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "path": path,
+      "classs": classs.map((e) => e.toJson()).toList(),
+    };
   }
 
   FixClassConfig? getClassConfig(String name) =>
@@ -54,6 +69,13 @@ class FixClassConfig extends FixSelectItem {
         .toList();
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      "name": name,
+      "methods": methods.map((e) => e.toJson()).toList(),
+    };
+  }
+
   FixMethodConfig? getMethodConfig(String name) =>
       methods.firstWhereOrNull((element) => element.name == name);
 }
@@ -72,6 +94,13 @@ class FixMethodConfig extends FixSelectItem {
         .toList();
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      "name": name,
+      "parameters": parameters.map((e) => e.toJson()).toList(),
+    };
+  }
+
   FixParameterConfig? getParameterConfig(String name) =>
       parameters.firstWhereOrNull((element) => element.name == name);
 }
@@ -85,5 +114,12 @@ class FixParameterConfig extends FixSelectItem {
     final jsonValue = JSON(json);
     name = jsonValue["name"].stringValue;
     type = jsonValue["type"].stringValue;
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "name": name,
+      "type": type,
+    };
   }
 }
