@@ -4,9 +4,9 @@ import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_selec
 
 import 'package:get/get.dart';
 
-class FixSelectView<T> extends StatelessWidget {
+class FixSelectView<T extends FixSelectItem> extends StatelessWidget {
   final FixSelectController<T> controller;
-  final void Function(FixSelectItem<T>? item)? onTap;
+  final void Function(T? item)? onTap;
   const FixSelectView({Key? key, required this.controller, this.onTap})
       : super(key: key);
   @override
@@ -54,7 +54,7 @@ class FixSelectView<T> extends StatelessWidget {
     );
   }
 
-  Future<void> _onDelete(FixSelectItem<T> item) async {
+  Future<void> _onDelete(T item) async {
     final result = await Get.defaultDialog<bool>(
       title: '提示!',
       middleText: '确定要删除吗?',

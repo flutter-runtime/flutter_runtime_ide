@@ -1,3 +1,4 @@
+import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_select_controller.dart';
@@ -11,9 +12,7 @@ class FixFileController extends GetxController {
   late FixSelectController<FixConfig> selectController;
 
   FixFileController(this.configuration) {
-    selectController = FixSelectController(configuration.fixs.map((e) {
-      return FixSelectItem(e, e.path);
-    }).toList());
+    selectController = FixSelectController(configuration.fixs);
   }
 
   PackageInfo? get packageInfo {
@@ -27,10 +26,14 @@ class FixFileController extends GetxController {
 
   void addConfig(String path) {
     final config = FixConfig()..path = path;
-    configuration.fixs.add(config);
+    selectController.add(config);
+  }
 
-    selectController.updateItems(configuration.fixs.map((e) {
-      return FixSelectItem(e, e.path);
-    }).toList());
+  String? getFullPath(FixConfig config) {
+    return Unwrap(packageInfo).map((e) {
+      return AnalyzerPackageManager().getPackageLibraryPaths(e.packagePath);
+    }).map((e) {
+      return e.firstWhereOrNull((element) => element.endsWith(config.path));
+    }).value;
   }
 }

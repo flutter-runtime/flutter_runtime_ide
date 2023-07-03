@@ -6,6 +6,7 @@ import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_class
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_method_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/views/add_name_view.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_select_view.dart';
+import 'package:flutter_runtime_ide/common/common_function.dart';
 
 import 'package:get/get.dart';
 
@@ -62,7 +63,7 @@ class _FixClassViewState extends State<FixClassView>
                 FixSelectView(
                   controller: widget.controller.selectController,
                   onTap: (item) => Unwrap(item).map((e) {
-                    return _showFixMethodView(e.item);
+                    return _showFixMethodView(e);
                   }),
                 )
               ],
@@ -74,15 +75,16 @@ class _FixClassViewState extends State<FixClassView>
   }
 
   _showFixMethodView(FixClassConfig config) async {
-    final controller = FixMethodController(config);
+    final element = widget.controller.getElement(config.name);
+    if (element == null) return;
+    final controller = FixMethodController(config, element);
     Get.dialog(Dialog(child: FixMethodView(controller)));
   }
 
   _showAddClassConfig() async {
-    final name = await Get.dialog<String>(
-      const Dialog(child: AddNameView(title: '请输入类名')),
-    );
-    if (name == null || name.isEmpty) return;
-    widget.controller.addClassConfig(name);
+    final result =
+        await showSelectItemDialog(widget.controller.allEmptyClassConfig);
+    if (result == null) return;
+    widget.controller.addConfig(result);
   }
 }

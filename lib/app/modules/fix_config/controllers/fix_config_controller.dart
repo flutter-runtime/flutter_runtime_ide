@@ -29,9 +29,7 @@ class FixConfigController extends GetxController {
         .whereType<FixRuntimeConfiguration>()
         .toList();
 
-    selectController = FixSelectController(packageInfos.map((e) {
-      return FixSelectItem(e, e.name);
-    }).toList());
+    selectController = FixSelectController(packageInfos);
 
     packageNameController.addListener(() {
       final packageName = packageNameController.text;
@@ -53,6 +51,6 @@ class FixConfigController extends GetxController {
     final config = FixRuntimeConfiguration()
       ..name = baseName.split('-')[0]
       ..version = baseName.split('-')[1];
-    packageInfos.add(FixSelectItem(config, config.name));
+    selectController.add(config);
   }
 }

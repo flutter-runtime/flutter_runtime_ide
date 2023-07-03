@@ -4,10 +4,12 @@ import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_class_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_file_controller.dart';
+import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_select_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_class_view.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_select_view.dart';
 import 'package:get/get.dart';
 
+import '../../../../common/common_function.dart';
 import 'add_name_view.dart';
 
 class FixFileView extends StatelessWidget {
@@ -28,37 +30,42 @@ class FixFileView extends StatelessWidget {
       ),
       body: FixSelectView(
         controller: controller.selectController,
-        onTap: (item) => Unwrap(item).map((e) => _showFixClassView(e.item)),
+        onTap: (item) => Unwrap(item).map((e) => _showFixClassView(e)),
       ),
     );
   }
 
   _showFixClassView(FixConfig config) async {
-    final controller = FixClassController(config);
+    final fullPath = this.controller.getFullPath(config);
+    if (fullPath == null) return;
+    final controller = FixClassController(config, fullPath);
     Get.dialog(Dialog(child: FixClassView(controller: controller)));
   }
 
   _showAddFileView() async {
-    final path = await Get.dialog<String>(
-      const Dialog(child: AddNameView(title: '请输入路径')),
-    );
-    if (path == null || path.isEmpty) return;
-
     final paths = AnalyzerPackageManager()
         .getPackageLibraryPaths(controller.packageInfo?.packagePath ?? '');
     if (paths.isEmpty) {
       Get.snackbar('未分析！', '请先分析库: ${controller.configuration.name}');
       return;
     }
-    // 是否包含
-    final isContains = paths.where((element) {
-      return element.endsWith(path);
-    }).isNotEmpty;
-    // 没有包含提示
-    if (!isContains) {
-      Get.snackbar('未包含!', '你输入的路径不存在!');
-      return;
-    }
-    controller.addConfig(path);
+    final result = await showSelectItemDialog(paths
+        .map((e) {
+          return libraryPath(e);
+        })
+        .whereType<String>()
+        .map((e) {
+          return _AnalysisPath(e);
+        })
+        .toList());
+    if (result == null) return;
+    controller.addConfig(result.name);
   }
+}
+
+class _AnalysisPath extends FixSelectItem {
+  @override
+  final String name;
+
+  _AnalysisPath(this.name);
 }

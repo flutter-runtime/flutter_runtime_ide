@@ -2,6 +2,7 @@ import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_method_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_select_view.dart';
+import 'package:flutter_runtime_ide/common/common_function.dart';
 
 import 'package:get/get.dart';
 
@@ -28,21 +29,24 @@ class FixMethodView extends StatelessWidget {
       ),
       body: FixSelectView(
         controller: controller.selectController,
-        onTap: (item) => Unwrap(item).map((e) => _showFixParameterView(e.item)),
+        onTap: (item) => Unwrap(item).map((e) => _showFixParameterView(e)),
       ),
     );
   }
 
   _showFixParameterView(FixMethodConfig config) async {
-    final controller = FixParameterController(config);
+    final element = this.controller.getMethod(config.name);
+    if (element == null) return;
+    final controller = FixParameterController(config, element);
     Get.dialog(Dialog(child: FixParameterView(controller)));
   }
 
   _addMethodConfig() async {
-    final name = await Get.dialog<String>(
-      const Dialog(child: AddNameView(title: '请输入方法名')),
-    );
-    if (name == null || name.isEmpty) return;
-    controller.addMethodConfig(name);
+    final items = controller.allMethod
+        .map((e) => FixMethodConfig()..name = e.name)
+        .toList();
+    final result = await showSelectItemDialog(items);
+    if (result == null) return;
+    controller.addConfig(result);
   }
 }

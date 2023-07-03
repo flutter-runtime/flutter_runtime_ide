@@ -1,3 +1,5 @@
+import 'package:analyzer/dart/element/element.dart';
+import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:get/get.dart';
 
@@ -5,18 +7,21 @@ import 'fix_select_controller.dart';
 
 class FixMethodController extends GetxController {
   final FixClassConfig config;
+  final ClassElement element;
   late FixSelectController<FixMethodConfig> selectController;
-  FixMethodController(this.config) {
-    selectController = FixSelectController(config.methods.map((e) {
-      return FixSelectItem(e, e.name);
-    }).toList());
+  FixMethodController(this.config, this.element) {
+    selectController = FixSelectController(config.methods);
   }
 
-  void addMethodConfig(String name) {
-    final config = FixMethodConfig()..name = name;
-    this.config.methods.add(config);
-    selectController.updateItems(this.config.methods.map((e) {
-      return FixSelectItem(e, e.name);
-    }).toList());
+  List<MethodElement> get allMethod {
+    return element.methods.where((element) => !element.name.isPrivate).toList();
+  }
+
+  void addConfig(FixMethodConfig result) {
+    selectController.add(result);
+  }
+
+  MethodElement? getMethod(String name) {
+    return allMethod.firstWhereOrNull((element) => element.name == name);
   }
 }

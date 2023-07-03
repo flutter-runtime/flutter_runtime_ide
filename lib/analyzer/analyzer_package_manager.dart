@@ -91,4 +91,13 @@ class AnalyzerPackageManager {
         }).value ??
         [];
   }
+
+  SomeResolvedLibraryResult? getResult(String fullPath) {
+    for (var list in _libraries.values) {
+      if (list.containsKey(fullPath)) {
+        return list[fullPath]!;
+      }
+    }
+    return null;
+  }
 }
