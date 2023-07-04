@@ -27,15 +27,50 @@ String md5(String source) {
 Future<T?> showSelectItemDialog<T extends FixSelectItem>(List<T> items) async {
   return Get.dialog<T>(
     Dialog(
-      child: FixSelectView(
-        controller: FixSelectController<T>(items, allowDelete: false),
-        onTap: (item) => Get.back(result: item),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: FixSelectView(
+          controller: FixSelectController<T>(items, allowDelete: false),
+          onTap: (item) => Get.back(result: item),
+        ),
       ),
     ),
   );
 }
 
+Future<String?> showAddValue(String title) {
+  return Get.dialog<String>(Dialog(child: AddValueView(title)));
+}
+
 String? libraryPath(String fullPath) {
   if (!fullPath.contains('/lib/')) return null;
   return fullPath.split('/lib/')[1];
+}
+
+class AddValueView extends StatelessWidget {
+  final String title;
+  const AddValueView(this.title, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    TextEditingController textEditingController = TextEditingController();
+    return Container(
+      padding: const EdgeInsets.all(15),
+      constraints: const BoxConstraints(maxWidth: 300),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            decoration: InputDecoration(labelText: title),
+            controller: textEditingController,
+          ),
+          const SizedBox(height: 15),
+          ElevatedButton(
+            onPressed: () => Get.back(result: textEditingController.text),
+            child: const Text('添加'),
+          )
+        ],
+      ),
+    );
+  }
 }

@@ -6,23 +6,22 @@ import 'package:get/get.dart';
 import 'fix_select_controller.dart';
 
 class FixMethodController extends GetxController {
-  final FixClassConfig config;
-  final ClassElement element;
-  late FixSelectController<FixMethodConfig> selectController;
+  final FixMethodConfig config;
+  final FunctionTypedElement element;
+  late FixSelectController<FixParameterConfig> selectController;
+
   FixMethodController(this.config, this.element) {
-    selectController = FixSelectController(config.methods);
+    selectController = FixSelectController(config.parameters);
   }
 
-  List<MethodElement> get allMethod {
-    return element.methods.where((element) => !element.name.isPrivate).toList();
+  List<ParameterElement> get allParameter {
+    return element.parameters
+        .where((element) => !element.name.isPrivate)
+        .toList();
   }
 
-  void addConfig(FixMethodConfig result) {
+  void addConfig(FixParameterConfig result) {
     selectController.add(result);
-    config.methods = selectController.items;
-  }
-
-  MethodElement? getMethod(String name) {
-    return allMethod.firstWhereOrNull((element) => element.name == name);
+    config.parameters = selectController.items;
   }
 }

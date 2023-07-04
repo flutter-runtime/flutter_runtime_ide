@@ -31,6 +31,7 @@ class FixConfig extends FixSelectItem {
   late String path;
   List<FixClassConfig> classs = [];
   List<FixExtensionConfig> extensions = [];
+  List<FixImportConfig> imports = [];
 
   @override
   String get name => path;
@@ -47,6 +48,10 @@ class FixConfig extends FixSelectItem {
         .listValue
         .map((e) => FixExtensionConfig.fromJson(e))
         .toList();
+    imports = jsonValue["imports"]
+        .listValue
+        .map((e) => FixImportConfig.fromJson(e))
+        .toList();
   }
 
   Map<String, dynamic> toJson() {
@@ -54,11 +59,21 @@ class FixConfig extends FixSelectItem {
       "path": path,
       "classs": classs.map((e) => e.toJson()).toList(),
       "extensions": extensions.map((e) => e.toJson()).toList(),
+      "imports": imports.map((e) => e.toJson()).toList(),
     };
   }
 
-  FixClassConfig? getClassConfig(String name) =>
-      classs.firstWhereOrNull((element) => element.name == name);
+  FixClassConfig? getClassConfig(String name) {
+    return classs.firstWhereOrNull((element) => element.name == name);
+  }
+
+  FixExtensionConfig? getExtensionConfig(String name) {
+    return extensions.firstWhereOrNull((element) => element.name == name);
+  }
+
+  FixImportConfig? getImportConfig(int index) {
+    return imports.firstWhereOrNull((element) => element.index == index);
+  }
 }
 
 class FixClassConfig extends FixSelectItem {
@@ -145,6 +160,41 @@ class FixExtensionConfig extends FixSelectItem {
     return {
       "name": name,
       "isEnable": isEnable,
+    };
+  }
+}
+
+class FixImportConfig extends FixSelectItem {
+  @override
+  String get name => '$index $path';
+  late String path;
+  late int index;
+  String? asName;
+  List<String> showNames = [];
+  List<String> hideNames = [];
+  FixImportConfig();
+  FixImportConfig.fromJson(Map<String, dynamic> json) {
+    final jsonValue = JSON(json);
+    path = jsonValue["path"].stringValue;
+    index = jsonValue["index"].intValue;
+    asName = jsonValue["asName"].string;
+    showNames = jsonValue["showNames"]
+        .listValue
+        .map((e) => JSON(e).stringValue)
+        .toList();
+    hideNames = jsonValue["hideNames"]
+        .listValue
+        .map((e) => JSON(e).stringValue)
+        .toList();
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "path": path,
+      'asName': asName,
+      'showNames': showNames,
+      'hideNames': hideNames,
+      'index': index,
     };
   }
 }

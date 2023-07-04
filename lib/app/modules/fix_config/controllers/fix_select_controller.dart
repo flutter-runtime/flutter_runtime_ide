@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:fuzzywuzzy/fuzzywuzzy.dart';
 
 class FixSelectController<T extends FixSelectItem> extends GetxController {
   late List<T> items;
@@ -26,12 +25,7 @@ class FixSelectController<T extends FixSelectItem> extends GetxController {
       displayItems.value = items;
       return;
     }
-    displayItems.value = extractAllSorted(
-      query: nameController.text,
-      choices: items,
-      cutoff: 60,
-      getter: (obj) => obj.name,
-    ).map((e) => e.choice).toList();
+    displayItems.value = filter(nameController.text);
   }
 
   void remove(T item) {
@@ -41,9 +35,33 @@ class FixSelectController<T extends FixSelectItem> extends GetxController {
   }
 
   void add(T item) {
+    if (isExit(item)) {
+      Get.snackbar('已存在', '${item.name}已存在');
+      return;
+    }
     final items0 = [...items];
     items0.add(item);
     updateItems(items0);
+  }
+
+  bool isExit(T item) {
+    return items.contains(item);
+  }
+
+  List<T> filter(String filterText) {
+    return items.where((element) {
+      String findText = filterText;
+      String resultText = element.name;
+      while (findText.isNotEmpty) {
+        final index = resultText
+            .toLowerCase()
+            .indexOf(findText.substring(0, 1).toLowerCase());
+        if (index == -1) return false;
+        resultText = resultText.substring(index);
+        findText = findText.substring(1);
+      }
+      return true;
+    }).toList();
   }
 }
 

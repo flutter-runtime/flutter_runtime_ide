@@ -1,33 +1,21 @@
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:io';
-import 'package:analyzer/dart/analysis/analysis_context.dart';
-import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
-import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/dart/analysis/results.dart';
-import 'package:analyzer/src/dart/element/element.dart';
-import 'package:analyzer/src/generated/source.dart';
-import 'package:analyzer/dart/element/nullability_suffix.dart';
-import 'package:analyzer/dart/element/type.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 // import 'package:analyzer/file_system/file_system.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/file_runtime_generate.dart';
 import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
-import 'package:flutter_runtime_ide/app/modules/home/controllers/home_controller.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
-import 'package:logger/logger.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
-import 'package:pubspec_parse/pubspec_parse.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
 import 'package:analyzer/src/dart/resolver/scope.dart';
 
@@ -52,7 +40,7 @@ class ConverRuntimePackage {
   );
   // 将指定的库转换为运行时库
   // [packageName] 需要转换的库的名字
-  Future<void> conver(String packageName) async {
+  Future<void> conver(String packageName, [bool showProgress = true]) async {
     List<PackageInfo> infos = getPackages(packageName)
         .map((e) {
           final packages = packageConfig.packages
@@ -65,7 +53,7 @@ class ConverRuntimePackage {
         .toList();
     if (infos.isEmpty) return;
 
-    //先出之前生成的库缓存
+    //先删除之前生成的库缓存
     await _deleteExitCache(infos[0]);
 
     DateTime start = DateTime.now();
@@ -73,12 +61,14 @@ class ConverRuntimePackage {
     double progressIndex = 1.0 / count;
     double currentProgress = 0;
     int index = 0;
-    await showProgressHud();
+    if (showProgress) {
+      await showProgressHud();
+    }
     for (var info in infos) {
       _PreAnalysisDartFile analysisDartFile = _PreAnalysisDartFile(info);
       analysisDartFile.progress.listen((p0) {
         double progress = currentProgress + p0 * progressIndex;
-        updateProgressHud(progress: progress);
+        if (showProgress) updateProgressHud(progress: progress);
       });
       await analysisDartFile.analysis();
       AnalyzerPackageManager()
@@ -92,12 +82,26 @@ class ConverRuntimePackage {
         _GenerateDartFile(infos[0], outPutPath, packageConfig);
     analysisDartFile.progress.listen((p0) {
       double progress = currentProgress + p0 * progressIndex;
-      updateProgressHud(progress: progress);
+      if (showProgress) updateProgressHud(progress: progress);
     });
     await analysisDartFile.analysis();
     await createPubspecFile(infos[0]);
     logger.i("生成运行时库完毕");
-    updateProgressHud(progress: 1.0);
+    if (showProgress) updateProgressHud(progress: 1.0);
+
+    final rootPath = rootUri(infos[0]);
+    final flutter = await which("flutter");
+    final results = await Shell(workingDirectory: rootPath).run('''
+flutter pub get
+dart format ./
+$flutter analyze
+''');
+    for (var result in results) {
+      logger.v(result.outText);
+      if (result.errText.isNotEmpty) {
+        logger.e(result.errText);
+      }
+    }
   }
 
   // 获取路径
@@ -142,6 +146,12 @@ class ConverRuntimePackage {
       await File(cachePath).delete(recursive: true);
     }
   }
+
+  String rootUri(PackageInfo info) {
+    String packagePath = info.rootUri.replaceFirst("file://", '');
+    String packageNamePath = basename(packagePath);
+    return join(outPutPath, packageNamePath);
+  }
 }
 
 extension StringPrivate on String {
@@ -167,6 +177,9 @@ abstract class _AnalysisDartFile {
   Future<void> analysis() async {
     packagePath = info.rootUri.replaceFirst("file://", "");
     analysisDir = join(packagePath, info.packageUri);
+    if (!await Directory(analysisDir).exists()) {
+      return;
+    }
     // 获取到当前需要分析目录下面所有的子元素
     List<FileSystemEntity> entitys =
         await Directory(analysisDir).list(recursive: true).toList();

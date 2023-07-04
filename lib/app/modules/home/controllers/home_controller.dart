@@ -72,14 +72,15 @@ class HomeController extends GetxController {
 
   // 分析第三方库代码
   // [packagePath] 第三方库的路径
-  FutureOr<void> analyzerPackageCode(String packageName) async {
+  FutureOr<void> analyzerPackageCode(String packageName,
+      [bool showProgress = true]) async {
     ConverRuntimePackage package = ConverRuntimePackage(
       "${platformEnvironment["HOME"]}/.runtime",
       packageConfig.value!,
       _dependency,
     );
     try {
-      await package.conver(packageName);
+      await package.conver(packageName, showProgress);
     } catch (e) {
       if (e is Error) {
         logger.e(e.stackTrace.toString());
@@ -91,10 +92,15 @@ class HomeController extends GetxController {
 
   Future<void> analyzerAllPackageCode() async {
     showProgressHud();
-    return;
+    int index = 1;
+    int count = packageConfig.value!.packages.length;
+    double progress = 1.0 / count;
     for (var package in packageConfig.value!.packages) {
-      await analyzerPackageCode(package.name);
+      await analyzerPackageCode(package.name, false);
+      updateProgressHud(progress: progress * index);
+      index += 1;
     }
+    updateProgressHud(progress: 1.0);
   }
 
   search() {

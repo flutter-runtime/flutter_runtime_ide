@@ -1,13 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
-import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_config_controller.dart';
-import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_config_view.dart';
-import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
-
 import 'package:get/get.dart';
-import 'package:loading_indicator/loading_indicator.dart';
-
+import '../../fix_config/controllers/fix_runtime_config_controller.dart';
+import '../../fix_config/views/fix_runtime_config_view.dart';
 import '../controllers/home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -25,9 +21,9 @@ class HomeView extends GetView<HomeController> {
           ),
           IconButton(
             onPressed: () {
-              final controller = FixConfigController();
+              final controller = FixRuntimeConfigController();
               Get.dialog(Dialog(
-                child: FixConfigView(controller: controller),
+                child: FixRuntimeConfigView(controller: controller),
               ));
             },
             icon: const Icon(Icons.bug_report),

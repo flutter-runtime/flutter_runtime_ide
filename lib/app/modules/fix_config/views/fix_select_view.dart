@@ -11,46 +11,40 @@ class FixSelectView<T extends FixSelectItem> extends StatelessWidget {
       : super(key: key);
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            decoration: const InputDecoration(
-              hintText: '输入名字过滤',
-            ),
-            controller: controller.nameController,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          decoration: const InputDecoration(
+            hintText: '输入名字过滤',
           ),
-          const SizedBox(height: 15),
-          Expanded(
-            child: Obx(() {
-              final items = controller.displayItems;
-              return ListView.separated(
-                itemBuilder: (context, index) {
-                  return Row(
-                    children: [
-                      TextButton(
-                        child: Text(items[index].name),
-                        onPressed: () => onTap?.call(items[index]),
-                      ),
-                      const Spacer(),
-                      const SizedBox(width: 8),
-                      if (controller.allowDelete)
-                        IconButton(
+          controller: controller.nameController,
+        ),
+        Expanded(
+          child: Obx(() {
+            final items = controller.displayItems;
+            return ListView.separated(
+              itemBuilder: (context, index) {
+                return ListTile(
+                  leading: Text(items[index].name),
+                  trailing: controller.allowDelete
+                      ? IconButton(
                           onPressed: () => _onDelete(items[index]),
                           icon: const Icon(Icons.delete, color: Colors.red),
                         )
-                    ],
-                  );
-                },
-                separatorBuilder: (context, index) => const Divider(),
-                itemCount: items.length,
-              );
-            }),
-          )
-        ],
-      ),
+                      : null,
+                  contentPadding: EdgeInsets.zero,
+                  onTap: () => onTap?.call(
+                    items[index],
+                  ),
+                );
+              },
+              separatorBuilder: (context, index) => const Divider(),
+              itemCount: items.length,
+            );
+          }),
+        )
+      ],
     );
   }
 

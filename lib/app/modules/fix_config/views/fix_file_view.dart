@@ -1,71 +1,155 @@
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
-import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_class_controller.dart';
-import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_file_controller.dart';
-import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_select_controller.dart';
-import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_class_view.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_select_view.dart';
+import 'package:flutter_runtime_ide/common/common_function.dart';
+
 import 'package:get/get.dart';
 
-import '../../../../common/common_function.dart';
-import 'add_name_view.dart';
+import '../controllers/fix_class_controller.dart';
+import '../controllers/fix_extension_controller.dart';
+import '../controllers/fix_file_controller.dart';
+import '../controllers/fix_import_controller.dart';
+import 'fix_class_view.dart';
+import 'fix_extension_view.dart';
+import 'fix_import_view.dart';
 
-class FixFileView extends StatelessWidget {
+class FixFileView extends StatefulWidget {
   final FixFileController controller;
   const FixFileView({Key? key, required this.controller}) : super(key: key);
+
+  @override
+  State<FixFileView> createState() => _FixFileViewState();
+}
+
+class _FixFileViewState extends State<FixFileView>
+    with TickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('文件配置'),
+        title: const Text('修复文件配置'),
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () => _showAddFileView(),
+            onPressed: () {
+              if (_tabController.index == 0) {
+                _showAddClassConfig();
+              } else if (_tabController.index == 1) {
+                _showAddExtensionConfig();
+              } else if (_tabController.index == 2) {
+                _showAddImportConfig();
+              }
+            },
             icon: const Icon(Icons.add),
           )
         ],
       ),
-      body: FixSelectView(
-        controller: controller.selectController,
-        onTap: (item) => Unwrap(item).map((e) => _showFixClassView(e)),
+      body: Column(
+        children: [
+          TabBar(
+            tabs: [
+              Tab(
+                child: Text(
+                  'Class',
+                  style: TextStyle(color: Colors.blue.shade300),
+                ),
+              ),
+              Tab(
+                child: Text(
+                  'Extension',
+                  style: TextStyle(color: Colors.blue.shade300),
+                ),
+              ),
+              Tab(
+                child: Text(
+                  'Import',
+                  style: TextStyle(color: Colors.blue.shade300),
+                ),
+              )
+            ],
+            controller: _tabController,
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(15.0),
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  FixSelectView(
+                    controller: widget.controller.selectClassController,
+                    onTap: (item) => Unwrap(item).map((e) {
+                      return _showFixMethodView(e);
+                    }),
+                  ),
+                  FixSelectView(
+                    controller: widget.controller.selectExtensionController,
+                    onTap: (item) => Unwrap(item).map((e) {
+                      return _showFixExtensionView(e);
+                    }),
+                  ),
+                  FixSelectView(
+                    controller: widget.controller.selectImportController,
+                    onTap: (item) => Unwrap(item).map((e) {
+                      return _showFixImportView(e);
+                    }),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  _showFixClassView(FixConfig config) async {
-    final fullPath = this.controller.getFullPath(config);
-    if (fullPath == null) return;
-    final controller = FixClassController(config, fullPath);
-    Get.dialog(Dialog(child: FixClassView(controller: controller)));
+  _showFixMethodView(FixClassConfig config) async {
+    final element = widget.controller.getClassElement(config.name);
+    if (element == null) return;
+    final controller = FixClassController(config, element);
+    Get.dialog(Dialog(child: FixClassView(controller)));
   }
 
-  _showAddFileView() async {
-    final paths = AnalyzerPackageManager()
-        .getPackageLibraryPaths(controller.packageInfo?.packagePath ?? '');
-    if (paths.isEmpty) {
-      Get.snackbar('未分析！', '请先分析库: ${controller.configuration.name}');
-      return;
-    }
-    final result = await showSelectItemDialog(paths
-        .map((e) {
-          return libraryPath(e);
-        })
-        .whereType<String>()
-        .map((e) {
-          return _AnalysisPath(e);
-        })
-        .toList());
+  _showFixExtensionView(FixExtensionConfig config) async {
+    final element = widget.controller.getExtensionElement(config.name);
+    if (element == null) return;
+    final controller = FixExtensionController(config, element);
+    Get.dialog(Dialog(child: FixExtensionView(controller)));
+  }
+
+  _showFixImportView(FixImportConfig config) async {
+    final element = widget.controller.getImportElement(config.path);
+    if (element == null) return;
+    final controller = FixImportController(config, element);
+    Get.dialog(Dialog(child: FixImportView(controller)));
+  }
+
+  _showAddClassConfig() async {
+    final result =
+        await showSelectItemDialog(widget.controller.allEmptyClassConfig);
     if (result == null) return;
-    controller.addConfig(result.name);
+    widget.controller.addClassConfig(result);
   }
-}
 
-class _AnalysisPath extends FixSelectItem {
-  @override
-  final String name;
+  _showAddExtensionConfig() async {
+    final result =
+        await showSelectItemDialog(widget.controller.allEmptyExtensionConfig);
+    if (result == null) return;
+    widget.controller.addExtensionConfig(result);
+  }
 
-  _AnalysisPath(this.name);
+  _showAddImportConfig() async {
+    final result =
+        await showSelectItemDialog(widget.controller.allEmptyImportConfig);
+    if (result == null) return;
+    widget.controller.addImportConfig(result);
+  }
 }

@@ -1,24 +1,19 @@
 // ignore_for_file: implementation_imports
 
-import 'dart:math';
 
-import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
-import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
-import 'package:analyzer/src/generated/source.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:analyzer/src/dart/analysis/results.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
-import 'package:process_run/process_run.dart';
 
 class FileRuntimeGenerate {
   final String sourcePath;
@@ -61,8 +56,15 @@ class FileRuntimeGenerate {
         library.element.units.whereType<CompilationUnitElementImpl>().toList();
     for (var unit in _units) {
       _classs.addAll(unit.classes.where((element) => !element.name.isPrivate));
-      _extensions.addAll(unit.extensions.where((element) =>
-          Unwrap(element.name).map((e) => !e.isPrivate).defaultValue(false)));
+      _extensions.addAll(
+        unit.extensions.where((element) {
+          return Unwrap(element.name).map((e) {
+            final config = fixConfig?.getExtensionConfig(e);
+            final isEnable = config?.isEnable ?? true;
+            return !e.isPrivate && isEnable;
+          }).defaultValue(false);
+        }),
+      );
       _topLevelVariables.addAll(
           unit.topLevelVariables.where((element) => !element.name.isPrivate));
       _functions
@@ -316,7 +318,10 @@ class FileRuntimeGenerate {
     };
   }
 
-  Map<String, dynamic> toExtensionData(ExtensionElementImpl element) {
+  Map<String, dynamic> toExtensionData(
+    ExtensionElementImpl element, [
+    FixExtensionConfig? extensionConfig,
+  ]) {
     final getFields = element.fields
         .where((element) => !element.name.isPrivate)
         .map((e) => e.getter)
@@ -590,12 +595,17 @@ class FileRuntimeGenerate {
     needHideNames.addAll(_classs.map((e) => e.name).toList());
     needHideNames
         .addAll(_extensions.map((e) => e.name).whereType<String>().toList());
-
+    int index = 0;
     for (var analysis in importAnalysis) {
-      if (analysis.showNames.isNotEmpty || analysis.hideNames.isNotEmpty) {
-        continue;
-      }
       List<String> hideNames = [];
+
+      Unwrap(analysis.uriContent)
+          .map((e) => fixConfig?.getImportConfig(index))
+          .map((e) {
+        hideNames.addAll(e.hideNames);
+      });
+
+      index++;
 
       for (var name in needHideNames) {
         final exportNames = analysis.exportNamespace?.definedNames.keys ?? [];
@@ -603,7 +613,7 @@ class FileRuntimeGenerate {
           hideNames.add(name);
         }
       }
-      analysis.hideNames = hideNames;
+      analysis.hideNames = hideNames.toSet().toList();
     }
   }
 

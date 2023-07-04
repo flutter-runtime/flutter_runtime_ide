@@ -3,7 +3,18 @@ import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:get/get.dart';
 
 class FixExtensionController extends GetxController {
-  final FixRuntimeConfiguration configuration;
+  final FixExtensionConfig config;
   final ExtensionElement element;
-  FixExtensionController(this.configuration, this.element);
+
+  // 是否隐藏
+  var isHide = false.obs;
+
+  FixExtensionController(this.config, this.element) {
+    isHide.value = !config.isEnable;
+  }
+
+  void setIsHide(bool isHide) {
+    this.isHide.value = isHide;
+    config.isEnable = !isHide;
+  }
 }

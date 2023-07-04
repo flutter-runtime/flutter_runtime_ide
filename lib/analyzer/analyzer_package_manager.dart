@@ -4,13 +4,10 @@ import 'dart:io';
 
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
-import 'package:analyzer/dart/ast/ast.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
-import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:path/path.dart';
-import 'package:analyzer/src/dart/analysis/results.dart';
 import 'package:process_run/process_run.dart';
 
 import '../common/common_function.dart';
