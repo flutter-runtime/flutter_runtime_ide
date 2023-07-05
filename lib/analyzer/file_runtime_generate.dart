@@ -1,6 +1,5 @@
 // ignore_for_file: implementation_imports
 
-
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
@@ -91,7 +90,11 @@ class FileRuntimeGenerate {
     }).toList();
     // assert(_extensions.isEmpty);
     classes.add(toGlobalClass());
-    classes.addAll(_extensions.map((e) => toExtensionData(e)).toList());
+    classes.addAll(_extensions.map((e) {
+      final config =
+          Unwrap(e.name).map((e) => fixConfig?.getExtensionConfig(e)).value;
+      return toExtensionData(e, config);
+    }).toList());
     classes.addAll(_enums.map((e) => toEnumData(e)).toList());
     classes.addAll(_mixins.map((e) => toMixinData(e)).toList());
 
@@ -128,7 +131,14 @@ class FileRuntimeGenerate {
         .whereType<PropertyAccessorElementImpl>()
         .map((e) => toPropertyAccessorData(e))
         .toList();
-    final methods = _functions.map((e) => toFunctionData(e)).toList();
+    final methods = _functions
+        .map((e) {
+          final config = fixConfig?.getMethodConfig(e.name);
+          if (config != null && !config.isEnable) return null;
+          return toFunctionData(e, config);
+        })
+        .whereType<Map<String, dynamic>>()
+        .toList();
     return {
       "className": "FR${md5(sourcePath)}",
       "getFields": getFields,
@@ -282,7 +292,8 @@ class FileRuntimeGenerate {
     };
   }
 
-  Map<String, dynamic> toFunctionData(FunctionElementImpl element) {
+  Map<String, dynamic> toFunctionData(FunctionElementImpl element,
+      [FixMethodConfig? methodConfig]) {
     String? customCallCode;
     if (element.name == '[]=' && element.parameters.length == 2) {
       customCallCode =
@@ -292,9 +303,10 @@ class FileRuntimeGenerate {
     } else if (element.name == '[]') {
       customCallCode = '''runtime[args['${element.parameters[0].name}']]''';
     }
-    final parameters = element.parameters
-        .map((e) => toParametersData(e as ParameterElementImpl))
-        .toList();
+    final parameters = element.parameters.map((e) {
+      final config = methodConfig?.getParameterConfig(e.name);
+      return toParametersData(e as ParameterElementImpl, config);
+    }).toList();
     return {
       "methodName": element.name,
       "parameters": parameters,
@@ -336,7 +348,14 @@ class FileRuntimeGenerate {
         .toList();
     final methods = element.methods
         .where((element) => !element.isPrivate)
-        .map((e) => toMethodData(e))
+        .map((e) {
+          final config = extensionConfig?.getMethodConfig(e.name);
+          if (config != null && !config.isEnable) {
+            return null;
+          }
+          return toMethodData(e);
+        })
+        .whereType<Map<String, dynamic>>()
         .toList();
     // final runtimeType = runtimeNameWithType(element.extendedType);
     final runtimeType = Unwrap(element.name)
@@ -367,6 +386,21 @@ class FileRuntimeGenerate {
     FixMethodConfig? methodConfig,
   }) {
     String? customCallCode;
+
+    // 支持的计算公式
+    final supportOperations = [
+      '<',
+      '<=',
+      '>',
+      '>=',
+      '+',
+      '&',
+      '|',
+      '*',
+      '/',
+      '-',
+    ];
+
     if (element.name == '[]=' && element.parameters.length == 2) {
       customCallCode =
           '''runtime[args['${element.parameters[0].name}']] = args['${element.parameters[1].name}']''';
@@ -374,13 +408,16 @@ class FileRuntimeGenerate {
       customCallCode = '''runtime == args['${element.parameters[0].name}']''';
     } else if (element.name == '[]') {
       customCallCode = '''runtime[args['${element.parameters[0].name}']]''';
-    } else if (['<', '<=', '>', '>=', '+', '&', '|'].contains(element.name)) {
+    } else if (supportOperations.contains(element.name)) {
       customCallCode =
           '''runtime ${element.name} args['${element.parameters[0].name}']''';
+    } else if (element.name.startsWith('unary')) {
+      final operation = element.name.substring(5);
+      customCallCode = '''${operation}runtime''';
     }
     final parameters = element.parameters.map((e) {
-      return toParametersData(e as ParameterElementImpl,
-          parameterConfig: methodConfig?.getParameterConfig(e.name));
+      return toParametersData(
+          e as ParameterElementImpl, methodConfig?.getParameterConfig(e.name));
     }).toList();
     return {
       "methodName": element.name,
@@ -403,9 +440,9 @@ class FileRuntimeGenerate {
   }
 
   Map<String, dynamic> toParametersData(
-    ParameterElementImpl element, {
+    ParameterElementImpl element, [
     FixParameterConfig? parameterConfig,
-  }) {
+  ]) {
     String readArgCode = '''args['${element.name}']''';
     // String? displayTypeString = getTypeDisplayName(element.type);
 

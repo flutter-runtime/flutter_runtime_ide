@@ -22,9 +22,12 @@ class HomeView extends GetView<HomeController> {
           IconButton(
             onPressed: () {
               final controller = FixRuntimeConfigController();
-              Get.dialog(Dialog(
-                child: FixRuntimeConfigView(controller: controller),
-              ));
+              Get.dialog(
+                Dialog(
+                  child: FixRuntimeConfigView(controller: controller),
+                ),
+                barrierDismissible: false,
+              );
             },
             icon: const Icon(Icons.bug_report),
           )

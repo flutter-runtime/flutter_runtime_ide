@@ -26,9 +26,26 @@ class FixMethodView extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(15.0),
-        child: FixSelectView(
-          controller: controller.selectController,
-          onTap: (item) => Unwrap(item).map((e) => _showParameterInfoView(e)),
+        child: Column(
+          children: [
+            ListTile(
+              leading: const Text('是否显示'),
+              trailing: Obx(
+                () => Switch(
+                  value: controller.isShow.value,
+                  onChanged: (isOn) => controller.setIsShow(isOn),
+                ),
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: FixSelectView(
+                controller: controller.selectController,
+                onTap: (item) =>
+                    Unwrap(item).map((e) => _showParameterInfoView(e)),
+              ),
+            )
+          ],
         ),
       ),
     );

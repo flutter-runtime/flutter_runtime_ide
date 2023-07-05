@@ -10,8 +10,11 @@ class FixMethodController extends GetxController {
   final FunctionTypedElement element;
   late FixSelectController<FixParameterConfig> selectController;
 
+  var isShow = false.obs;
+
   FixMethodController(this.config, this.element) {
     selectController = FixSelectController(config.parameters);
+    isShow.value = config.isEnable;
   }
 
   List<ParameterElement> get allParameter {
@@ -23,5 +26,10 @@ class FixMethodController extends GetxController {
   void addConfig(FixParameterConfig result) {
     selectController.add(result);
     config.parameters = selectController.items;
+  }
+
+  setIsShow(bool isOn) {
+    isShow.value = isOn;
+    config.isEnable = isOn;
   }
 }

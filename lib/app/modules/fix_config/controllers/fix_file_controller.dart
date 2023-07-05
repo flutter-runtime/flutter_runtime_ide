@@ -12,11 +12,13 @@ class FixFileController extends GetxController {
   late FixSelectController<FixClassConfig> selectClassController;
   late FixSelectController<FixExtensionConfig> selectExtensionController;
   late FixSelectController<FixImportConfig> selectImportController;
+  late FixSelectController<FixMethodConfig> selectMethodController;
   late SomeResolvedLibraryResult? _library;
   FixFileController(this.config, this.fullPath) {
     selectClassController = FixSelectController(config.classs);
     selectExtensionController = FixSelectController(config.extensions);
     selectImportController = FixSelectController(config.imports);
+    selectMethodController = FixSelectController(config.methods);
     _library = AnalyzerPackageManager().getResult(fullPath);
   }
 
@@ -39,6 +41,10 @@ class FixFileController extends GetxController {
       index++;
       return config;
     }).toList();
+  }
+
+  List<FixMethodConfig> get allEmptyMethodConfig {
+    return allFunctions.map((e) => FixMethodConfig()..name = e.name).toList();
   }
 
   void addClassConfig(FixClassConfig result) {
@@ -85,6 +91,17 @@ class FixFileController extends GetxController {
         .toList();
   }
 
+  List<FunctionElement> get allFunctions {
+    if (_library is! ResolvedLibraryResult) return [];
+    ResolvedLibraryResult result = _library as ResolvedLibraryResult;
+    return result.element.units
+        .map((e) => e.functions)
+        .expand((e) => e)
+        .toList()
+        .whereType<FunctionElement>()
+        .toList();
+  }
+
   ClassElement? getClassElement(String className) {
     return allClasss.firstWhereOrNull((element) => element.name == className);
   }
@@ -99,8 +116,17 @@ class FixFileController extends GetxController {
     });
   }
 
+  FunctionElement? getFunctionElement(String name) {
+    return allFunctions.firstWhereOrNull((element) => element.name == name);
+  }
+
   void addImportConfig(FixImportConfig result) {
     selectImportController.add(result);
     config.imports = selectImportController.items;
+  }
+
+  void addMethodConfig(FixMethodConfig result) {
+    selectMethodController.add(result);
+    config.methods = selectMethodController.items;
   }
 }

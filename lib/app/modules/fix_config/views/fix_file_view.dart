@@ -10,9 +10,11 @@ import '../controllers/fix_class_controller.dart';
 import '../controllers/fix_extension_controller.dart';
 import '../controllers/fix_file_controller.dart';
 import '../controllers/fix_import_controller.dart';
+import '../controllers/fix_method_controller.dart';
 import 'fix_class_view.dart';
 import 'fix_extension_view.dart';
 import 'fix_import_view.dart';
+import 'fix_method_view.dart';
 
 class FixFileView extends StatefulWidget {
   final FixFileController controller;
@@ -29,7 +31,7 @@ class _FixFileViewState extends State<FixFileView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -47,6 +49,8 @@ class _FixFileViewState extends State<FixFileView>
                 _showAddExtensionConfig();
               } else if (_tabController.index == 2) {
                 _showAddImportConfig();
+              } else if (_tabController.index == 3) {
+                _showAddMethodConfig();
               }
             },
             icon: const Icon(Icons.add),
@@ -74,6 +78,12 @@ class _FixFileViewState extends State<FixFileView>
                   'Import',
                   style: TextStyle(color: Colors.blue.shade300),
                 ),
+              ),
+              Tab(
+                child: Text(
+                  'Method',
+                  style: TextStyle(color: Colors.blue.shade300),
+                ),
               )
             ],
             controller: _tabController,
@@ -87,7 +97,7 @@ class _FixFileViewState extends State<FixFileView>
                   FixSelectView(
                     controller: widget.controller.selectClassController,
                     onTap: (item) => Unwrap(item).map((e) {
-                      return _showFixMethodView(e);
+                      return _showFixClassView(e);
                     }),
                   ),
                   FixSelectView(
@@ -102,6 +112,12 @@ class _FixFileViewState extends State<FixFileView>
                       return _showFixImportView(e);
                     }),
                   ),
+                  FixSelectView(
+                    controller: widget.controller.selectMethodController,
+                    onTap: (item) => Unwrap(item).map((e) {
+                      return _showFixMethodView(e);
+                    }),
+                  ),
                 ],
               ),
             ),
@@ -111,7 +127,7 @@ class _FixFileViewState extends State<FixFileView>
     );
   }
 
-  _showFixMethodView(FixClassConfig config) async {
+  _showFixClassView(FixClassConfig config) async {
     final element = widget.controller.getClassElement(config.name);
     if (element == null) return;
     final controller = FixClassController(config, element);
@@ -130,6 +146,13 @@ class _FixFileViewState extends State<FixFileView>
     if (element == null) return;
     final controller = FixImportController(config, element);
     Get.dialog(Dialog(child: FixImportView(controller)));
+  }
+
+  _showFixMethodView(FixMethodConfig config) async {
+    final element = widget.controller.getFunctionElement(config.name);
+    if (element == null) return;
+    final controller = FixMethodController(config, element);
+    Get.dialog(Dialog(child: FixMethodView(controller)));
   }
 
   _showAddClassConfig() async {
@@ -151,5 +174,12 @@ class _FixFileViewState extends State<FixFileView>
         await showSelectItemDialog(widget.controller.allEmptyImportConfig);
     if (result == null) return;
     widget.controller.addImportConfig(result);
+  }
+
+  Future<void> _showAddMethodConfig() async {
+    final result =
+        await showSelectItemDialog(widget.controller.allEmptyMethodConfig);
+    if (result == null) return;
+    widget.controller.addMethodConfig(result);
   }
 }

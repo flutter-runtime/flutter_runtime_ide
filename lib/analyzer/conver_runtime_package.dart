@@ -92,7 +92,6 @@ class ConverRuntimePackage {
     final rootPath = rootUri(infos[0]);
     final flutter = await which("flutter");
     final results = await Shell(workingDirectory: rootPath).run('''
-flutter pub get
 dart format ./
 $flutter analyze
 ''');

@@ -35,7 +35,10 @@ class FixRuntimeConfigView extends StatelessWidget {
           ),
           // 保存按钮
           IconButton(
-            onPressed: () => controller.saveConfig(),
+            onPressed: () async {
+              await controller.saveConfig();
+              Get.back();
+            },
             icon: const Icon(Icons.save),
           ),
         ],
