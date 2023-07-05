@@ -42,4 +42,10 @@ class ProgressHudViewController extends GetxController {
     // index = min(index, logEvents.length - 1);
     scrollController.jumpTo(index: index);
   }
+
+  @override
+  void onClose() {
+    super.onClose();
+    reset();
+  }
 }

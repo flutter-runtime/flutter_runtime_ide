@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
+import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
@@ -10,6 +11,8 @@ import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'dart:async';
 import 'package:process_run/process_run.dart';
+
+import '../../../../analyzer/mustache.dart';
 
 class HomeController extends GetxController {
   // 当前操作的工程路径
@@ -53,12 +56,15 @@ class HomeController extends GetxController {
     }
 
     String depsContent = result.stdout;
+    final startIndex = depsContent.indexOf('{');
+    depsContent = depsContent.substring(startIndex);
     final depsJson = json.decode(depsContent);
     _dependency = PackageDependency.fromJson(depsJson);
 
     // 读取文件内容
     String content = await File(packageConfigPath).readAsString();
     packageConfig.value = PackageConfig.fromJson(jsonDecode(content));
+    AnalyzerPackageManager().packageConfig = packageConfig.value;
 
     // 读取修复的配置
     await AnalyzerPackageManager().loadFixRuntimeConfiguration(
@@ -69,14 +75,15 @@ class HomeController extends GetxController {
 
   // 分析第三方库代码
   // [packagePath] 第三方库的路径
-  FutureOr<void> analyzerPackageCode(String packageName) async {
+  FutureOr<void> analyzerPackageCode(String packageName,
+      [bool showProgress = true]) async {
     ConverRuntimePackage package = ConverRuntimePackage(
       "${platformEnvironment["HOME"]}/.runtime",
       packageConfig.value!,
       _dependency,
     );
     try {
-      await package.conver(packageName);
+      await package.conver(packageName, showProgress);
     } catch (e) {
       if (e is Error) {
         logger.e(e.stackTrace.toString());
@@ -88,10 +95,15 @@ class HomeController extends GetxController {
 
   Future<void> analyzerAllPackageCode() async {
     showProgressHud();
-    return;
+    int index = 1;
+    int count = packageConfig.value!.packages.length;
+    double progress = 1.0 / count;
     for (var package in packageConfig.value!.packages) {
-      await analyzerPackageCode(package.name);
+      await analyzerPackageCode(package.name, false);
+      updateProgressHud(progress: progress * index);
+      index += 1;
     }
+    updateProgressHud(progress: 1.0);
   }
 
   search() {
@@ -102,5 +114,29 @@ class HomeController extends GetxController {
           .where((element) => element.name.contains(searchController.text))
           .toList();
     }
+  }
+
+  // 生成一个全局调用的运行库
+  Future<void> generateGlobaleRuntimePackage() async {
+    showHUD();
+    final packages = AnalyzerPackageManager().packageConfig?.packages ?? [];
+    final data = {
+      'pubName': 'flutter_runtime_center',
+      'dependencies': packages.map((e) {
+        return {
+          'name': '${e.name}_runtime',
+          'path': join(
+            AnalyzerPackageManager.defaultRuntimePath,
+            basename(e.packagePath),
+          )
+        };
+      }).toList(),
+    };
+    final yamlContent =
+        MustacheManager().render(globaleRuntimePackageMustache, data);
+    final pwd = shellEnvironment['PWD']!;
+    final runtimePath = join(pwd, '.runtime', 'pubspec.yaml');
+    await File(runtimePath).writeString(yamlContent);
+    hideHUD();
   }
 }

@@ -14,7 +14,7 @@ class {{className}} extends FlutterRuntime<{{{runtimeType}}}>{
 ''';
 
 const fileMustache = '''
-// ignore_for_file: implementation_imports, unused_import
+// ignore_for_file: implementation_imports, unused_import, invalid_use_of_visible_for_testing_member, duplicate_import, deprecated_member_use, unused_shown_name
 import 'dart:async';
 import 'package:flutter_runtime/flutter_runtime.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
@@ -108,10 +108,10 @@ dependency_overrides:
 
 const functionMustache = '''
 {{#isCustomCall}}
-  if (methodName == '{{{methodName}}}') return {{{customCallCode}}};
+  if (methodName == '{{{callMethodName}}}') return {{{customCallCode}}};
 {{/isCustomCall}}
 {{^isCustomCall}}
-  if (methodName == '{{{methodName}}}') return {{>prefixMustache}}{{{methodName}}}(
+  if (methodName == '{{{callMethodName}}}') return {{>prefixMustache}}{{{methodName}}}(
     {{#parameters}}
       {{#isNamed}}
         {{parameterName}}:{{>createInstanceMustache}}{{>defaultValueMustache}},
@@ -143,4 +143,16 @@ import '{{{uriContent}}}'
 {{#hasShowNames}} show {{{showContent}}}{{/hasShowNames}} 
 {{#hasHideNames}} hide {{{hideContent}}}{{/hasHideNames}} 
 ;
+''';
+
+const globaleRuntimePackageMustache = '''
+name: {{{pubName}}}
+environment:
+  sdk: '>=2.18.0 <3.0.0'
+
+dependencies:
+  {{#dependencies}}
+  {{name}}:
+    path: {{{path}}}
+  {{/dependencies}}
 ''';

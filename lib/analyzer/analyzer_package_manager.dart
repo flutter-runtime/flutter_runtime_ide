@@ -4,13 +4,11 @@ import 'dart:io';
 
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
-import 'package:analyzer/dart/ast/ast.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
-import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:path/path.dart';
-import 'package:analyzer/src/dart/analysis/results.dart';
+import 'package:process_run/process_run.dart';
 
 import '../common/common_function.dart';
 
@@ -24,6 +22,7 @@ class AnalyzerPackageManager {
   final Map<String, AnalysisContextCollection> _collections = {};
 
   List<FixRuntimeConfiguration> fixRuntimeConfiguration = [];
+  PackageConfig? packageConfig;
 
   // 根据库的路径和文件的路径获取分析结果
   // [packagePath] 库对应路径
@@ -76,11 +75,41 @@ class AnalyzerPackageManager {
     }).toList();
   }
 
+  Future<void> saveFixRuntimeConfiguration(String root) async {
+    final jsonValue = fixRuntimeConfiguration.map((e) => e.toJson()).toList();
+    final jsonText = const JsonEncoder.withIndent('  ').convert(jsonValue);
+    final savePath = join(root, '.fix_runtime.json');
+    await File(savePath).writeAsString(jsonText);
+  }
+
   FixRuntimeConfiguration? getFixRuntimeConfiguration(PackageInfo info) {
     final path = basename(info.rootUri);
-    final configurations = fixRuntimeConfiguration
-        .where((element) => "${element.name}-${element.version}" == path);
+    final configurations =
+        fixRuntimeConfiguration.where((element) => element.baseName == path);
     if (configurations.isEmpty) return null;
     return configurations.first;
+  }
+
+  List<String> getPackageLibraryPaths(String packagePath) {
+    return Unwrap(_libraries[packagePath]).map((e) {
+          return e.keys.toList();
+        }).value ??
+        [];
+  }
+
+  SomeResolvedLibraryResult? getResult(String fullPath) {
+    for (var list in _libraries.values) {
+      if (list.containsKey(fullPath)) {
+        return list[fullPath]!;
+      }
+    }
+    return null;
+  }
+
+  static String get defaultRuntimePath {
+    return join(
+      platformEnvironment['HOME']!,
+      '.runtime',
+    );
   }
 }
