@@ -25,6 +25,11 @@ class FixRuntimeConfiguration extends FixSelectItem {
       "fixs": fixs.map((e) => e.toJson()).toList(),
     };
   }
+
+  String get baseName {
+    if (version.isEmpty) return name;
+    return '$name-$version';
+  }
 }
 
 class FixConfig extends FixSelectItem {
@@ -89,7 +94,11 @@ class FixConfig extends FixSelectItem {
 class FixClassConfig extends FixSelectItem {
   @override
   late String name;
+
+  bool isEnable = true;
+
   List<FixMethodConfig> methods = [];
+  List<FixMethodConfig> constructors = [];
   FixClassConfig();
   FixClassConfig.fromJson(Map<String, dynamic> json) {
     final jsonValue = JSON(json);
@@ -98,17 +107,28 @@ class FixClassConfig extends FixSelectItem {
         .listValue
         .map((e) => FixMethodConfig.fromJson(e))
         .toList();
+    constructors = jsonValue["constructors"]
+        .listValue
+        .map((e) => FixMethodConfig.fromJson(e))
+        .toList();
+    isEnable = jsonValue["isEnable"].bool ?? true;
   }
 
   Map<String, dynamic> toJson() {
     return {
       "name": name,
       "methods": methods.map((e) => e.toJson()).toList(),
+      "constructors": constructors.map((e) => e.toJson()).toList(),
+      "isEnable": isEnable,
     };
   }
 
   FixMethodConfig? getMethodConfig(String name) =>
       methods.firstWhereOrNull((element) => element.name == name);
+
+  FixMethodConfig? getConstructorConfig(String name) {
+    return constructors.firstWhereOrNull((element) => element.name == name);
+  }
 }
 
 class FixMethodConfig extends FixSelectItem {
@@ -196,6 +216,7 @@ class FixImportConfig extends FixSelectItem {
   String? asName;
   List<String> showNames = [];
   List<String> hideNames = [];
+  bool isEnable = true;
   FixImportConfig();
   FixImportConfig.fromJson(Map<String, dynamic> json) {
     final jsonValue = JSON(json);
@@ -210,6 +231,7 @@ class FixImportConfig extends FixSelectItem {
         .listValue
         .map((e) => JSON(e).stringValue)
         .toList();
+    isEnable = jsonValue["isEnable"].bool ?? true;
   }
 
   Map<String, dynamic> toJson() {
@@ -219,6 +241,7 @@ class FixImportConfig extends FixSelectItem {
       'showNames': showNames,
       'hideNames': hideNames,
       'index': index,
+      "isEnable": isEnable,
     };
   }
 }

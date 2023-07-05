@@ -108,10 +108,10 @@ dependency_overrides:
 
 const functionMustache = '''
 {{#isCustomCall}}
-  if (methodName == '{{{methodName}}}') return {{{customCallCode}}};
+  if (methodName == '{{{callMethodName}}}') return {{{customCallCode}}};
 {{/isCustomCall}}
 {{^isCustomCall}}
-  if (methodName == '{{{methodName}}}') return {{>prefixMustache}}{{{methodName}}}(
+  if (methodName == '{{{callMethodName}}}') return {{>prefixMustache}}{{{methodName}}}(
     {{#parameters}}
       {{#isNamed}}
         {{parameterName}}:{{>createInstanceMustache}}{{>defaultValueMustache}},
@@ -143,4 +143,16 @@ import '{{{uriContent}}}'
 {{#hasShowNames}} show {{{showContent}}}{{/hasShowNames}} 
 {{#hasHideNames}} hide {{{hideContent}}}{{/hasHideNames}} 
 ;
+''';
+
+const globaleRuntimePackageMustache = '''
+name: {{{pubName}}}
+environment:
+  sdk: '>=2.18.0 <3.0.0'
+
+dependencies:
+  {{#dependencies}}
+  {{name}}:
+    path: {{{path}}}
+  {{/dependencies}}
 ''';

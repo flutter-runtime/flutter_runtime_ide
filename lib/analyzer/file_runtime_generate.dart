@@ -79,6 +79,8 @@ class FileRuntimeGenerate {
     await addImportHideNames();
 
     final classes = _classs.where((element) {
+      final classConfig = fixConfig?.getClassConfig(element.name);
+      if (!JSON(classConfig?.isEnable).boolValue) return false;
       final metadata = element.metadata;
       if (metadata.isEmpty) return true;
       return metadata.any((element) {
@@ -183,12 +185,17 @@ class FileRuntimeGenerate {
     }).toList();
     final methods =
         element.methods.where((element) => !element.isPrivate).map((e) {
-      return toMethodData(e,
-          methodConfig: classConfig?.getMethodConfig(e.name));
+      return toMethodData(
+        e,
+        methodConfig: classConfig?.getMethodConfig(e.name),
+      );
     }).toList();
     final constructors = element.constructors
         .where((element) => !element.name.isPrivate)
         .where((element) {
+          final constructorConfig =
+              classConfig?.getConstructorConfig(element.name);
+          if (!JSON(constructorConfig?.isEnable).boolValue) return false;
           if (element.name == '' && isStructAndUnionSubClass) {
             return false;
           }
@@ -308,6 +315,7 @@ class FileRuntimeGenerate {
       return toParametersData(e as ParameterElementImpl, config);
     }).toList();
     return {
+      'callMethodName': element.name.replaceAll('\$', '\\\$'),
       "methodName": element.name,
       "parameters": parameters,
       'customCallCode': customCallCode,
@@ -386,7 +394,6 @@ class FileRuntimeGenerate {
     FixMethodConfig? methodConfig,
   }) {
     String? customCallCode;
-
     // 支持的计算公式
     final supportOperations = [
       '<',
@@ -399,6 +406,12 @@ class FileRuntimeGenerate {
       '*',
       '/',
       '-',
+      '^',
+      '~/',
+      '%',
+      '<<',
+      '>>',
+      '>>>'
     ];
 
     if (element.name == '[]=' && element.parameters.length == 2) {
@@ -414,12 +427,17 @@ class FileRuntimeGenerate {
     } else if (element.name.startsWith('unary')) {
       final operation = element.name.substring(5);
       customCallCode = '''${operation}runtime''';
+    } else if (element.name == '~') {
+      customCallCode = '${element.name}runtime';
     }
     final parameters = element.parameters.map((e) {
       return toParametersData(
-          e as ParameterElementImpl, methodConfig?.getParameterConfig(e.name));
+        e as ParameterElementImpl,
+        methodConfig?.getParameterConfig(e.name),
+      );
     }).toList();
     return {
+      'callMethodName': element.name.replaceAll('\$', '\\\$'),
       "methodName": element.name,
       "parameters": parameters,
       'customCallCode': customCallCode,

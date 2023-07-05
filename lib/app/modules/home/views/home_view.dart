@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:get/get.dart';
 import '../../fix_config/controllers/fix_runtime_config_controller.dart';
@@ -20,7 +21,10 @@ class HomeView extends GetView<HomeController> {
             icon: const Icon(Icons.analytics),
           ),
           IconButton(
-            onPressed: () {
+            onPressed: () async {
+              final manager = AnalyzerPackageManager();
+              await manager.loadFixRuntimeConfiguration(
+                  AnalyzerPackageManager.defaultRuntimePath);
               final controller = FixRuntimeConfigController();
               Get.dialog(
                 Dialog(
@@ -30,7 +34,11 @@ class HomeView extends GetView<HomeController> {
               );
             },
             icon: const Icon(Icons.bug_report),
-          )
+          ),
+          IconButton(
+            onPressed: () => controller.generateGlobaleRuntimePackage(),
+            icon: const Icon(Icons.download_done),
+          ),
         ],
       ),
       body: Obx(

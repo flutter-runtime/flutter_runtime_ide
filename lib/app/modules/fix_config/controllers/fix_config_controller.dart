@@ -23,8 +23,7 @@ class FixConfigController extends GetxController {
   PackageInfo? get packageInfo {
     final packages = AnalyzerPackageManager().packageConfig?.packages ?? [];
     final result = packages.firstWhereOrNull((element) {
-      return basename(element.rootUri) ==
-          '${configuration.name}-${configuration.version}';
+      return basename(element.rootUri) == configuration.baseName;
     });
     return result;
   }

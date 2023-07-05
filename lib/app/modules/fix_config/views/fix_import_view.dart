@@ -3,7 +3,6 @@ import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_impor
 import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_select_view.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 
-
 class FixImportView extends StatefulWidget {
   final FixImportController controller;
   const FixImportView(this.controller, {Key? key}) : super(key: key);
@@ -41,40 +40,43 @@ class _FixImportViewState extends State<FixImportView>
           )
         ],
       ),
-      body: Column(
-        children: [
-          TabBar(
-            controller: _tabController,
-            tabs: [
-              Tab(
-                child: Text(
-                  'show',
-                  style: TextStyle(color: Colors.blue.shade300),
-                ),
-              ),
-              Tab(
-                child: Text(
-                  'hide',
-                  style: TextStyle(color: Colors.blue.shade300),
-                ),
-              ),
-            ],
-          ),
-          const Divider(),
-          Expanded(
-            child: TabBarView(
+      body: Padding(
+        padding: const EdgeInsets.all(15.0),
+        child: Column(
+          children: [
+            TabBar(
               controller: _tabController,
-              children: [
-                FixSelectView(
-                  controller: widget.controller.selectShowController,
+              tabs: [
+                Tab(
+                  child: Text(
+                    'show',
+                    style: TextStyle(color: Colors.blue.shade300),
+                  ),
                 ),
-                FixSelectView(
-                  controller: widget.controller.selectHideController,
+                Tab(
+                  child: Text(
+                    'hide',
+                    style: TextStyle(color: Colors.blue.shade300),
+                  ),
                 ),
               ],
             ),
-          )
-        ],
+            const Divider(),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  FixSelectView(
+                    controller: widget.controller.selectShowController,
+                  ),
+                  FixSelectView(
+                    controller: widget.controller.selectHideController,
+                  ),
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }

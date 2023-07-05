@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
+import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
 import 'package:flutter_runtime_ide/app/data/package_config.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
@@ -10,6 +11,8 @@ import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'dart:async';
 import 'package:process_run/process_run.dart';
+
+import '../../../../analyzer/mustache.dart';
 
 class HomeController extends GetxController {
   // 当前操作的工程路径
@@ -111,5 +114,29 @@ class HomeController extends GetxController {
           .where((element) => element.name.contains(searchController.text))
           .toList();
     }
+  }
+
+  // 生成一个全局调用的运行库
+  Future<void> generateGlobaleRuntimePackage() async {
+    showHUD();
+    final packages = AnalyzerPackageManager().packageConfig?.packages ?? [];
+    final data = {
+      'pubName': 'flutter_runtime_center',
+      'dependencies': packages.map((e) {
+        return {
+          'name': '${e.name}_runtime',
+          'path': join(
+            AnalyzerPackageManager.defaultRuntimePath,
+            basename(e.packagePath),
+          )
+        };
+      }).toList(),
+    };
+    final yamlContent =
+        MustacheManager().render(globaleRuntimePackageMustache, data);
+    final pwd = shellEnvironment['PWD']!;
+    final runtimePath = join(pwd, '.runtime', 'pubspec.yaml');
+    await File(runtimePath).writeString(yamlContent);
+    hideHUD();
   }
 }

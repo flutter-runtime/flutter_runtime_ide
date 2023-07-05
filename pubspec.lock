@@ -9,6 +9,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "61.0.0"
+  _fe_analyzer_shared_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/_fe_analyzer_shared-61.0.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   analyzer:
     dependency: "direct main"
     description:
@@ -17,6 +24,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "5.13.0"
+  analyzer_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/analyzer-5.13.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   args:
     dependency: transitive
     description:
@@ -25,6 +39,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.4.1"
+  args_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/args-2.4.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   async:
     dependency: transitive
     description:
@@ -33,6 +54,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.10.0"
+  async_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/async-2.10.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   boolean_selector:
     dependency: transitive
     description:
@@ -41,6 +69,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.1"
+  boolean_selector_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/boolean_selector-2.1.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   characters:
     dependency: transitive
     description:
@@ -49,6 +84,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.2.1"
+  characters_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/characters-1.2.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   charcode:
     dependency: transitive
     description:
@@ -57,6 +99,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.3.1"
+  charcode_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/charcode-1.3.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   checked_yaml:
     dependency: transitive
     description:
@@ -65,6 +114,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.3"
+  checked_yaml_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/checked_yaml-2.0.3"
+      relative: false
+    source: path
+    version: "0.0.0"
   clock:
     dependency: transitive
     description:
@@ -73,6 +129,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.1.1"
+  clock_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/clock-1.1.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   collection:
     dependency: transitive
     description:
@@ -81,6 +144,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.17.0"
+  collection_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/collection-1.17.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   convert:
     dependency: transitive
     description:
@@ -89,6 +159,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.1.1"
+  convert_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/convert-3.1.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   crypto:
     dependency: "direct main"
     description:
@@ -97,6 +174,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.0.3"
+  crypto_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/crypto-3.0.3"
+      relative: false
+    source: path
+    version: "0.0.0"
   cupertino_icons:
     dependency: "direct main"
     description:
@@ -105,6 +189,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.0.5"
+  cupertino_icons_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/cupertino_icons-1.0.5"
+      relative: false
+    source: path
+    version: "0.0.0"
   darty_json_safe:
     dependency: "direct main"
     description:
@@ -113,6 +204,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.0.1"
+  darty_json_safe_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/darty_json_safe-1.0.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   fake_async:
     dependency: transitive
     description:
@@ -121,6 +219,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.3.1"
+  fake_async_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/fake_async-1.3.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   ffi:
     dependency: transitive
     description:
@@ -129,6 +234,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.2"
+  ffi_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/ffi-2.0.2"
+      relative: false
+    source: path
+    version: "0.0.0"
   file:
     dependency: transitive
     description:
@@ -145,6 +257,20 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "5.3.0"
+  file_picker_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/file_picker-5.3.0"
+      relative: false
+    source: path
+    version: "0.0.0"
+  file_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/file-6.1.4"
+      relative: false
+    source: path
+    version: "0.0.0"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -158,6 +284,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.1"
+  flutter_lints_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/flutter_lints-2.0.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -166,6 +299,34 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.14"
+  flutter_plugin_android_lifecycle_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/flutter_plugin_android_lifecycle-2.0.14"
+      relative: false
+    source: path
+    version: "0.0.0"
+  flutter_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/Documents/flutter_runtime_ide/packages/flutter_runtime"
+      relative: false
+    source: path
+    version: "0.0.1"
+  flutter_runtime_center:
+    dependency: "direct main"
+    description:
+      path: ".runtime"
+      relative: true
+    source: path
+    version: "0.0.0"
+  flutter_runtime_ide_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/.."
+      relative: false
+    source: path
+    version: "0.0.0"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -176,6 +337,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_web_plugins_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/flutter_web_plugins"
+      relative: false
+    source: path
+    version: "0.0.0"
   fuzzywuzzy:
     dependency: "direct main"
     description:
@@ -184,6 +352,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.1.2"
+  fuzzywuzzy_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/fuzzywuzzy-1.1.2"
+      relative: false
+    source: path
+    version: "0.0.0"
   get:
     dependency: "direct main"
     description:
@@ -192,6 +367,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "4.6.5"
+  get_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/get-4.6.5"
+      relative: false
+    source: path
+    version: "0.0.0"
   glob:
     dependency: transitive
     description:
@@ -200,6 +382,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.2"
+  glob_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/glob-2.1.2"
+      relative: false
+    source: path
+    version: "0.0.0"
   js:
     dependency: transitive
     description:
@@ -208,6 +397,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.6.5"
+  js_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/js-0.6.5"
+      relative: false
+    source: path
+    version: "0.0.0"
   json_annotation:
     dependency: transitive
     description:
@@ -216,6 +412,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "4.8.1"
+  json_annotation_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/json_annotation-4.8.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   lints:
     dependency: transitive
     description:
@@ -224,6 +427,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.1"
+  lints_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/lints-2.0.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   liquid_progress_indicator:
     dependency: "direct main"
     description:
@@ -232,6 +442,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.4.0"
+  liquid_progress_indicator_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/liquid_progress_indicator-0.4.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   loading_indicator:
     dependency: "direct main"
     description:
@@ -240,6 +457,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.1.1"
+  loading_indicator_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/loading_indicator-3.1.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   logger:
     dependency: "direct main"
     description:
@@ -248,6 +472,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.3.0"
+  logger_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/logger-1.3.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   matcher:
     dependency: transitive
     description:
@@ -256,6 +487,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.12.13"
+  matcher_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/matcher-0.12.13"
+      relative: false
+    source: path
+    version: "0.0.0"
   material_color_utilities:
     dependency: transitive
     description:
@@ -264,6 +502,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.2.0"
+  material_color_utilities_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/material_color_utilities-0.2.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   menu_button:
     dependency: "direct main"
     description:
@@ -272,6 +517,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.4.2+1"
+  menu_button_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/menu_button-1.4.2+1"
+      relative: false
+    source: path
+    version: "0.0.0"
   meta:
     dependency: transitive
     description:
@@ -280,6 +532,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.8.0"
+  meta_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/meta-1.8.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   mustache_template:
     dependency: "direct main"
     description:
@@ -288,6 +547,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.0"
+  mustache_template_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/mustache_template-2.0.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   package_config:
     dependency: transitive
     description:
@@ -296,6 +562,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.0"
+  package_config_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/package_config-2.1.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   path:
     dependency: "direct main"
     description:
@@ -312,6 +585,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.10"
+  path_provider_linux_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/path_provider_linux-2.1.10"
+      relative: false
+    source: path
+    version: "0.0.0"
   path_provider_platform_interface:
     dependency: transitive
     description:
@@ -320,6 +600,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.6"
+  path_provider_platform_interface_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/path_provider_platform_interface-2.0.6"
+      relative: false
+    source: path
+    version: "0.0.0"
   path_provider_windows:
     dependency: transitive
     description:
@@ -328,6 +615,20 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.6"
+  path_provider_windows_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/path_provider_windows-2.1.6"
+      relative: false
+    source: path
+    version: "0.0.0"
+  path_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/path-1.8.2"
+      relative: false
+    source: path
+    version: "0.0.0"
   platform:
     dependency: transitive
     description:
@@ -336,6 +637,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.1.0"
+  platform_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/platform-3.1.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   plugin_platform_interface:
     dependency: transitive
     description:
@@ -344,6 +652,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.4"
+  plugin_platform_interface_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/plugin_platform_interface-2.1.4"
+      relative: false
+    source: path
+    version: "0.0.0"
   process:
     dependency: transitive
     description:
@@ -360,6 +675,20 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.13.0"
+  process_run_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/process_run-0.13.0"
+      relative: false
+    source: path
+    version: "0.0.0"
+  process_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/process-4.2.4"
+      relative: false
+    source: path
+    version: "0.0.0"
   pub_semver:
     dependency: transitive
     description:
@@ -368,6 +697,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.4"
+  pub_semver_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/pub_semver-2.1.4"
+      relative: false
+    source: path
+    version: "0.0.0"
   pubspec_parse:
     dependency: "direct main"
     description:
@@ -376,6 +712,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.2.3"
+  pubspec_parse_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/pubspec_parse-1.2.3"
+      relative: false
+    source: path
+    version: "0.0.0"
   scrollable_positioned_list:
     dependency: "direct main"
     description:
@@ -384,6 +727,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.3.8"
+  scrollable_positioned_list_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/scrollable_positioned_list-0.3.8"
+      relative: false
+    source: path
+    version: "0.0.0"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -400,6 +750,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.4"
+  shared_preferences_android_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/shared_preferences_android-2.1.4"
+      relative: false
+    source: path
+    version: "0.0.0"
   shared_preferences_foundation:
     dependency: transitive
     description:
@@ -408,6 +765,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.2.2"
+  shared_preferences_foundation_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/shared_preferences_foundation-2.2.2"
+      relative: false
+    source: path
+    version: "0.0.0"
   shared_preferences_linux:
     dependency: transitive
     description:
@@ -416,6 +780,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.2.0"
+  shared_preferences_linux_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/shared_preferences_linux-2.2.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   shared_preferences_platform_interface:
     dependency: transitive
     description:
@@ -424,6 +795,20 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.2.0"
+  shared_preferences_platform_interface_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/shared_preferences_platform_interface-2.2.0"
+      relative: false
+    source: path
+    version: "0.0.0"
+  shared_preferences_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/shared_preferences-2.1.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   shared_preferences_web:
     dependency: transitive
     description:
@@ -432,6 +817,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.0"
+  shared_preferences_web_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/shared_preferences_web-2.1.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   shared_preferences_windows:
     dependency: transitive
     description:
@@ -440,11 +832,25 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.2.0"
+  shared_preferences_windows_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/shared_preferences_windows-2.2.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   sky_engine:
     dependency: transitive
     description: flutter
     source: sdk
     version: "0.0.99"
+  sky_engine_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/sky_engine"
+      relative: false
+    source: path
+    version: "0.0.0"
   source_span:
     dependency: transitive
     description:
@@ -453,6 +859,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.9.1"
+  source_span_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/source_span-1.9.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   stack_trace:
     dependency: transitive
     description:
@@ -461,6 +874,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.11.0"
+  stack_trace_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/stack_trace-1.11.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   stream_channel:
     dependency: transitive
     description:
@@ -469,6 +889,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.1"
+  stream_channel_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/stream_channel-2.1.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   string_scanner:
     dependency: transitive
     description:
@@ -477,6 +904,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.2.0"
+  string_scanner_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/string_scanner-1.2.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   synchronized:
     dependency: transitive
     description:
@@ -485,6 +919,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.1.0"
+  synchronized_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/synchronized-3.1.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   term_glyph:
     dependency: transitive
     description:
@@ -493,6 +934,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.2.1"
+  term_glyph_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/term_glyph-1.2.1"
+      relative: false
+    source: path
+    version: "0.0.0"
   test_api:
     dependency: transitive
     description:
@@ -501,6 +949,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.4.16"
+  test_api_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/test_api-0.4.16"
+      relative: false
+    source: path
+    version: "0.0.0"
   typed_data:
     dependency: transitive
     description:
@@ -509,6 +964,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.3.2"
+  typed_data_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/typed_data-1.3.2"
+      relative: false
+    source: path
+    version: "0.0.0"
   vector_math:
     dependency: transitive
     description:
@@ -517,6 +979,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.4"
+  vector_math_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/vector_math-2.1.4"
+      relative: false
+    source: path
+    version: "0.0.0"
   watcher:
     dependency: transitive
     description:
@@ -525,6 +994,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.0.2"
+  watcher_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/watcher-1.0.2"
+      relative: false
+    source: path
+    version: "0.0.0"
   win32:
     dependency: transitive
     description:
@@ -533,6 +1009,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "4.1.4"
+  win32_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/win32-4.1.4"
+      relative: false
+    source: path
+    version: "0.0.0"
   xdg_directories:
     dependency: transitive
     description:
@@ -541,6 +1024,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.0.0"
+  xdg_directories_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/xdg_directories-1.0.0"
+      relative: false
+    source: path
+    version: "0.0.0"
   yaml:
     dependency: transitive
     description:
@@ -549,6 +1039,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.1.2"
+  yaml_runtime:
+    dependency: transitive
+    description:
+      path: "/Users/king/.runtime/yaml-3.1.2"
+      relative: false
+    source: path
+    version: "0.0.0"
 sdks:
-  dart: ">=2.19.0 <3.0.0"
+  dart: ">=2.19.6 <3.0.0"
   flutter: ">=3.0.0"

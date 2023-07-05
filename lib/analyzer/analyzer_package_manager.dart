@@ -77,15 +77,15 @@ class AnalyzerPackageManager {
 
   Future<void> saveFixRuntimeConfiguration(String root) async {
     final jsonValue = fixRuntimeConfiguration.map((e) => e.toJson()).toList();
-    final jsonText = jsonEncode(jsonValue);
+    final jsonText = const JsonEncoder.withIndent('  ').convert(jsonValue);
     final savePath = join(root, '.fix_runtime.json');
     await File(savePath).writeAsString(jsonText);
   }
 
   FixRuntimeConfiguration? getFixRuntimeConfiguration(PackageInfo info) {
     final path = basename(info.rootUri);
-    final configurations = fixRuntimeConfiguration
-        .where((element) => "${element.name}-${element.version}" == path);
+    final configurations =
+        fixRuntimeConfiguration.where((element) => element.baseName == path);
     if (configurations.isEmpty) return null;
     return configurations.first;
   }

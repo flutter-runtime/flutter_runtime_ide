@@ -7,7 +7,14 @@ class FixSelectController<T extends FixSelectItem> extends GetxController {
   final TextEditingController nameController = TextEditingController();
 
   var displayItems = <T>[].obs;
-  FixSelectController(this.items, {this.allowDelete = true}) {
+
+  final VoidCallback? onDeleteCallBack;
+
+  FixSelectController(
+    this.items, {
+    this.allowDelete = true,
+    this.onDeleteCallBack,
+  }) {
     displayItems.value = items;
 
     nameController.addListener(() {
@@ -32,6 +39,7 @@ class FixSelectController<T extends FixSelectItem> extends GetxController {
     final items0 = [...items];
     items0.remove(item);
     updateItems(items0);
+    onDeleteCallBack?.call();
   }
 
   void add(T item) {

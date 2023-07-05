@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:analyzer/dart/analysis/results.dart';
+import 'package:analyzer/dart/analysis/uri_converter.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/dart/analysis/results.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
@@ -65,6 +66,11 @@ class ConverRuntimePackage {
       await showProgressHud();
     }
     for (var info in infos) {
+      const ignorePackages = [
+        'flutter',
+        'flutter_test',
+      ];
+      if (ignorePackages.contains(info.name)) continue;
       _PreAnalysisDartFile analysisDartFile = _PreAnalysisDartFile(info);
       analysisDartFile.progress.listen((p0) {
         double progress = currentProgress + p0 * progressIndex;
@@ -292,6 +298,25 @@ class _GenerateDartFile extends _AnalysisDartFile {
           [],
           (previousValue, element) => previousValue..addAll(element),
         );
+        final filterImports = [
+          'dart:_js_embedded_names',
+          'dart:_js_helper',
+          'dart:_foreign_helper',
+          'dart:_rti',
+          'dart:html_common',
+          'dart:indexed_db',
+          'dart:_native_typed_data',
+          'dart:svg',
+          'dart:web_audio',
+          'dart:web_gl',
+          'dart:mirrors',
+        ];
+        if (filterImports.contains(JSON(uriContent).stringValue)) {
+          continue;
+        }
+        if (JSON(uriContent).stringValue.startsWith("package:flutter/")) {
+          continue;
+        }
         imports.add(ImportAnalysis(
           uriContent,
           showNames: shownNames,

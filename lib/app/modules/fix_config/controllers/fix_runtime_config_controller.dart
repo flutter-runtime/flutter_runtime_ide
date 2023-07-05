@@ -1,3 +1,4 @@
+import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
@@ -16,6 +17,8 @@ class FixRuntimeConfigController extends GetxController {
 
   late FixSelectController<FixRuntimeConfiguration> selectController;
 
+  List<FixRuntimeConfiguration> _otherConfigurations = [];
+
   FixRuntimeConfigController() {
     final configs = AnalyzerPackageManager().fixRuntimeConfiguration;
     final packageInfos = configs
@@ -23,8 +26,12 @@ class FixRuntimeConfigController extends GetxController {
           final packages =
               AnalyzerPackageManager().packageConfig?.packages ?? [];
           final result = packages.firstWhereOrNull((element) {
-            return '${e.name}-${e.version}' == basename(element.rootUri);
+            return '${e.name}${e.version.isEmpty ? '' : "-${e.version}"}' ==
+                basename(element.rootUri);
           });
+          if (result == null) {
+            _otherConfigurations.add(e);
+          }
           return result != null ? e : null;
         })
         .whereType<FixRuntimeConfiguration>()
@@ -51,28 +58,21 @@ class FixRuntimeConfigController extends GetxController {
     final baseName = basename(info.rootUri);
     final config = FixRuntimeConfiguration()
       ..name = baseName.split('-')[0]
-      ..version = baseName.split('-')[1];
+      ..version = JSON(baseName.split('-'))[1].string ?? '';
     selectController.add(config);
   }
 
   PackageInfo? getPackageInfo(FixRuntimeConfiguration configuration) {
     final packages = AnalyzerPackageManager().packageConfig?.packages ?? [];
-    return packages.firstWhereOrNull((element) => element.packagePath
-        .endsWith('${configuration.name}-${configuration.version}'));
+    return packages.firstWhereOrNull((element) => element.packagePath.endsWith(
+        '${configuration.name}${configuration.version.isEmpty ? '' : '-${configuration.version}'}'));
   }
 
   Future<void> saveConfig() async {
     final items = selectController.items;
-    final configs = AnalyzerPackageManager().fixRuntimeConfiguration;
-    for (var item in items) {
-      final index = configs.indexOf(item);
-      if (index == -1) {
-        configs.add(item);
-      } else {
-        configs[index] = item;
-      }
-    }
-    AnalyzerPackageManager().fixRuntimeConfiguration = configs;
+    // 添加其他配置
+    items.addAll(_otherConfigurations);
+    AnalyzerPackageManager().fixRuntimeConfiguration = items;
     showHUD();
     await AnalyzerPackageManager()
         .saveFixRuntimeConfiguration(AnalyzerPackageManager.defaultRuntimePath);
