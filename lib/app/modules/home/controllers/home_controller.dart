@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
-import 'package:flutter_runtime_ide/app/data/package_config.dart';
+import 'package:flutter_runtime_ide/analyzer/package_config.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
@@ -67,19 +68,22 @@ class HomeController extends GetxController {
     AnalyzerPackageManager().packageConfig = packageConfig.value;
 
     // 读取修复的配置
-    await AnalyzerPackageManager().loadFixRuntimeConfiguration(
-        join(platformEnvironment["HOME"]!, '.runtime'));
+    await AnalyzerPackageManager().loadFixRuntimeConfiguration();
     search();
     hideHUD();
   }
 
   // 分析第三方库代码
   // [packagePath] 第三方库的路径
-  FutureOr<void> analyzerPackageCode(String packageName,
-      [bool showProgress = true]) async {
+  FutureOr<void> analyzerPackageCode(
+    String packageName, [
+    bool showProgress = true,
+  ]) async {
+    final config = packageConfig.value;
+    if (config == null) return;
     ConverRuntimePackage package = ConverRuntimePackage(
-      "${platformEnvironment["HOME"]}/.runtime",
-      packageConfig.value!,
+      AnalyzerPackageManager.defaultRuntimePath,
+      config,
       _dependency,
     );
     try {

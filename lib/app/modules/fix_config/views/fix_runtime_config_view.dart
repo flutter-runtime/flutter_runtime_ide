@@ -1,7 +1,7 @@
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
-import 'package:flutter_runtime_ide/app/data/package_config.dart';
+import 'package:flutter_runtime_ide/analyzer/package_config.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_config_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_runtime_config_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_config_view.dart';

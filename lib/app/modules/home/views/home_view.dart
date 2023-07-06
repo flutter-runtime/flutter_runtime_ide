@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
-import 'package:flutter_runtime_ide/app/data/package_config.dart';
+import 'package:flutter_runtime_ide/analyzer/package_config.dart';
 import 'package:get/get.dart';
 import '../../fix_config/controllers/fix_runtime_config_controller.dart';
 import '../../fix_config/views/fix_runtime_config_view.dart';
@@ -23,13 +23,10 @@ class HomeView extends GetView<HomeController> {
           IconButton(
             onPressed: () async {
               final manager = AnalyzerPackageManager();
-              await manager.loadFixRuntimeConfiguration(
-                  AnalyzerPackageManager.defaultRuntimePath);
+              await manager.loadFixRuntimeConfiguration();
               final controller = FixRuntimeConfigController();
               Get.dialog(
-                Dialog(
-                  child: FixRuntimeConfigView(controller: controller),
-                ),
+                Dialog(child: FixRuntimeConfigView(controller: controller)),
                 barrierDismissible: false,
               );
             },
@@ -96,12 +93,22 @@ class HomeView extends GetView<HomeController> {
                           padding: const EdgeInsets.all(15),
                           child: Column(
                             children: [
-                              _titleValueWidget("name", packageInfo.name),
-                              _titleValueWidget("rootUri", packageInfo.rootUri),
                               _titleValueWidget(
-                                  "packageUri", packageInfo.packageUri),
-                              _titleValueWidget("languageVersion",
-                                  packageInfo.languageVersion),
+                                "名字(版本)",
+                                '${packageInfo.name}(${packageInfo.version})',
+                              ),
+                              _titleValueWidget(
+                                "本地路径",
+                                packageInfo.packagePath,
+                              ),
+                              _titleValueWidget(
+                                "源文件路径",
+                                packageInfo.packageUri,
+                              ),
+                              _titleValueWidget(
+                                "Dart 语言版本",
+                                packageInfo.languageVersion,
+                              ),
                             ],
                           ),
                         ),

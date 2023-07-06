@@ -7,7 +7,7 @@ import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart';
 
-import '../../../data/package_config.dart';
+import '../../../../analyzer/package_config.dart';
 
 class FixRuntimeConfigController extends GetxController {
   TextEditingController packageNameController = TextEditingController();
