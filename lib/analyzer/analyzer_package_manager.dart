@@ -6,7 +6,7 @@ import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
-import 'package:flutter_runtime_ide/app/data/package_config.dart';
+import 'package:flutter_runtime_ide/analyzer/package_config.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 
@@ -64,8 +64,8 @@ class AnalyzerPackageManager {
     return _libraries[packagePath] ?? {};
   }
 
-  Future<void> loadFixRuntimeConfiguration(String root) async {
-    final loadPath = join(root, '.fix_runtime.json');
+  Future<void> loadFixRuntimeConfiguration() async {
+    final loadPath = join(defaultRuntimePath, '.fix_runtime.json');
     if (!await File(loadPath).exists()) {
       return;
     }

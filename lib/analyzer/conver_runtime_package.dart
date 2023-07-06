@@ -1,7 +1,8 @@
+// ignore_for_file: implementation_imports
+
 import 'dart:async';
 import 'dart:io';
 import 'package:analyzer/dart/analysis/results.dart';
-import 'package:analyzer/dart/analysis/uri_converter.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/src/dart/analysis/results.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
@@ -11,7 +12,7 @@ import 'package:flutter_runtime_ide/analyzer/file_runtime_generate.dart';
 import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
-import 'package:flutter_runtime_ide/app/data/package_config.dart';
+import 'package:flutter_runtime_ide/analyzer/package_config.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
@@ -44,11 +45,9 @@ class ConverRuntimePackage {
   Future<void> conver(String packageName, [bool showProgress = true]) async {
     List<PackageInfo> infos = getPackages(packageName)
         .map((e) {
-          final packages = packageConfig.packages
-              .where((element) => element.name == e.name)
-              .toList();
-          if (packages.isEmpty) return null;
-          return packages[0];
+          return packageConfig.packages.firstWhereOrNull((element) {
+            return element.name == e.name;
+          });
         })
         .whereType<PackageInfo>()
         .toList();
@@ -77,8 +76,6 @@ class ConverRuntimePackage {
         if (showProgress) updateProgressHud(progress: progress);
       });
       await analysisDartFile.analysis();
-      AnalyzerPackageManager()
-          .results(info.rootUri.replaceFirst("file://", ""));
       index += 1;
       currentProgress = progressIndex * index;
     }
@@ -116,25 +113,23 @@ $flutter analyze
   }
 
   Future<void> createPubspecFile(PackageInfo info) async {
-    String packagePath = info.rootUri.replaceFirst("file://", '');
-    String packageNamePath = basename(packagePath);
-    final pubspecFile = "$outPutPath/$packageNamePath/pubspec.yaml";
+    final pubspecFile = "$outPutPath/${info.cacheName}/pubspec.yaml";
     final specName = info.name;
     final pubspecContent = MustacheManager().render(pubspecMustache, {
       "pubName": specName,
-      "pubPath": packagePath,
+      "pubPath": info.packagePath,
       'flutterRuntimePath':
           join(shellEnvironment['PWD']!, 'packages', 'flutter_runtime')
     });
     await File(pubspecFile).writeString(pubspecContent);
   }
 
+  /// 获取指定库的依赖信息
   List<PackageDependencyInfo> getPackages(String packageName) {
     List<PackageDependencyInfo> packages = [];
-    final info = JSON(packageDependency.packages
-            .where((element) => element.name == packageName)
-            .toList())[0]
-        .rawValue;
+    final info = packageDependency.packages.firstWhereOrNull((element) {
+      return element.name == packageName;
+    });
     if (info == null) return packages;
     packages.add(info);
     for (var package in info.dependencies) {
@@ -144,18 +139,14 @@ $flutter analyze
   }
 
   Future<void> _deleteExitCache(PackageInfo info) async {
-    String packagePath = info.rootUri.replaceFirst("file://", '');
-    String packageNamePath = basename(packagePath);
-    final cachePath = "$outPutPath/$packageNamePath";
+    final cachePath = join(outPutPath, info.cacheName);
     if (await File(cachePath).exists()) {
       await File(cachePath).delete(recursive: true);
     }
   }
 
   String rootUri(PackageInfo info) {
-    String packagePath = info.rootUri.replaceFirst("file://", '');
-    String packageNamePath = basename(packagePath);
-    return join(outPutPath, packageNamePath);
+    return join(outPutPath, info.cacheName);
   }
 }
 
@@ -174,20 +165,16 @@ extension FileWriteString on File {
 
 abstract class _AnalysisDartFile {
   final PackageInfo info;
-  late String packagePath;
-  late String analysisDir;
   var progress = 0.0.obs;
   _AnalysisDartFile(this.info);
 
   Future<void> analysis() async {
-    packagePath = info.rootUri.replaceFirst("file://", "");
-    analysisDir = join(packagePath, info.packageUri);
-    if (!await Directory(analysisDir).exists()) {
+    if (!await Directory(info.libPath).exists()) {
       return;
     }
     // 获取到当前需要分析目录下面所有的子元素
     List<FileSystemEntity> entitys =
-        await Directory(analysisDir).list(recursive: true).toList();
+        await Directory(info.libPath).list(recursive: true).toList();
     int count = entitys.length;
     int current = 0;
     for (FileSystemEntity entity in entitys) {
@@ -211,7 +198,8 @@ class _PreAnalysisDartFile extends _AnalysisDartFile {
 
   @override
   Future<void> analysisDartFile(String filePath) async {
-    await AnalyzerPackageManager().getResolvedLibrary(packagePath, filePath);
+    await AnalyzerPackageManager()
+        .getResolvedLibrary(info.packagePath, filePath);
   }
 }
 
@@ -226,12 +214,12 @@ class _GenerateDartFile extends _AnalysisDartFile {
     FixRuntimeConfiguration? fixRuntimeConfiguration =
         AnalyzerPackageManager().getFixRuntimeConfiguration(info);
     final libraryPath =
-        filePath.split(packagePath)[1].replaceFirst("/lib/", "");
+        filePath.split(info.packagePath)[1].replaceFirst("/lib/", "");
     FixConfig? fixConfig = fixRuntimeConfiguration?.fixs
         .firstWhereOrNull((element) => element.path == libraryPath);
 
     final result = await AnalyzerPackageManager().getResolvedLibrary(
-      packagePath,
+      info.packagePath,
       filePath,
     );
 
@@ -248,8 +236,7 @@ class _GenerateDartFile extends _AnalysisDartFile {
       );
       final generateCode = await generate.generateCode();
 
-      final outFile =
-          "$outPutPath/${packagePath.split('/').last}${'/lib/$libraryPath'}";
+      final outFile = "$outPutPath/${info.cacheName}${'/lib/$libraryPath'}";
       final file = File(outFile);
       await file.writeString(generateCode);
     } else if (result is NotLibraryButPartResult) {

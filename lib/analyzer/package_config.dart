@@ -1,5 +1,7 @@
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_select_controller.dart';
+import 'package:flutter_runtime_ide/common/common_function.dart';
+import 'package:path/path.dart';
 
 class PackageConfig {
   late int configVersion;
@@ -36,7 +38,23 @@ class PackageInfo extends FixSelectItem {
     languageVersion = jsonValue["languageVersion"].stringValue;
   }
 
+  // 获取本地的路径 去掉 file://
   String get packagePath => rootUri.replaceFirst("file://", "");
+  // 获取根据库在本地的路径经过md5加密获取的版本号
+  String get md5Version => md5(packagePath);
+  // 获取当前库的版本
+  // 如果依赖的路径存在版本号,则返回版本号
+  // 如果依赖的路径不存在版本号,则返回md5加密的版本号
+  String get version {
+    final names = basename(packagePath).split('-');
+    if (names.length == 2) return names[1];
+    return md5Version;
+  }
+
+  // 获取源代码所在的文件目录
+  String get libPath => join(packagePath, packageUri);
+  // 获取缓存在本地的文件夹名称
+  String get cacheName => '$name-$version';
 }
 
 class PackageDependency {
