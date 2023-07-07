@@ -10,6 +10,7 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 
+import '../../../../analyzer/file_runtime_generate.dart';
 import '../../../../analyzer/mustache/mustache.dart';
 import '../../../../analyzer/mustache/mustache_manager.dart';
 import '../../../../common/common_function.dart';
@@ -35,7 +36,10 @@ class AnalyzerDetailController extends GetxController {
     this.packageDependency,
   );
 
-  String get outPutPath => AnalyzerPackageManager.defaultRuntimePath;
+  String get outPutPath => join(
+        AnalyzerPackageManager.defaultRuntimePath,
+        'runtime',
+      );
 
   // 分析依赖
   Future<void> analyzerPackage() async {
@@ -230,15 +234,31 @@ class _GenerateDartFile extends _AnalysisDartFile {
   Future<void> analysisDartFile(String filePath) async {
     // FixRuntimeConfiguration? fixRuntimeConfiguration =
     //     AnalyzerPackageManager().getFixRuntimeConfiguration(info);
-    // final libraryPath =
-    //     filePath.split(info.packagePath)[1].replaceFirst("/lib/", "");
+    final libraryPath =
+        filePath.split(info.packagePath)[1].replaceFirst("/lib/", "");
     // FixConfig? fixConfig = fixRuntimeConfiguration?.fixs
     //     .firstWhereOrNull((element) => element.path == libraryPath);
 
-    // final result = await AnalyzerPackageManager().getResolvedLibrary(
-    //   info.packagePath,
-    //   filePath,
-    // );
+    final result = await AnalyzerPackageManager().getAnalyzerFileCache(
+      info,
+      filePath,
+    );
+
+    final sourcePath = 'package:${info.name}/$libraryPath';
+    // final importAnalysisList = await getImportAnalysis(result);
+    FileRuntimeGenerate generate = FileRuntimeGenerate(
+      sourcePath,
+      packageConfig,
+      info,
+      result,
+      [],
+    );
+    final generateCode = await generate.generateCode();
+
+    final outFile = join(AnalyzerPackageManager.defaultRuntimePath, 'runtime',
+        info.cacheName, 'lib', libraryPath);
+    final file = File(outFile);
+    await file.writeString(generateCode);
 
     // if (result is ResolvedLibraryResultImpl) {
     //   final sourcePath = 'package:${info.name}/$libraryPath';

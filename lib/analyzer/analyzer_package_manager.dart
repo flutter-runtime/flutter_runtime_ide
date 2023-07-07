@@ -8,6 +8,7 @@ import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_file_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_property_accessor_cache.dart';
+import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:path/path.dart';
@@ -132,7 +133,9 @@ class AnalyzerPackageManager {
       }
     }
     final result = await getResolvedLibrary(info.packagePath, filePath);
-    return AnalyzerLibraryElementCacheImpl(result as LibraryElementImpl);
+    final cache = AnalyzerLibraryElementCacheImpl(result as LibraryElementImpl);
+    await saveFileCache(info, cache, filePath);
+    return cache;
   }
 
   /// 获取指定分析库的分析缓存文件配置路径
@@ -164,5 +167,20 @@ class AnalyzerPackageManager {
     /// 读取缓存文件内容
     final jsonText = await File(path).readAsString();
     return AnalyzerFileJsonCacheImpl(jsonDecode(jsonText));
+  }
+
+  /// 将分析结果写入缓存
+  /// [info] 当前分析文件对应库信息
+  /// [cache] 分析结果缓存
+  /// [filePath] 分析文件的路径
+  Future<void> saveFileCache(
+    PackageInfo info,
+    AnalyzerFileCache cache,
+    String filePath,
+  ) async {
+    final jsonValue = cache.toJson();
+    final jsonText = const JsonEncoder.withIndent('  ').convert(jsonValue);
+    final path = getAnalyzerCacheFilePath(info, filePath);
+    await File(path).writeString(jsonText);
   }
 }
