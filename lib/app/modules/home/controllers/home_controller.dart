@@ -4,16 +4,15 @@ import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
-import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
-import 'package:flutter_runtime_ide/analyzer/package_config.dart';
+import 'package:flutter_runtime_ide/analyzer/mustache/mustache.dart';
+import 'package:flutter_runtime_ide/analyzer/mustache/mustache_manager.dart';
+import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'dart:async';
 import 'package:process_run/process_run.dart';
-
-import '../../../../analyzer/mustache.dart';
 
 class HomeController extends GetxController {
   // 当前操作的工程路径
@@ -27,7 +26,7 @@ class HomeController extends GetxController {
   // 进行展示的包列表
   var displayPackages = <PackageInfo>[].obs;
 
-  late PackageDependency _dependency;
+  late PackageDependency dependency;
 
   HomeController() {
     progectPath.value = Get.arguments as String;
@@ -60,7 +59,7 @@ class HomeController extends GetxController {
     final startIndex = depsContent.indexOf('{');
     depsContent = depsContent.substring(startIndex);
     final depsJson = json.decode(depsContent);
-    _dependency = PackageDependency.fromJson(depsJson);
+    dependency = PackageDependency.fromJson(depsJson);
 
     // 读取文件内容
     String content = await File(packageConfigPath).readAsString();
@@ -82,9 +81,9 @@ class HomeController extends GetxController {
     final config = packageConfig.value;
     if (config == null) return;
     ConverRuntimePackage package = ConverRuntimePackage(
-      AnalyzerPackageManager.defaultRuntimePath,
+      join(AnalyzerPackageManager.defaultRuntimePath, 'runtime'),
       config,
-      _dependency,
+      dependency,
     );
     try {
       await package.conver(packageName, showProgress);
@@ -131,6 +130,7 @@ class HomeController extends GetxController {
           'name': '${e.name}_runtime',
           'path': join(
             AnalyzerPackageManager.defaultRuntimePath,
+            'runtime',
             basename(e.packagePath),
           )
         };
@@ -138,8 +138,7 @@ class HomeController extends GetxController {
     };
     final yamlContent =
         MustacheManager().render(globaleRuntimePackageMustache, data);
-    final pwd = shellEnvironment['PWD']!;
-    final runtimePath = join(pwd, '.runtime', 'pubspec.yaml');
+    final runtimePath = join(progectPath.value, '.runtime', 'pubspec.yaml');
     await File(runtimePath).writeString(yamlContent);
     hideHUD();
   }

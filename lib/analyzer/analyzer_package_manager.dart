@@ -4,9 +4,12 @@ import 'dart:io';
 
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
+import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_file_cache.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_property_accessor_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
-import 'package:flutter_runtime_ide/analyzer/package_config.dart';
+import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 
@@ -111,5 +114,55 @@ class AnalyzerPackageManager {
       platformEnvironment['HOME']!,
       '.runtime',
     );
+  }
+
+  /// 获取分析文件的缓存信息
+  /// [info] 当前分析文件对应库信息
+  /// [filePath] 分析的文件路径
+  /// [useCache] 是否使用本地的分析缓存 默认为  true
+  Future<AnalyzerFileCache> getAnalyzerFileCache(
+    PackageInfo info,
+    String filePath, [
+    bool useCache = true,
+  ]) async {
+    if (useCache) {
+      final cache = await readFileCache(info, filePath);
+      if (cache != null) {
+        return cache;
+      }
+    }
+    final result = await getResolvedLibrary(info.packagePath, filePath);
+    return AnalyzerLibraryElementCacheImpl(result as LibraryElementImpl);
+  }
+
+  /// 获取指定分析库的分析缓存文件配置路径
+  /// [info] 当前分析文件对应库信息
+  /// [filePath] 分析文件的路径
+  String getAnalyzerCacheFilePath(PackageInfo info, String filePath) {
+    return join(
+      defaultRuntimePath,
+      'config',
+      'analyzer_cache',
+      info.cacheName,
+      md5(filePath),
+    );
+  }
+
+  /// 根据包信息和文件路径获取对应分析缓存信息
+  /// [info] 当前分析文件对应库信息
+  /// [filePath] 分析文件的路径
+  Future<AnalyzerFileCache?> readFileCache(
+    PackageInfo info,
+    String filePath,
+  ) async {
+    /// 获取分析缓存文件的路径
+    final path = getAnalyzerCacheFilePath(info, filePath);
+    if (!await File(path).exists()) {
+      return null;
+    }
+
+    /// 读取缓存文件内容
+    final jsonText = await File(path).readAsString();
+    return AnalyzerFileJsonCacheImpl(jsonDecode(jsonText));
   }
 }

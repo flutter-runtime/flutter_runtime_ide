@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
-import 'package:flutter_runtime_ide/analyzer/package_config.dart';
+import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
+import 'package:flutter_runtime_ide/app/modules/analyzer_detail/controllers/analyzer_detail_controller.dart';
 import 'package:get/get.dart';
+import '../../analyzer_detail/views/analyzer_detail_view.dart';
 import '../../fix_config/controllers/fix_runtime_config_controller.dart';
 import '../../fix_config/views/fix_runtime_config_view.dart';
 import '../controllers/home_controller.dart';
@@ -118,8 +120,9 @@ class HomeView extends GetView<HomeController> {
                             alignment: Alignment.centerRight,
                             child: IconButton(
                               onPressed: () {
-                                controller
-                                    .analyzerPackageCode(packageInfo.name);
+                                // controller
+                                //     .analyzerPackageCode(packageInfo.name);
+                                _showAnalyzerDetailView(packageInfo);
                               },
                               icon: const Icon(Icons.analytics),
                             ),
@@ -155,5 +158,19 @@ class HomeView extends GetView<HomeController> {
         ),
       ),
     ]);
+  }
+
+  _showAnalyzerDetailView(PackageInfo packageInfo) {
+    Get.dialog(
+      Dialog(
+        child: AnalyzerDetailView(
+          AnalyzerDetailController(
+            packageInfo,
+            controller.packageConfig.value!,
+            controller.dependency,
+          ),
+        ),
+      ),
+    );
   }
 }

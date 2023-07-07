@@ -1,4 +1,4 @@
-import 'package:flutter_runtime_ide/analyzer/mustache.dart';
+import 'package:flutter_runtime_ide/analyzer/mustache/mustache.dart';
 import 'package:mustache_template/mustache.dart';
 
 class MustacheManager {

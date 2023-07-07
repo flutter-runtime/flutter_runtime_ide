@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:path/path.dart';
 
 import '../../../../analyzer/analyzer_package_manager.dart';
-import '../../../../analyzer/package_config.dart';
+import '../../../../analyzer/configs/package_config.dart';
 
 class FixConfigController extends GetxController {
   final FixRuntimeConfiguration configuration;

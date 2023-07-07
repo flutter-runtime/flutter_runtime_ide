@@ -7,6 +7,7 @@ abstract class Routes {
   static const WELCOME = _Paths.WELCOME;
   static const PROGRESS_HUD_VIEW = _Paths.PROGRESS_HUD_VIEW;
   static const FIX_CONFIG = _Paths.FIX_CONFIG;
+  static const ANALYZER_DETAIL = _Paths.ANALYZER_DETAIL;
 }
 
 abstract class _Paths {
@@ -15,4 +16,5 @@ abstract class _Paths {
   static const WELCOME = '/welcome';
   static const PROGRESS_HUD_VIEW = '/progress-hud-view';
   static const FIX_CONFIG = '/fix-config';
+  static const ANALYZER_DETAIL = '/analyzer-detail';
 }
