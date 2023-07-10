@@ -30,28 +30,54 @@ class AnalyzerDetailController extends GetxController {
   // 依赖库列表的分析进度
   var itemProgressMap = <String, double>{}.obs;
 
+  /// 保存依赖库是否开启缓存
+  var dependencyCacheStates = <String, RxBool>{};
+
+  /// 当前工程的所有依赖
+  late List<PackageInfo> allDependenceInfos;
+
+  /// 是否全部使用缓存
+  var useCache = false.obs;
+
   AnalyzerDetailController(
     this.packageInfo,
     this.packageConfig,
     this.packageDependency,
-  );
+  ) {
+    allDependenceInfos = _getPackageAllDependencies(packageInfo.name)
+        .map((e) {
+          return packageConfig.packages.firstWhereOrNull((element) {
+            return element.name == e.name;
+          });
+        })
+        .whereType<PackageInfo>()
+        .toList();
+    for (var e in allDependenceInfos) {
+      dependencyCacheStates[e.name] = true.obs;
+    }
 
-  String get outPutPath => join(
-        AnalyzerPackageManager.defaultRuntimePath,
-        'runtime',
-      );
+    useCache.value = dependencyCacheStates.values.every((element) {
+      return element.value;
+    });
+  }
+
+  /// 获取输出运行库保存的目录
+  String get outPutPath {
+    return join(AnalyzerPackageManager.defaultRuntimePath, 'runtime');
+  }
 
   // 分析依赖
   Future<void> analyzerPackage() async {
     callback(event) => logs.add(event);
     Logger.addLogListener(callback);
 
+    logger.i('开始分析......');
+
     final infos = allDependenceInfos;
     if (infos.isEmpty) {
-      throw Exception("没有依赖可以分析");
+      logger.e('没有依赖可以分析');
+      return;
     }
-
-    showHUD();
 
     //先删除之前生成的库缓存
     await _deleteExitCache(infos[0]);
@@ -72,7 +98,10 @@ class AnalyzerDetailController extends GetxController {
         'flutter_test',
       ];
       if (ignorePackages.contains(info.name)) continue;
-      _PreAnalysisDartFile analysisDartFile = _PreAnalysisDartFile(info);
+      _PreAnalysisDartFile analysisDartFile = _PreAnalysisDartFile(
+        info,
+        getCacheStates(info.name).value,
+      );
       analysisDartFile.progress.listen((p0) {
         setItemProgress(info.name, p0);
       });
@@ -103,19 +132,24 @@ class AnalyzerDetailController extends GetxController {
     final rootPath = join(outPutPath, infos.first.cacheName);
     final dart = await which("dart");
     StreamController<List<int>> stdoutController = StreamController();
-    stdoutController.stream.listen((event) {
-      String log = String.fromCharCodes(event);
-      logger.i(log);
-    });
-    final shell = Shell(workingDirectory: rootPath, stdout: stdoutController);
-    await shell.run('$dart format ./');
+    stdoutController.stream.listen(
+      (event) {
+        String log = String.fromCharCodes(event);
+        logger.i(log);
+      },
+    );
+    try {
+      final shell = Shell(workingDirectory: rootPath, stdout: stdoutController);
+      await shell.run('$dart format ./');
+
+      // 移除监听日志
+      Logger.removeLogListener(callback);
+    } catch (e) {
+      logger.e(e);
+      Get.snackbar('代码格式错误', e.toString());
+    }
     progress.value = 1;
     logger.i("生成运行时库完毕");
-
-    // 移除监听日志
-    Logger.removeLogListener(callback);
-
-    hideHUD();
   }
 
   Future<void> createPubspecFile(PackageInfo info) async {
@@ -128,18 +162,6 @@ class AnalyzerDetailController extends GetxController {
           join(shellEnvironment['PWD']!, 'packages', 'flutter_runtime')
     });
     await File(pubspecFile).writeString(pubspecContent);
-  }
-
-  // 所有依赖的库的信息
-  List<PackageInfo> get allDependenceInfos {
-    return _getPackageAllDependencies(packageInfo.name)
-        .map((e) {
-          return packageConfig.packages.firstWhereOrNull((element) {
-            return element.name == e.name;
-          });
-        })
-        .whereType<PackageInfo>()
-        .toList();
   }
 
   // 获取指定库的所有依赖库
@@ -175,6 +197,24 @@ class AnalyzerDetailController extends GetxController {
   // 清理日志
   void clearLogs() {
     logs.clear();
+  }
+
+  /// 改变全部的缓存状态
+  void changeAllCacheStates(bool value) {
+    for (var name in dependencyCacheStates.keys) {
+      dependencyCacheStates[name]?.value = value;
+    }
+    useCache.value = value;
+  }
+
+  /// 改变单个的缓存状态
+  void changeCacheStates(String name, bool value) {
+    dependencyCacheStates[name]?.value = value;
+  }
+
+  /// 获取单个的缓存状态
+  RxBool getCacheStates(String name) {
+    return dependencyCacheStates[name]!;
   }
 }
 
@@ -217,12 +257,16 @@ abstract class _AnalysisDartFile {
 }
 
 class _PreAnalysisDartFile extends _AnalysisDartFile {
-  _PreAnalysisDartFile(PackageInfo info) : super(info);
+  final bool useCache;
+  _PreAnalysisDartFile(PackageInfo info, this.useCache) : super(info);
 
   @override
   Future<void> analysisDartFile(String filePath) async {
-    await AnalyzerPackageManager()
-        .getResolvedLibrary(info.packagePath, filePath);
+    await AnalyzerPackageManager().getAnalyzerFileCache(
+      info,
+      filePath,
+      useCache,
+    );
   }
 }
 

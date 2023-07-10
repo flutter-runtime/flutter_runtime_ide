@@ -1,6 +1,7 @@
 // 用于缓存分析的内容
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
@@ -129,11 +130,16 @@ class AnalyzerPackageManager {
     if (useCache) {
       final cache = await readFileCache(info, filePath);
       if (cache != null) {
+        logger.i('[🟢使用缓存] $filePath');
         return cache;
       }
     }
     final result = await getResolvedLibrary(info.packagePath, filePath);
-    final cache = AnalyzerLibraryElementCacheImpl(result as LibraryElementImpl);
+    if (result is! ResolvedLibraryResult) {
+      return AnalyzerFileJsonCacheImpl({});
+    }
+    final cache =
+        AnalyzerLibraryElementCacheImpl(result.element as LibraryElementImpl);
     await saveFileCache(info, cache, filePath);
     return cache;
   }
@@ -147,7 +153,7 @@ class AnalyzerPackageManager {
       'config',
       'analyzer_cache',
       info.cacheName,
-      md5(filePath),
+      '${md5(filePath)}.json',
     );
   }
 

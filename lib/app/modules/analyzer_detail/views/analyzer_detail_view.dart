@@ -34,9 +34,21 @@ class AnalyzerDetailView extends StatelessWidget {
               '库名称',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            trailing: Text(
-              '是否使用缓存',
-              style: Theme.of(context).textTheme.headlineSmall,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '是否使用缓存',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                Obx(
+                  () => Switch(
+                    value: controller.useCache.value,
+                    onChanged: (value) =>
+                        controller.changeAllCacheStates(value),
+                  ),
+                )
+              ],
             ),
             tileColor: Colors.blue.shade300,
           ),
@@ -49,27 +61,28 @@ class AnalyzerDetailView extends StatelessWidget {
               },
               itemBuilder: (BuildContext context, int index) {
                 final item = controller.allDependenceInfos[index];
-                return SwitchListTile(
-                  title: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: Obx(
-                          () => CircularProgressIndicator(
-                            value: controller.getItemProgress(item.name),
-                            color: Colors.blue.shade300,
+                return Obx(() => SwitchListTile(
+                      title: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: Obx(
+                              () => CircularProgressIndicator(
+                                value: controller.getItemProgress(item.name),
+                                color: Colors.blue.shade300,
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 20),
+                          Text('${item.name}(${item.version})'),
+                        ],
                       ),
-                      const SizedBox(width: 20),
-                      Text('${item.name}(${item.version})'),
-                    ],
-                  ),
-                  value: true,
-                  onChanged: (value) {},
-                );
+                      value: controller.getCacheStates(item.name).value,
+                      onChanged: (value) =>
+                          controller.changeCacheStates(item.name, value),
+                    ));
               },
             ),
           ),
