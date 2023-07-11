@@ -2,28 +2,30 @@
 
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_cache.dart';
 import 'analyzer_property_accessor_cache.dart';
 import 'analyzer_method_cache.dart';
 
-abstract class AnalyzerClassCache<T> {
-  final T element;
-  bool isEnabled = true;
+abstract class AnalyzerClassCache<T> extends AnalyzerCache<T> {
+  AnalyzerClassCache(super.element);
   List<AnalyzerPropertyAccessorCache> get fields;
   List<AnalyzerMethodCache> get methods;
   List<AnalyzerMethodCache> get constructors;
   String get name;
   bool get isAbstract;
-  AnalyzerClassCache(this.element);
 
+  @override
   Map<String, dynamic> toJson() {
-    return {
-      'isAbstract': isAbstract,
-      'name': name,
-      'fields': fields.map((e) => e.toJson()).toList(),
-      'methods': methods.map((e) => e.toJson()).toList(),
-      'constructors': constructors.map((e) => e.toJson()).toList(),
-      'isEnabled': isEnabled,
-    };
+    return {...super.toJson()}..addAll(
+        {
+          'isAbstract': isAbstract,
+          'name': name,
+          'fields': fields.map((e) => e.toJson()).toList(),
+          'methods': methods.map((e) => e.toJson()).toList(),
+          'constructors': constructors.map((e) => e.toJson()).toList(),
+          'isEnabled': isEnable,
+        },
+      );
   }
 }
 
@@ -54,9 +56,6 @@ class AnalyzerClassJsonCacheImpl
 
   @override
   String get name => JSON(element)['name'].stringValue;
-
-  @override
-  bool get isEnabled => JSON(element)['isEnabled'].bool ?? super.isEnabled;
 }
 
 class AnalyzerClassElementCacheImpl

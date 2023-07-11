@@ -2,22 +2,24 @@
 
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'analyzer_cache.dart';
 import 'analyzer_property_accessor_cache.dart';
 
-abstract class AnalyzerMethodCache<T> {
-  final T element;
-  bool isEnable = true;
+abstract class AnalyzerMethodCache<T> extends AnalyzerCache<T> {
   String get name;
   List<AnalyzerPropertyAccessorCache> get parameters;
   bool get isStatic;
-  AnalyzerMethodCache(this.element);
+  AnalyzerMethodCache(super.element);
 
+  @override
   Map<String, dynamic> toJson() {
-    return {
-      'isStatic': isStatic,
-      'name': name,
-      'parameters': parameters.map((e) => e.toJson()).toList(),
-    };
+    return {...super.toJson()}..addAll(
+        {
+          'isStatic': isStatic,
+          'name': name,
+          'parameters': parameters.map((e) => e.toJson()).toList(),
+        },
+      );
   }
 }
 

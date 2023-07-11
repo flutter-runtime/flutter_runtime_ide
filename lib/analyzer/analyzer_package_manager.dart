@@ -12,6 +12,7 @@ import 'package:flutter_runtime_ide/analyzer/cache/analyzer_property_accessor_ca
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
+import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 
@@ -122,7 +123,7 @@ class AnalyzerPackageManager {
   /// [info] 当前分析文件对应库信息
   /// [filePath] 分析的文件路径
   /// [useCache] 是否使用本地的分析缓存 默认为  true
-  Future<AnalyzerFileCache> getAnalyzerFileCache(
+  Future<AnalyzerFileCache?> getAnalyzerFileCache(
     PackageInfo info,
     String filePath, [
     bool useCache = true,
@@ -136,10 +137,9 @@ class AnalyzerPackageManager {
     }
     final result = await getResolvedLibrary(info.packagePath, filePath);
     if (result is! ResolvedLibraryResult) {
-      return AnalyzerFileJsonCacheImpl({});
+      return null;
     }
-    final cache =
-        AnalyzerLibraryElementCacheImpl(result.element as LibraryElementImpl);
+    final cache = AnalyzerLibraryElementCacheImpl(result);
     await saveFileCache(info, cache, filePath);
     return cache;
   }
@@ -188,5 +188,49 @@ class AnalyzerPackageManager {
     final jsonText = const JsonEncoder.withIndent('  ').convert(jsonValue);
     final path = getAnalyzerCacheFilePath(info, filePath);
     await File(path).writeString(jsonText);
+  }
+
+  /// 根据依赖的全路径获取依赖库信息
+  /// [fullPath] 全路径
+  PackageInfo? getPackageInfoFromFullPath(String fullPath) {
+    return packageConfig?.packages.firstWhereOrNull((element) {
+      return fullPath.startsWith(element.packagePath);
+    });
+  }
+
+  /// 根据包名获取包信息
+  /// [name] 包名
+  PackageInfo? getPackageInfoFromName(String name) {
+    return packageConfig?.packages.firstWhereOrNull((element) {
+      return element.name == name;
+    });
+  }
+
+  /// 根据包路径和文件路径获取分析内存缓存
+  /// [packagePath] 包路径
+  /// [libraryPath] 文件路径
+  ResolvedLibraryResult? getResolvedLibraryCache(
+    String packagePath,
+    String libraryPath,
+  ) {
+    Map<String, SomeResolvedLibraryResult> results = this.results(packagePath);
+    return results[libraryPath] as ResolvedLibraryResult?;
+  }
+
+  ResolvedLibraryResult? getResolvedLibraryFromUriContent(String uriContent) {
+    String? packagePath;
+    String? libraryPath;
+    if (uriContent.startsWith("package:")) {
+      final content = uriContent.replaceFirst("package:", "");
+      final contentPaths = content.split('/');
+      final packageName = contentPaths[0];
+      contentPaths.removeAt(0);
+      final info = AnalyzerPackageManager().getPackageInfoFromName(packageName);
+      if (info == null) return null;
+      packagePath = info.rootUri.replaceFirst("file://", "").split('lib')[0];
+      libraryPath = join(packagePath, 'lib', contentPaths.join('/'));
+    }
+    if (packagePath == null || libraryPath == null) return null;
+    return getResolvedLibraryCache(packagePath, libraryPath);
   }
 }

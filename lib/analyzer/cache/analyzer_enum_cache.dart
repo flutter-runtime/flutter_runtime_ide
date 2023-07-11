@@ -2,24 +2,26 @@
 
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'analyzer_cache.dart';
 import 'analyzer_property_accessor_cache.dart';
 import 'analyzer_method_cache.dart';
 
-abstract class AnalyzerEnumCache<T> {
-  final T element;
-  bool isEnable = true;
+abstract class AnalyzerEnumCache<T> extends AnalyzerCache<T> {
   List<AnalyzerPropertyAccessorCache> get fields;
   List<AnalyzerMethodCache> get methods;
   String get name;
-  AnalyzerEnumCache(this.element);
+  AnalyzerEnumCache(super.element);
 
+  @override
   Map<String, dynamic> toJson() {
-    return {
-      'isEnable': isEnable,
-      'name': name,
-      'fields': fields.map((e) => e.toJson()).toList(),
-      'methods': methods.map((e) => e.toJson()).toList(),
-    };
+    return {...super.toJson()}..addAll(
+        {
+          'isEnable': isEnable,
+          'name': name,
+          'fields': fields.map((e) => e.toJson()).toList(),
+          'methods': methods.map((e) => e.toJson()).toList(),
+        },
+      );
   }
 }
 

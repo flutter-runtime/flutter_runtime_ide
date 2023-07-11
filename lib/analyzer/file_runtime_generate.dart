@@ -9,6 +9,7 @@ import 'package:flutter_runtime_ide/analyzer/cache/analyzer_class_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_enum_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_extension_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_file_cache.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_import_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_method_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_mixin_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_property_accessor_cache.dart';
@@ -26,65 +27,56 @@ class FileRuntimeGenerate {
   final PackageConfig packageConfig;
   final PackageInfo info;
   final AnalyzerFileCache fileCache;
-  // final ResolvedLibraryResultImpl library;
-  // final FixConfig? fixConfig;
-  // late List<CompilationUnitElementImpl> _units;
-
-  // final List<ClassElementImpl> _classs = [];
-  // final List<ExtensionElementImpl> _extensions = [];
-  // final List<TopLevelVariableElementImpl> _topLevelVariables = [];
-  // final List<FunctionElementImpl> _functions = [];
-  // final List<EnumElementImpl> _enums = [];
-  // final List<MixinElementImpl> _mixins = [];
-  // final List<TypeAliasElementImpl> _typeAliases = [];
-  // final List<PropertyAccessorElementImpl> _accessors = [];
-  // List<PartElementImpl> _parts = [];
-
-  Set<String> importPathSets = {};
-
-  List<ImportAnalysis> importAnalysis = [];
 
   FileRuntimeGenerate(
     this.sourcePath,
     this.packageConfig,
     this.info,
     this.fileCache,
-    this.importAnalysis,
-  ) {
-    importPathSets.add(sourcePath);
-    importAnalysis.add(ImportAnalysis(
-      sourcePath,
-    ));
-  }
+  );
 
   Future<String> generateCode() async {
     // await addImportHideNames();
     final classes = fileCache.classs
-        .where((e) => e.isEnabled)
+        .where((e) => e.isEnable && !e.name.isPrivate)
         .map((e) => toClassData(e))
         .toList();
     classes.add(toGlobalClass());
     classes.addAll(fileCache.extensions
-        .where((element) => element.isEnable)
+        .where((element) {
+          return element.isEnable && !(element.name?.isPrivate ?? false);
+        })
         .map((e) => toExtensionData(e))
         .toList());
-    classes.addAll(fileCache.enums.map((e) => toEnumData(e)).toList());
-    classes.addAll(fileCache.mixins.map((e) => toMixinData(e)).toList());
+    classes.addAll(fileCache.enums
+        .where((element) => element.isEnable && !element.name.isPrivate)
+        .map((e) => toEnumData(e))
+        .toList());
+    classes.addAll(fileCache.mixins
+        .where((element) => element.isEnable && !element.name.isPrivate)
+        .map((e) => toMixinData(e))
+        .toList());
 
     final data = {
       "pubName": info.name,
       "classes": classes,
     };
-    // logger.e(importPathSets);
-    final pathDatas = importAnalysis.map((e) {
+
+    var imports = [...fileCache.imports];
+    imports.add(AnalyzerImportJsonCacheImpl({
+      'uriContent': sourcePath,
+    }));
+
+    final pathDatas = imports.map((e) {
+      final hideNames = e.hideNamesFromFileCache(fileCache);
       return {
         "uriContent": e.uriContent,
         'asName': e.asName,
         'hasAsName': e.asName != null,
-        'hasShowNames': e.showNames.isNotEmpty,
-        'hasHideNames': e.hideNames.isNotEmpty,
-        'showContent': e.showNames.join(","),
-        'hideContent': e.hideNames.join(','),
+        'hasShowNames': e.shownNames.isNotEmpty,
+        'hasHideNames': hideNames.isNotEmpty,
+        'showContent': e.shownNames.join(","),
+        'hideContent': hideNames.join(','),
       };
     }).toList();
     data['paths'] = pathDatas;
@@ -93,18 +85,18 @@ class FileRuntimeGenerate {
 
   Map<String, dynamic> toGlobalClass() {
     final getFields = fileCache.topLevelVariables
-        .where((e) => e.isGetter && e.isEnable)
+        .where((e) => e.isGetter && e.isEnable && !e.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
     // getFields.addAll(_typeAliases.map((e) => toTypeAliasData(e)).toList());
 
     final setFields = fileCache.topLevelVariables
-        .where((e) => e.isSetter && e.isEnable)
+        .where((e) => e.isSetter && e.isEnable && !e.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
 
     final methods = fileCache.functions
-        .where((element) => element.isEnable)
+        .where((element) => element.isEnable && !element.name.isPrivate)
         .map((e) => toFunctionData(e))
         .toList();
     return {
@@ -133,19 +125,19 @@ class FileRuntimeGenerate {
     //     ['Struct', 'Union'].contains(element.supertype?.name);
 
     final getFields = element.fields
-        .where((e) => e.isGetter && e.isEnable)
+        .where((e) => e.isGetter && e.isEnable && !e.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
     final setFields = element.fields
-        .where((e) => e.isSetter && e.isEnable)
+        .where((e) => e.isSetter && e.isEnable && !e.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
     final methods = element.methods
-        .where((element) => element.isEnable)
+        .where((element) => element.isEnable && !element.name.isPrivate)
         .map((e) => toMethodData(e))
         .toList();
     final constructors = element.constructors
-        .where((element) => element.isEnable)
+        .where((element) => element.isEnable && !element.name.isPrivate)
         .map((e) => toConstructorData(e))
         .toList();
     return {
@@ -164,15 +156,17 @@ class FileRuntimeGenerate {
 
   Map<String, dynamic> toEnumData(AnalyzerEnumCache element) {
     final getFields = element.fields
-        .where((element) => element.isEnable && element.isGetter)
+        .where((element) =>
+            element.isEnable && element.isGetter && !element.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
     final setFields = element.fields
-        .where((element) => element.isEnable && element.isSetter)
+        .where((element) =>
+            element.isEnable && element.isSetter && !element.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
     final methods = element.methods
-        .where((element) => element.isEnable)
+        .where((element) => element.isEnable && !element.name.isPrivate)
         .map((e) => toMethodData(e))
         .toList();
     // final constructors = element.constructors
@@ -195,19 +189,21 @@ class FileRuntimeGenerate {
 
   Map<String, dynamic> toMixinData(AnalyzerMixinCache element) {
     final getFields = element.fields
-        .where((element) => element.isEnable && element.isGetter)
+        .where((element) =>
+            element.isEnable && element.isGetter && !element.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
     final setFields = element.fields
-        .where((element) => element.isEnable && element.isSetter)
+        .where((element) =>
+            element.isEnable && element.isSetter && !element.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
     final methods = element.methods
-        .where((element) => element.isEnable)
+        .where((element) => element.isEnable && !element.name.isPrivate)
         .map((e) => toMethodData(e))
         .toList();
     final constructors = element.constructors
-        .where((element) => !element.name.isPrivate)
+        .where((element) => !element.name.isPrivate && !element.name.isPrivate)
         .map((e) => toConstructorData(e))
         .toList();
     return {
@@ -272,15 +268,17 @@ class FileRuntimeGenerate {
 
   Map<String, dynamic> toExtensionData(AnalyzerExtensionCache element) {
     final getFields = element.fields
-        .where((element) => element.isEnable && element.isGetter)
+        .where((element) =>
+            element.isEnable && element.isGetter && !element.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
     final setFields = element.fields
-        .where((element) => element.isEnable && element.isSetter)
+        .where((element) =>
+            element.isEnable && element.isSetter && !element.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
     final methods = element.methods
-        .where((element) => element.isEnable)
+        .where((element) => element.isEnable && !element.name.isPrivate)
         .map((e) => toMethodData(e))
         .toList();
     // final runtimeType = runtimeNameWithType(element.extendedType);
@@ -289,10 +287,10 @@ class FileRuntimeGenerate {
     //     .map((e) => getExtensionOnType(e))
     //     .value;
 
-    // String? instanceType = Unwrap(runtimeType).map((e) {
-    //   if (e.endsWith("?")) return e;
-    //   return "$e?";
-    // }).value;
+    String? instanceType = Unwrap(element.extensionName).map((e) {
+      if (e.endsWith("?")) return e;
+      return "$e?";
+    }).value;
     return {
       "className": '\$${element.name}\$',
       "getFields": getFields,
@@ -300,8 +298,8 @@ class FileRuntimeGenerate {
       "methods": methods,
       "constructors": [],
       "isAbstract": false,
-      'runtimeType': '',
-      'instanceType': '',
+      'runtimeType': element.extensionName,
+      'instanceType': instanceType,
       'prefix': '${element.name}(runtime).',
       'staticPrefix': '${element.name}.',
     };
@@ -472,32 +470,6 @@ class FileRuntimeGenerate {
     PackageInfo info = infos[0];
     final path = sourcePath.split("/lib/").last;
     return 'package:${info.name}/$path';
-  }
-
-  String? runtimeNameWithType(DartType dartType) {
-    Unwrap(importPathFromType(dartType)).map((e) {
-      importPathSets.add(e);
-    });
-    final name0 = dartType.name;
-    if (name0 == null) return null;
-    if (dartType is! InterfaceType) return name0;
-    if (dartType.typeArguments.isEmpty) return name0;
-    final typeArguments = dartType.typeArguments
-        .map((e) {
-          Unwrap(importPathFromType(e)).map((e) {
-            importPathSets.add(e);
-          });
-          if (e is InterfaceType) return e.name;
-          if (e is TypeParameterType) return e.bound.name;
-          if (e is InvalidType) {
-            logger.e(this);
-          }
-          return null;
-        })
-        .whereType<String>()
-        .toList();
-    if (typeArguments.isEmpty) return name0;
-    return '$name0<${typeArguments.join(",")}>';
   }
 
   String? importPathFromLibrary(LibraryElement library) {

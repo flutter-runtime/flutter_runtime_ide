@@ -218,11 +218,13 @@ class _GenerateDartFile extends _AnalysisDartFile {
     FixConfig? fixConfig = fixRuntimeConfiguration?.fixs
         .firstWhereOrNull((element) => element.path == libraryPath);
 
-    final filaCache = await AnalyzerPackageManager().getAnalyzerFileCache(
+    final fileCache = await AnalyzerPackageManager().getAnalyzerFileCache(
       info,
       filePath,
       true,
     );
+
+    if (fileCache == null) return;
 
     final sourcePath = 'package:${info.name}/$libraryPath';
     // final importAnalysisList = await getImportAnalysis(result);
@@ -230,8 +232,7 @@ class _GenerateDartFile extends _AnalysisDartFile {
       sourcePath,
       packageConfig,
       info,
-      filaCache,
-      [],
+      fileCache,
     );
     final generateCode = await generate.generateCode();
 
@@ -314,7 +315,6 @@ class _GenerateDartFile extends _AnalysisDartFile {
     String? packagePath;
     String? libraryPath;
     if (uriContent.startsWith("package:")) {
-      // package:ffi/ffi.dart
       final content = uriContent.replaceFirst("package:", "");
       final contentPaths = content.split('/');
       final packageName = contentPaths[0];

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:analyzer/dart/element/type.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
@@ -9,6 +11,7 @@ import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../../../analyzer/file_runtime_generate.dart';
 import '../../../../analyzer/mustache/mustache.dart';
@@ -39,15 +42,22 @@ class AnalyzerDetailController extends GetxController {
   /// 是否全部使用缓存
   var useCache = false.obs;
 
+  final ScrollController logScrollController = ScrollController();
+  final ItemScrollController itemScrollController = ItemScrollController();
+
   AnalyzerDetailController(
     this.packageInfo,
     this.packageConfig,
     this.packageDependency,
   ) {
-    allDependenceInfos = _getPackageAllDependencies(packageInfo.name)
+    final allDependences = _getPackageAllDependencies(packageInfo.name);
+
+    allDependenceInfos = allDependences
+        .map((e) => e.name)
+        .toSet()
         .map((e) {
           return packageConfig.packages.firstWhereOrNull((element) {
-            return element.name == e.name;
+            return element.name == e;
           });
         })
         .whereType<PackageInfo>()
@@ -59,6 +69,9 @@ class AnalyzerDetailController extends GetxController {
     useCache.value = dependencyCacheStates.values.every((element) {
       return element.value;
     });
+
+    /// 每隔 500 秒自动滚动
+    _autoScrollLog();
   }
 
   /// 获取输出运行库保存的目录
@@ -68,6 +81,8 @@ class AnalyzerDetailController extends GetxController {
 
   // 分析依赖
   Future<void> analyzerPackage() async {
+    reset();
+
     callback(event) => logs.add(event);
     Logger.addLogListener(callback);
 
@@ -93,11 +108,14 @@ class AnalyzerDetailController extends GetxController {
 
     int index = 0;
     for (var info in infos) {
+      itemScrollController.jumpTo(index: index);
       const ignorePackages = [
         'flutter',
         'flutter_test',
       ];
-      if (ignorePackages.contains(info.name)) continue;
+      if (ignorePackages.contains(info.name)) {
+        index++;
+      }
       _PreAnalysisDartFile analysisDartFile = _PreAnalysisDartFile(
         info,
         getCacheStates(info.name).value,
@@ -117,6 +135,7 @@ class AnalyzerDetailController extends GetxController {
     _GenerateDartFile analysisDartFile = _GenerateDartFile(
       infos[0],
       packageConfig,
+      getCacheStates(infos[0].name).value,
     );
     analysisDartFile.progress.listen((p0) {
       // double progress = currentProgress + p0 * progressIndex;
@@ -140,7 +159,10 @@ class AnalyzerDetailController extends GetxController {
     );
     try {
       final shell = Shell(workingDirectory: rootPath, stdout: stdoutController);
-      await shell.run('$dart format ./');
+      await shell.run('''
+flutter pub get
+$dart format ./
+''');
 
       // 移除监听日志
       Logger.removeLogListener(callback);
@@ -171,7 +193,9 @@ class AnalyzerDetailController extends GetxController {
       return element.name == packageName;
     });
     if (info == null) return packages;
-    packages.add(info);
+    if (!packages.any((element) => element.name == info.name)) {
+      packages.add(info);
+    }
     for (var package in info.dependencies) {
       packages.addAll(_getPackageAllDependencies(package));
     }
@@ -179,10 +203,13 @@ class AnalyzerDetailController extends GetxController {
   }
 
   Future<void> _deleteExitCache(PackageInfo info) async {
-    final cachePath =
-        join(AnalyzerPackageManager.defaultRuntimePath, info.cacheName);
-    if (await File(cachePath).exists()) {
-      await File(cachePath).delete(recursive: true);
+    final cachePath = join(
+      AnalyzerPackageManager.defaultRuntimePath,
+      'runtime',
+      info.cacheName,
+    );
+    if (await Directory(cachePath).exists()) {
+      await Directory(cachePath).delete(recursive: true);
     }
   }
 
@@ -215,6 +242,36 @@ class AnalyzerDetailController extends GetxController {
   /// 获取单个的缓存状态
   RxBool getCacheStates(String name) {
     return dependencyCacheStates[name]!;
+  }
+
+  /// 重新初始化状态
+  void reset() {
+    progress.value = 0.0;
+    clearLogs();
+    itemProgressMap.clear();
+  }
+
+  openFolder() async {
+    final open = await which('open');
+
+    StreamController<List<int>> stdErrorController = StreamController();
+    stdErrorController.stream.listen(
+      (event) {
+        Get.snackbar('错误', String.fromCharCodes(event));
+      },
+    );
+
+    await Shell(stderr: stdErrorController).run('''
+$open ${join(outPutPath, packageInfo.cacheName)} -a 'Visual Studio Code.app'
+''');
+  }
+
+  _autoScrollLog() {
+    Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (logScrollController.position.pixels ==
+          logScrollController.position.maxScrollExtent) return;
+      logScrollController.jumpTo(logScrollController.position.maxScrollExtent);
+    });
   }
 }
 
@@ -272,7 +329,9 @@ class _PreAnalysisDartFile extends _AnalysisDartFile {
 
 class _GenerateDartFile extends _AnalysisDartFile {
   final PackageConfig packageConfig;
-  _GenerateDartFile(PackageInfo info, this.packageConfig) : super(info);
+  final bool useCache;
+  _GenerateDartFile(PackageInfo info, this.packageConfig, this.useCache)
+      : super(info);
 
   @override
   Future<void> analysisDartFile(String filePath) async {
@@ -283,10 +342,10 @@ class _GenerateDartFile extends _AnalysisDartFile {
     // FixConfig? fixConfig = fixRuntimeConfiguration?.fixs
     //     .firstWhereOrNull((element) => element.path == libraryPath);
 
-    final result = await AnalyzerPackageManager().getAnalyzerFileCache(
-      info,
-      filePath,
-    );
+    final result = await AnalyzerPackageManager()
+        .getAnalyzerFileCache(info, filePath, useCache);
+
+    if (result == null) return;
 
     final sourcePath = 'package:${info.name}/$libraryPath';
     // final importAnalysisList = await getImportAnalysis(result);
@@ -295,7 +354,6 @@ class _GenerateDartFile extends _AnalysisDartFile {
       packageConfig,
       info,
       result,
-      [],
     );
     final generateCode = await generate.generateCode();
 

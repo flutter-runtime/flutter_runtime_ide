@@ -4,9 +4,9 @@ import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:get/get_connect/http/src/utils/utils.dart';
 
-abstract class AnalyzerPropertyAccessorCache<T> {
-  final T element;
-  bool isEnable = true;
+import 'analyzer_cache.dart';
+
+abstract class AnalyzerPropertyAccessorCache<T> extends AnalyzerCache<T> {
   String get name;
   bool get isStatic;
   bool get isGetter;
@@ -14,18 +14,22 @@ abstract class AnalyzerPropertyAccessorCache<T> {
   bool get isNamed;
   bool get hasDefaultValue;
   String? get defaultValueCode;
-  AnalyzerPropertyAccessorCache(this.element);
+  AnalyzerPropertyAccessorCache(super.element);
 
+  @override
   Map<String, dynamic> toJson() {
-    return {
-      'isStatic': isStatic,
-      'name': name,
-      'isGetter': isGetter,
-      'isSetter': isSetter,
-      'isEnable': isEnable,
-      'hasDefaultValue': hasDefaultValue,
-      'isNamed': isNamed,
-    };
+    return {...super.toJson()}..addAll(
+        {
+          'isStatic': isStatic,
+          'name': name,
+          'isGetter': isGetter,
+          'isSetter': isSetter,
+          'isEnable': isEnable,
+          'hasDefaultValue': hasDefaultValue,
+          'isNamed': isNamed,
+          'defaultValueCode': defaultValueCode,
+        },
+      );
   }
 }
 

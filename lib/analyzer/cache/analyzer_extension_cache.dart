@@ -2,24 +2,30 @@
 
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'analyzer_cache.dart';
 import 'analyzer_property_accessor_cache.dart';
 import 'analyzer_method_cache.dart';
 
-abstract class AnalyzerExtensionCache<T> {
-  final T element;
-  bool isEnable = true;
+abstract class AnalyzerExtensionCache<T> extends AnalyzerCache<T> {
   List<AnalyzerPropertyAccessorCache> get fields;
   List<AnalyzerMethodCache> get methods;
   String? get name;
-  AnalyzerExtensionCache(this.element);
 
+  /// 扩展名称
+  String get extensionName;
+  AnalyzerExtensionCache(super.element);
+
+  @override
   Map<String, dynamic> toJson() {
-    return {
-      'fields': fields.map((e) => e.toJson()).toList(),
-      'methods': methods.map((e) => e.toJson()).toList(),
-      'name': name,
-      'isEnable': isEnable,
-    };
+    return {...super.toJson()}..addAll(
+        {
+          'fields': fields.map((e) => e.toJson()).toList(),
+          'methods': methods.map((e) => e.toJson()).toList(),
+          'name': name,
+          'isEnable': isEnable,
+          'extensionName': extensionName,
+        },
+      );
   }
 }
 
@@ -41,6 +47,9 @@ class AnalyzerExtensionJsonCacheImpl
 
   @override
   String? get name => JSON(element)['name'].string;
+
+  @override
+  String get extensionName => JSON(element)['extensionName'].stringValue;
 }
 
 class AnalyzerExtensionElementCacheImpl
@@ -57,4 +66,7 @@ class AnalyzerExtensionElementCacheImpl
 
   @override
   String? get name => element.name;
+
+  @override
+  String get extensionName => element.extendedType.toString();
 }

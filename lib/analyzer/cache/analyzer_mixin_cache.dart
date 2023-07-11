@@ -2,26 +2,28 @@
 
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'analyzer_cache.dart';
 import 'analyzer_method_cache.dart';
 import 'analyzer_property_accessor_cache.dart';
 
-abstract class AnalyzerMixinCache<T> {
-  final T element;
-  bool isEnable = true;
+abstract class AnalyzerMixinCache<T> extends AnalyzerCache<T> {
   List<AnalyzerPropertyAccessorCache> get fields;
   List<AnalyzerMethodCache> get methods;
   List<AnalyzerMethodCache> get constructors;
   String get name;
-  AnalyzerMixinCache(this.element);
+  AnalyzerMixinCache(super.element);
 
+  @override
   Map<String, dynamic> toJson() {
-    return {
-      'fields': fields.map((e) => e.toJson()).toList(),
-      'methods': methods.map((e) => e.toJson()).toList(),
-      'constructors': constructors.map((e) => e.toJson()).toList(),
-      'name': name,
-      'isEnable': isEnable,
-    };
+    return {...super.toJson()}..addAll(
+        {
+          'fields': fields.map((e) => e.toJson()).toList(),
+          'methods': methods.map((e) => e.toJson()).toList(),
+          'constructors': constructors.map((e) => e.toJson()).toList(),
+          'name': name,
+          'isEnable': isEnable,
+        },
+      );
   }
 }
 

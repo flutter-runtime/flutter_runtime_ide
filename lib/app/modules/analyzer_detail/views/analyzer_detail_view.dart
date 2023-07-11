@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/modules/analyzer_detail/controllers/analyzer_detail_controller.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 class AnalyzerDetailView extends StatelessWidget {
   final AnalyzerDetailController controller;
@@ -17,7 +18,10 @@ class AnalyzerDetailView extends StatelessWidget {
           IconButton(
             onPressed: () => controller.analyzerPackage(),
             icon: const Icon(Icons.analytics),
-          )
+          ),
+          IconButton(
+              onPressed: () => controller.openFolder(),
+              icon: const Icon(Icons.folder_open)),
         ],
       ),
       body: Column(
@@ -54,7 +58,8 @@ class AnalyzerDetailView extends StatelessWidget {
           ),
           Container(
             constraints: const BoxConstraints(maxHeight: 200),
-            child: ListView.separated(
+            child: ScrollablePositionedList.separated(
+              itemScrollController: controller.itemScrollController,
               itemCount: controller.allDependenceInfos.length,
               separatorBuilder: (BuildContext context, int index) {
                 return const Divider();
@@ -100,6 +105,7 @@ class AnalyzerDetailView extends StatelessWidget {
           Expanded(
             child: Obx(
               () => ListView.separated(
+                controller: controller.logScrollController,
                 itemCount: controller.logs.length,
                 separatorBuilder: (BuildContext context, int index) {
                   return const Divider();
