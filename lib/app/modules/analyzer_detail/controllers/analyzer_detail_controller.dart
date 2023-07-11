@@ -268,6 +268,10 @@ $open ${join(outPutPath, packageInfo.cacheName)} -a 'Visual Studio Code.app'
 
   _autoScrollLog() {
     Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (!logScrollController.hasClients) {
+        timer.cancel();
+        return;
+      }
       if (logScrollController.position.pixels ==
           logScrollController.position.maxScrollExtent) return;
       logScrollController.jumpTo(logScrollController.position.maxScrollExtent);
