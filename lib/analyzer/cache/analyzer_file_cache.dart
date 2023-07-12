@@ -124,6 +124,7 @@ class AnalyzerLibraryElementCacheImpl
   List<AnalyzerExtensionCache> get extensions => element.libraryElement.units
       .map((e) => e.extensions)
       .expand((element) => element)
+      .where((element) => element.name != null)
       .map((e) => AnalyzerExtensionElementCacheImpl(e))
       .toList();
 

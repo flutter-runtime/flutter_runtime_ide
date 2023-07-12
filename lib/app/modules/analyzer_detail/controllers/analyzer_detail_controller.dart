@@ -171,7 +171,7 @@ $dart format ./
       Get.snackbar('代码格式错误', e.toString());
     }
     progress.value = 1;
-    logger.i("生成运行时库完毕");
+    Get.snackbar('代码格式化完毕', '');
   }
 
   Future<void> createPubspecFile(PackageInfo info) async {
