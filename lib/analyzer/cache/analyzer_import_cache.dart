@@ -39,7 +39,7 @@ class AnalyzerImportCache<T> extends AnalyzerCache<T> with FixSelectItem {
   }
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
     uriContent = JSON(element)['uriContent'].string;
     asName = JSON(element)['asName'].string;
@@ -52,7 +52,7 @@ class AnalyzerImportCache<T> extends AnalyzerCache<T> with FixSelectItem {
         .map((e) => JSON(e).stringValue)
         .toList();
     namespace = Unwrap(JSON(element)['namespace'].rawValue)
-        .map((e) => AnalyzerNameSpaceCache(e as Map<String, dynamic>, e))
+        .map((e) => AnalyzerNameSpaceCache(e as Map, e))
         .value;
     index = JSON(element)['index'].intValue;
   }
@@ -65,7 +65,7 @@ class AnalyzerImportDirectiveCacheImpl
     extends AnalyzerImportCache<ImportDirectiveImpl> {
   AnalyzerImportDirectiveCacheImpl(super.element, super.map);
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
     uriContent = element.uriContent;
     asName = element.asName;
@@ -104,14 +104,13 @@ extension ImportDirectiveImplAnalyzer on ImportDirectiveImpl {
       .expand((element) => element)
       .toList();
 
-  AnalyzerNameSpaceCache? namespace(Map<String, dynamic> map) => Unwrap(
-          uriContent)
+  AnalyzerNameSpaceCache? namespace(Map map) => Unwrap(uriContent)
       .map((e) => AnalyzerPackageManager().getResolvedLibraryFromUriContent(e))
       .map((e) => e.element)
       .map((e) => e.exportNamespace)
       .map((e) => AnalyzerNameSpaceCacheImpl(
             e,
-            JSON(map)['namespaces'].mapValue as Map<String, dynamic>,
+            JSON(map)['namespaces'].mapValue as Map,
           ))
       .value;
 }

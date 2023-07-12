@@ -14,7 +14,7 @@ class AnalyzerNameSpaceCache<T> extends AnalyzerCache<T> {
   }
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
     exportNames = JSON(element)['exportNames']
         .listValue
@@ -27,7 +27,7 @@ class AnalyzerNameSpaceCacheImpl extends AnalyzerNameSpaceCache<Namespace> {
   AnalyzerNameSpaceCacheImpl(super.element, super.map);
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
     exportNames = element.definedNames.keys.toList();
   }

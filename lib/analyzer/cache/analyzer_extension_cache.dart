@@ -28,7 +28,7 @@ class AnalyzerExtensionCache<T> extends AnalyzerCache<T> with FixSelectItem {
   }
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
     fields = JSON(element)['fields']
         .listValue
@@ -48,7 +48,7 @@ class AnalyzerExtensionElementCacheImpl
   AnalyzerExtensionElementCacheImpl(super.element, super.map);
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
     fields = element.fields
         .map((e) => AnalyzerFieldElementCacheImpl(
@@ -67,14 +67,14 @@ class AnalyzerExtensionElementCacheImpl
   }
 }
 
-extension on Map<String, dynamic> {
-  Map<String, dynamic>? getField(String name) {
+extension on Map {
+  Map? getField(String name) {
     return JSON(this)['fields'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map<String, dynamic>? getMethod(String name) {
+  Map? getMethod(String name) {
     return JSON(this)['methods'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });

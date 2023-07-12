@@ -39,7 +39,7 @@ class AnalyzerFileCache<T> extends AnalyzerCache<T> {
   }
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     classs = JSON(map)['classs']
         .listValue
         .map((e) => AnalyzerClassCache(e, e))
@@ -91,7 +91,7 @@ class AnalyzerLibraryElementCacheImpl
   AnalyzerLibraryElementCacheImpl(super.element, super.map);
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
 
     classs = element.libraryElement.units
@@ -134,14 +134,14 @@ class AnalyzerLibraryElementCacheImpl
             ))
         .toList();
     imports = element.importCaches(
-        JSON(map)['imports'].listValue as List<Map<String, dynamic>>);
+        JSON(map)['imports'].listValue.map((e) => e as Map).toList());
   }
 }
 
 extension ResolvedLibraryResultAnalyzer on ResolvedLibraryResult {
   LibraryElementImpl get libraryElement => element as LibraryElementImpl;
 
-  List<AnalyzerImportCache> importCaches(List<Map<String, dynamic>> maps) {
+  List<AnalyzerImportCache> importCaches(List<Map> maps) {
     List<AnalyzerImportCache> imports = [];
     final directives = units
         .map((e) => e.unit)
@@ -177,7 +177,9 @@ extension ResolvedLibraryResultAnalyzer on ResolvedLibraryResult {
       }
       final cache = AnalyzerImportDirectiveCacheImpl(
         element,
-        JSON(maps)[index].mapValue as Map<String, dynamic>,
+        JSON(maps)[index]
+            .mapValue
+            .map((key, value) => MapEntry(key as String, value)),
       );
       cache.index = index;
       imports.add(cache);
@@ -186,38 +188,38 @@ extension ResolvedLibraryResultAnalyzer on ResolvedLibraryResult {
   }
 }
 
-extension on Map<String, dynamic> {
-  Map<String, dynamic>? getClass(String name) {
+extension on Map {
+  Map? getClass(String name) {
     return JSON(this)['classs'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map<String, dynamic>? getEnum(String name) {
+  Map? getEnum(String name) {
     return JSON(this)['enums'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map<String, dynamic>? getMixin(String name) {
+  Map? getMixin(String name) {
     return JSON(this)['mixins'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map<String, dynamic>? getExtension(String name) {
+  Map? getExtension(String name) {
     return JSON(this)['extensions'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map<String, dynamic>? getFunction(String name) {
+  Map? getFunction(String name) {
     return JSON(this)['functions'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map<String, dynamic>? getTopLevelVariable(String name) {
+  Map? getTopLevelVariable(String name) {
     return JSON(this)['topLevelVariables']
         .listValue
         .firstWhereOrNull((element) {
@@ -225,7 +227,7 @@ extension on Map<String, dynamic> {
     });
   }
 
-  Map<String, dynamic>? getImport(String name) {
+  Map? getImport(String name) {
     return JSON(this)['imports'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });

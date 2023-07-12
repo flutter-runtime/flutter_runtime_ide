@@ -23,7 +23,7 @@ class AnalyzerMethodCache<T> extends AnalyzerCache<T> with FixSelectItem {
   }
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
     parameters = JSON(element)['parameters']
         .listValue
@@ -39,12 +39,12 @@ class AnalyzerFunctionElementCacheImpl
   AnalyzerFunctionElementCacheImpl(super.element, super.map);
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
     parameters = element.parameters
         .map((e) => AnalyzerParameterElementCacheImpl(
               e as ParameterElementImpl,
-              JSON(map)['parameters'][e.name].mapValue as Map<String, dynamic>,
+              JSON(map)['parameters'][e.name].mapValue as Map,
             ))
         .toList();
     isStatic = element.isStatic;
@@ -57,24 +57,7 @@ class AnalyzerConstructorElementCacheImpl
   AnalyzerConstructorElementCacheImpl(super.element, super.map);
 
   @override
-  void fromMap(Map<String, dynamic> map) {
-    super.fromMap(map);
-    parameters = element.parameters
-        .map((e) => AnalyzerParameterElementCacheImpl(
-              e as ParameterElementImpl,
-              JSON(map)['parameters'][e.name].mapValue as Map<String, dynamic>,
-            ))
-        .toList();
-    isStatic = element.isStatic;
-    name = element.name;
-  }
-}
-
-class AnalyzerMethodElementCacheImpl
-    extends AnalyzerMethodCache<MethodElementImpl> {
-  AnalyzerMethodElementCacheImpl(super.element, super.map);
-  @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
     parameters = element.parameters
         .map((e) => AnalyzerParameterElementCacheImpl(
@@ -87,8 +70,25 @@ class AnalyzerMethodElementCacheImpl
   }
 }
 
-extension on Map<String, dynamic> {
-  Map<String, dynamic>? getParameter(String name) {
+class AnalyzerMethodElementCacheImpl
+    extends AnalyzerMethodCache<MethodElementImpl> {
+  AnalyzerMethodElementCacheImpl(super.element, super.map);
+  @override
+  void fromMap(Map map) {
+    super.fromMap(map);
+    parameters = element.parameters
+        .map((e) => AnalyzerParameterElementCacheImpl(
+              e as ParameterElementImpl,
+              map.getParameter(e.name) ?? {},
+            ))
+        .toList();
+    isStatic = element.isStatic;
+    name = element.name;
+  }
+}
+
+extension on Map {
+  Map? getParameter(String name) {
     return JSON(this)['parameters'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });

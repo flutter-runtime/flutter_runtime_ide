@@ -26,7 +26,7 @@ class AnalyzerMixinCache<T> extends AnalyzerCache<T> with FixSelectItem {
   }
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
     fields = JSON(element)['fields']
         .listValue
@@ -50,7 +50,7 @@ class AnalyzerMixinElementCacheImpl
   AnalyzerMixinElementCacheImpl(super.element, super.map);
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
     constructors = element.constructors
         .map((e) => AnalyzerConstructorElementCacheImpl(
@@ -74,20 +74,20 @@ class AnalyzerMixinElementCacheImpl
   }
 }
 
-extension on Map<String, dynamic> {
-  Map<String, dynamic>? getConstructor(String name) {
+extension on Map {
+  Map? getConstructor(String name) {
     return JSON(this)['constructors'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map<String, dynamic>? getMethod(String name) {
+  Map? getMethod(String name) {
     return JSON(this)['methods'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map<String, dynamic>? getFields(String name) {
+  Map? getFields(String name) {
     return JSON(this)['fields'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });

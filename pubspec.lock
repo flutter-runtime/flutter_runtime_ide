@@ -108,10 +108,9 @@ packages:
   darty_json_safe:
     dependency: "direct main"
     description:
-      name: darty_json_safe
-      sha256: bdb3bf9e9d47245da7d567a1c07d6c185df2f8ec920c778f0518571afb9681f8
-      url: "https://pub.flutter-io.cn"
-    source: hosted
+      path: "packages/darty_json"
+      relative: true
+    source: path
     version: "1.0.1"
   event_bus:
     dependency: "direct main"

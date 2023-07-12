@@ -28,20 +28,22 @@ class AnalyzerClassCache<T> extends AnalyzerCache<T> with FixSelectItem {
   }
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
-    constructors = JSON(element)['constructors']
+    constructors = JSON(map)['constructors']
         .listValue
         .map((e) => AnalyzerMethodCache(e, e))
         .toList();
-    fields = JSON(element)['fields']
+    fields = JSON(map)['fields']
         .listValue
         .map((e) => AnalyzerPropertyAccessorCache(e, e))
         .toList();
-    methods = JSON(element)['methods']
+    methods = JSON(map)['methods']
         .listValue
         .map((e) => AnalyzerMethodCache(e, e))
         .toList();
+    name = JSON(map)['name'].stringValue;
+    isAbstract = JSON(map)['isAbstract'].boolValue;
   }
 }
 
@@ -50,7 +52,7 @@ class AnalyzerClassElementCacheImpl
   AnalyzerClassElementCacheImpl(super.element, super.map);
 
   @override
-  void fromMap(Map<String, dynamic> map) {
+  void fromMap(Map map) {
     super.fromMap(map);
     constructors = element.constructors
         .map((e) => AnalyzerConstructorElementCacheImpl(
@@ -71,20 +73,20 @@ class AnalyzerClassElementCacheImpl
   }
 }
 
-extension on Map<String, dynamic> {
-  Map<String, dynamic>? getConstructor(String name) {
+extension on Map {
+  Map? getConstructor(String name) {
     return JSON(this)['constructors'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map<String, dynamic>? getMethod(String name) {
+  Map? getMethod(String name) {
     return JSON(this)['methods'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map<String, dynamic>? getFields(String name) {
+  Map? getFields(String name) {
     return JSON(this)['fields'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
