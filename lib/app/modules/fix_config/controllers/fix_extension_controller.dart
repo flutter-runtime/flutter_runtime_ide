@@ -7,7 +7,10 @@ import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_select_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_tab_view.dart';
+import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
+
+import 'fix_file_controller.dart';
 
 class FixExtensionController extends GetxController {
   final AnalyzerExtensionCache cache;
@@ -38,5 +41,10 @@ class FixExtensionController extends GetxController {
         selectFieldController,
       ),
     ]);
+  }
+
+  save() {
+    cache.extensionName = extensionNameController.text;
+    eventBus.fire(SaveFileCacheEvent());
   }
 }

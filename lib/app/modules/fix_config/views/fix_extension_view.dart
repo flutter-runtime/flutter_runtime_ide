@@ -19,10 +19,37 @@ class FixExtensionView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('修复扩展配置'),
+        actions: [
+          IconButton(
+            onPressed: () => controller.save(),
+            icon: const Icon(Icons.save),
+          )
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(15),
-        child: FixTabView(controller.tabController),
+      body: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const Text('扩展类型:'),
+              const SizedBox(width: 15),
+              Expanded(
+                child: TextField(
+                  decoration: const InputDecoration(
+                    labelText: '请输入扩展类型',
+                  ),
+                  controller: controller.extensionNameController,
+                ),
+              ),
+            ],
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(15),
+              child: FixTabView(controller.tabController),
+            ),
+          ),
+        ],
       ),
     );
   }
