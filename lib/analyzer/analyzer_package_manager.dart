@@ -1,4 +1,5 @@
 // 用于缓存分析的内容
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -13,6 +14,7 @@ import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:get/get.dart';
+import 'package:get/get_rx/src/rx_typedefs/rx_typedefs.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 
@@ -128,8 +130,8 @@ class AnalyzerPackageManager {
     String filePath, [
     bool useCache = true,
   ]) async {
+    final cache = await readFileCache(info, filePath);
     if (useCache) {
-      final cache = await readFileCache(info, filePath);
       if (cache != null) {
         logger.i('[🟢使用缓存] $filePath');
         return cache;
@@ -139,8 +141,11 @@ class AnalyzerPackageManager {
     if (result is! ResolvedLibraryResult) {
       return null;
     }
-    final cache = AnalyzerLibraryElementCacheImpl(result);
-    await saveFileCache(info, cache, filePath);
+    final elementCache = AnalyzerLibraryElementCacheImpl(
+      result,
+      Unwrap(cache).map((e) => e.map).defaultValue({}),
+    );
+    await saveFileCache(info, elementCache, filePath);
     return cache;
   }
 
@@ -148,12 +153,13 @@ class AnalyzerPackageManager {
   /// [info] 当前分析文件对应库信息
   /// [filePath] 分析文件的路径
   String getAnalyzerCacheFilePath(PackageInfo info, String filePath) {
+    final relativePath = relative(filePath, from: info.libPath);
     return join(
       defaultRuntimePath,
       'config',
       'analyzer_cache',
       info.cacheName,
-      '${md5(filePath)}.json',
+      '$relativePath.json',
     );
   }
 
@@ -172,7 +178,8 @@ class AnalyzerPackageManager {
 
     /// 读取缓存文件内容
     final jsonText = await File(path).readAsString();
-    return AnalyzerFileJsonCacheImpl(jsonDecode(jsonText));
+    final data = jsonDecode(jsonText);
+    return AnalyzerFileCache(data, data);
   }
 
   /// 将分析结果写入缓存
@@ -232,5 +239,21 @@ class AnalyzerPackageManager {
     }
     if (packagePath == null || libraryPath == null) return null;
     return getResolvedLibraryCache(packagePath, libraryPath);
+  }
+
+  /// 根据依赖库的配置信息读取全部的代码文件路径
+  /// [info] 当前分析文件对应库信息
+  Future<List<FileSystemEntity>> readAllSourceFiles(PackageInfo info) async {
+    List<FileSystemEntity> files = [];
+    Completer<List<FileSystemEntity>> completer = Completer();
+    final stream = Directory(info.libPath).list(recursive: true);
+    stream.listen((event) {
+      files.add(event);
+    }, onDone: () {
+      completer.complete(files);
+    }, onError: (e) {
+      completer.completeError(e);
+    });
+    return completer.future;
   }
 }

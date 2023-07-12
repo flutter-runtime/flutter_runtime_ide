@@ -2,7 +2,7 @@ import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_select_controller.dart';
 import 'package:get/get.dart';
 
-class FixRuntimeConfiguration extends FixSelectItem {
+class FixRuntimeConfiguration with FixSelectItem {
   @override
   late String name;
   late String version;
@@ -32,7 +32,7 @@ class FixRuntimeConfiguration extends FixSelectItem {
   }
 }
 
-class FixConfig extends FixSelectItem {
+class FixConfig with FixSelectItem {
   late String path;
   List<FixClassConfig> classs = [];
   List<FixExtensionConfig> extensions = [];
@@ -91,7 +91,7 @@ class FixConfig extends FixSelectItem {
   }
 }
 
-class FixClassConfig extends FixSelectItem {
+class FixClassConfig with FixSelectItem {
   @override
   late String name;
 
@@ -131,7 +131,7 @@ class FixClassConfig extends FixSelectItem {
   }
 }
 
-class FixMethodConfig extends FixSelectItem {
+class FixMethodConfig with FixSelectItem {
   @override
   late String name;
   bool isEnable = true;
@@ -159,7 +159,7 @@ class FixMethodConfig extends FixSelectItem {
       parameters.firstWhereOrNull((element) => element.name == name);
 }
 
-class FixParameterConfig extends FixSelectItem {
+class FixParameterConfig with FixSelectItem {
   @override
   late String name;
   late String type;
@@ -178,7 +178,7 @@ class FixParameterConfig extends FixSelectItem {
   }
 }
 
-class FixExtensionConfig extends FixSelectItem {
+class FixExtensionConfig with FixSelectItem {
   @override
   late String name;
   bool isEnable = true;
@@ -208,7 +208,7 @@ class FixExtensionConfig extends FixSelectItem {
       methods.firstWhereOrNull((element) => element.name == name);
 }
 
-class FixImportConfig extends FixSelectItem {
+class FixImportConfig with FixSelectItem {
   @override
   String get name => '$index $path';
   late String path;

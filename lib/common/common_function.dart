@@ -7,6 +7,7 @@ import 'package:logger/logger.dart';
 import 'package:process_run/process_run.dart';
 import 'package:path/path.dart';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:event_bus/event_bus.dart';
 
 import '../app/modules/fix_config/views/fix_select_view.dart';
 
@@ -74,3 +75,5 @@ class AddValueView extends StatelessWidget {
     );
   }
 }
+
+EventBus eventBus = EventBus();

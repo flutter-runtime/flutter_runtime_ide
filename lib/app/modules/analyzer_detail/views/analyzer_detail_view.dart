@@ -1,5 +1,8 @@
+import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/modules/analyzer_detail/controllers/analyzer_detail_controller.dart';
+import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_config_controller.dart';
+import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_config_view.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -16,12 +19,17 @@ class AnalyzerDetailView extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
+            onPressed: () => fixAnalyzer(),
+            icon: const Icon(Icons.auto_fix_high),
+          ),
+          IconButton(
             onPressed: () => controller.analyzerPackage(),
             icon: const Icon(Icons.analytics),
           ),
           IconButton(
-              onPressed: () => controller.openFolder(),
-              icon: const Icon(Icons.folder_open)),
+            onPressed: () => controller.openFolder(),
+            icon: const Icon(Icons.folder_open),
+          ),
         ],
       ),
       body: Column(
@@ -154,5 +162,17 @@ class AnalyzerDetailView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// 修复分析的结果
+  fixAnalyzer() async {
+    final result = await Get.defaultDialog<bool>(
+      title: '警告!',
+      middleText: '需要提前使用缓存进行分析工程，是否继续?',
+      onConfirm: () => Get.back(result: true),
+      onCancel: () {},
+    );
+    if (!JSON(result).boolValue) return;
+    Get.dialog(FixConfigView(FixConfigController(controller.packageInfo)));
   }
 }

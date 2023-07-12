@@ -44,7 +44,9 @@ class FileRuntimeGenerate {
     classes.add(toGlobalClass());
     classes.addAll(fileCache.extensions
         .where((element) {
-          return element.isEnable && !(element.name?.isPrivate ?? false);
+          return element.isEnable &&
+              !(element.name.isPrivate) &&
+              element.name.isNotEmpty;
         })
         .map((e) => toExtensionData(e))
         .toList());
@@ -63,9 +65,10 @@ class FileRuntimeGenerate {
     };
 
     var imports = [...fileCache.imports];
-    imports.add(AnalyzerImportJsonCacheImpl({
+    final contentData = {
       'uriContent': sourcePath,
-    }));
+    };
+    imports.add(AnalyzerImportCache(contentData, contentData));
 
     final pathDatas = imports.map((e) {
       final hideNames = e.hideNamesFromFileCache(fileCache);
@@ -367,26 +370,9 @@ class FileRuntimeGenerate {
 
   Map<String, dynamic> toParametersData(AnalyzerPropertyAccessorCache element) {
     String readArgCode = '''args['${element.name}']''';
-    // String? displayTypeString = getTypeDisplayName(element.type);
-
-    // if (displayTypeString?.contains('InvalidType') ?? false) {
-    //   displayTypeString = getParameterTypeString(element);
-    // }
-    // if (displayTypeString == 'Object') {
-    //   readArgCode += ' as $displayTypeString';
-    // }
-    // final asName = getParameterAsName(element);
-    // if (asName != null) {
-    //   // readArgCode += ' as $asName';
-    // }
-    // if (parameterConfig?.type != null) {
-    //   readArgCode += ' as ${parameterConfig!.type}';
-    // }
-    // readArgCode += ' as $displayTypeString';
-    // final defaultValueImportPath0 = defaultValueImportPath(element);
-    // if (defaultValueImportPath0 != null) {
-    //   importPathSets.add(defaultValueImportPath0);
-    // }
+    Unwrap(element.asName).map((e) {
+      readArgCode += 'as $e';
+    });
     return {
       "parameterName": element.name,
       "isNamed": element.isNamed,

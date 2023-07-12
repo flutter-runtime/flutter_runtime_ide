@@ -3,165 +3,102 @@
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:get/get_connect/http/src/utils/utils.dart';
-
+import '../../app/modules/fix_config/controllers/fix_select_controller.dart';
 import 'analyzer_cache.dart';
 
-abstract class AnalyzerPropertyAccessorCache<T> extends AnalyzerCache<T> {
-  String get name;
-  bool get isStatic;
-  bool get isGetter;
-  bool get isSetter;
-  bool get isNamed;
-  bool get hasDefaultValue;
-  String? get defaultValueCode;
-  AnalyzerPropertyAccessorCache(super.element);
+class AnalyzerPropertyAccessorCache<T> extends AnalyzerCache<T>
+    with FixSelectItem {
+  @override
+  late String name;
+  late bool isStatic;
+  late bool isGetter;
+  late bool isSetter;
+  late bool isNamed;
+  late bool hasDefaultValue;
+  String? defaultValueCode;
+  String? asName;
+  AnalyzerPropertyAccessorCache(super.element, super.map);
 
   @override
-  Map<String, dynamic> toJson() {
-    return {...super.toJson()}..addAll(
-        {
-          'isStatic': isStatic,
-          'name': name,
-          'isGetter': isGetter,
-          'isSetter': isSetter,
-          'isEnable': isEnable,
-          'hasDefaultValue': hasDefaultValue,
-          'isNamed': isNamed,
-          'defaultValueCode': defaultValueCode,
-        },
-      );
+  void addToMap() {
+    super.addToMap();
+    this['isStatic'] = isStatic;
+    this['name'] = name;
+    this['isGetter'] = isGetter;
+    this['isSetter'] = isSetter;
+    this['isNamed'] = isNamed;
+    this['hasDefaultValue'] = hasDefaultValue;
+    this['defaultValueCode'] = defaultValueCode;
+    this['asName'] = asName;
   }
-}
-
-class AnalyzerPropertyAccessorJsonCacheImpl
-    extends AnalyzerPropertyAccessorCache<Map<String, dynamic>> {
-  AnalyzerPropertyAccessorJsonCacheImpl(super.element);
 
   @override
-  bool get isStatic => JSON(element)['isStatic'].boolValue;
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
 
-  @override
-  String get name => JSON(element)['name'].stringValue;
-
-  @override
-  bool get isGetter => JSON(element)['isGetter'].boolValue;
-
-  @override
-  bool get isSetter => JSON(element)['isSetter'].boolValue;
-
-  @override
-  bool get isEnable => JSON(element)['isEnable'].bool ?? super.isEnable;
-
-  @override
-  bool get isNamed => JSON(element)['isNamed'].boolValue;
-
-  @override
-  bool get hasDefaultValue => JSON(element)['hasDefaultValue'].boolValue;
-
-  @override
-  String? get defaultValueCode => JSON(element)['defaultValueCode'].string;
+    isStatic = JSON(element)['isStatic'].boolValue;
+    name = JSON(element)['name'].stringValue;
+    isGetter = JSON(element)['isGetter'].boolValue;
+    isSetter = JSON(element)['isSetter'].boolValue;
+    isNamed = JSON(element)['isNamed'].boolValue;
+    hasDefaultValue = JSON(element)['hasDefaultValue'].boolValue;
+    defaultValueCode = JSON(element)['defaultValueCode'].string;
+    asName = JSON(element)['asName'].string;
+  }
 }
 
 class AnalyzerPropertyAccessorElementCacheImpl
     extends AnalyzerPropertyAccessorCache<PropertyAccessorElementImpl> {
-  AnalyzerPropertyAccessorElementCacheImpl(super.element);
+  AnalyzerPropertyAccessorElementCacheImpl(super.element, super.map);
 
   @override
-  bool get isStatic => element.isStatic;
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
 
-  @override
-  String get name => element.name;
-
-  @override
-  bool get isGetter => element.isGetter;
-
-  @override
-  bool get isSetter => element.isSetter;
-
-  @override
-  bool get isNamed => false;
-
-  @override
-  bool get hasDefaultValue => false;
-
-  @override
-  String? get defaultValueCode => null;
+    isStatic = element.isStatic;
+    name = element.name;
+    isGetter = element.isGetter;
+    isSetter = element.isSetter;
+  }
 }
 
 class AnalyzerParameterElementCacheImpl
     extends AnalyzerPropertyAccessorCache<ParameterElementImpl> {
-  AnalyzerParameterElementCacheImpl(super.element);
+  AnalyzerParameterElementCacheImpl(super.element, super.map);
 
   @override
-  bool get isStatic => element.isStatic;
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
 
-  @override
-  String get name => element.name;
-
-  @override
-  bool get isGetter => false;
-
-  @override
-  bool get isSetter => false;
-
-  @override
-  bool get isNamed => element.isNamed;
-
-  @override
-  bool get hasDefaultValue => element.hasDefaultValue;
-
-  @override
-  String? get defaultValueCode => element.defaultValueCode;
+    isStatic = element.isStatic;
+    name = element.name;
+    isNamed = element.isNamed;
+    hasDefaultValue = element.hasDefaultValue;
+    defaultValueCode = element.defaultValueCode;
+  }
 }
 
 class AnalyzerFieldElementCacheImpl
     extends AnalyzerPropertyAccessorCache<FieldElementImpl> {
-  AnalyzerFieldElementCacheImpl(super.element);
+  AnalyzerFieldElementCacheImpl(super.element, super.map);
 
   @override
-  bool get isGetter => false;
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
 
-  @override
-  bool get isSetter => false;
-
-  @override
-  bool get isStatic => element.isStatic;
-
-  @override
-  String get name => element.name;
-
-  @override
-  bool get isNamed => false;
-
-  @override
-  bool get hasDefaultValue => false;
-
-  @override
-  String? get defaultValueCode => null;
+    isStatic = element.isStatic;
+    name = element.name;
+  }
 }
 
 class AnalyzerTopLevelVariableElementCacheImpl
     extends AnalyzerPropertyAccessorCache<TopLevelVariableElementImpl> {
-  AnalyzerTopLevelVariableElementCacheImpl(super.element);
+  AnalyzerTopLevelVariableElementCacheImpl(super.element, super.map);
 
   @override
-  bool get isGetter => element.getter != null;
-
-  @override
-  bool get isSetter => element.setter != null;
-
-  @override
-  bool get isStatic => element.isStatic;
-
-  @override
-  String get name => element.name;
-
-  @override
-  bool get isNamed => false;
-
-  @override
-  bool get hasDefaultValue => false;
-
-  @override
-  String? get defaultValueCode => null;
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
+    isStatic = element.isStatic;
+    name = element.name;
+  }
 }

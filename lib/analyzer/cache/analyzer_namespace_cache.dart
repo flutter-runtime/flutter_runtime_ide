@@ -1,37 +1,34 @@
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:analyzer/src/dart/resolver/scope.dart';
+import '../../app/modules/fix_config/controllers/fix_select_controller.dart';
 import 'analyzer_cache.dart';
 
-abstract class AnalyzerNameSpaceCache<T> extends AnalyzerCache<T> {
-  List<String> get exportNames;
-
-  AnalyzerNameSpaceCache(super.element);
+class AnalyzerNameSpaceCache<T> extends AnalyzerCache<T> {
+  List<String> exportNames = [];
+  AnalyzerNameSpaceCache(super.element, super.map);
 
   @override
-  Map<String, dynamic> toJson() {
-    return {...super.toJson()}..addAll(
-        {
-          'isEnable': isEnable,
-          'exportNames': exportNames,
-        },
-      );
+  void addToMap() {
+    super.addToMap();
+    this['exportNames'] = exportNames;
+  }
+
+  @override
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
+    exportNames = JSON(element)['exportNames']
+        .listValue
+        .map((e) => JSON(e).stringValue)
+        .toList();
   }
 }
 
-class AnalyzerNameSpaceJsonCacheImpl
-    extends AnalyzerNameSpaceCache<Map<String, dynamic>> {
-  AnalyzerNameSpaceJsonCacheImpl(super.element);
-
-  @override
-  List<String> get exportNames => JSON(element)['exportNames']
-      .listValue
-      .map((e) => JSON(e).stringValue)
-      .toList();
-}
-
 class AnalyzerNameSpaceCacheImpl extends AnalyzerNameSpaceCache<Namespace> {
-  AnalyzerNameSpaceCacheImpl(super.element);
+  AnalyzerNameSpaceCacheImpl(super.element, super.map);
 
   @override
-  List<String> get exportNames => element.definedNames.keys.toList();
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
+    exportNames = element.definedNames.keys.toList();
+  }
 }

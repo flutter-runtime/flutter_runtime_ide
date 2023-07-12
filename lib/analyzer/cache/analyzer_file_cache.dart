@@ -4,11 +4,9 @@ import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
-import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_import_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_property_accessor_cache.dart';
-import 'package:path/path.dart';
-import 'package:analyzer/src/dart/resolver/scope.dart';
+import 'package:get/get.dart';
 
 import 'analyzer_cache.dart';
 import 'analyzer_class_cache.dart';
@@ -17,31 +15,65 @@ import 'analyzer_method_cache.dart';
 import 'analyzer_enum_cache.dart';
 import 'analyzer_mixin_cache.dart';
 
-abstract class AnalyzerFileCache<T> extends AnalyzerCache<T> {
-  List<AnalyzerClassCache> get classs;
-  List<AnalyzerExtensionCache> get extensions;
-  List<AnalyzerPropertyAccessorCache> get topLevelVariables;
-  List<AnalyzerMethodCache> get functions;
-  List<AnalyzerEnumCache> get enums;
-  List<AnalyzerMixinCache> get mixins;
-  List<AnalyzerImportCache> get imports;
-  AnalyzerFileCache(super.element);
+class AnalyzerFileCache<T> extends AnalyzerCache<T> {
+  List<AnalyzerClassCache> classs = [];
+  List<AnalyzerExtensionCache> extensions = [];
+  List<AnalyzerPropertyAccessorCache> topLevelVariables = [];
+  List<AnalyzerMethodCache> functions = [];
+  List<AnalyzerEnumCache> enums = [];
+  List<AnalyzerMixinCache> mixins = [];
+  List<AnalyzerImportCache> imports = [];
+  AnalyzerFileCache(super.element, super.map);
 
   @override
-  Map<String, dynamic> toJson() {
-    return {...super.toJson()}..addAll(
-        {
-          'isEnable': isEnable,
-          'classs': classs.map((e) => e.toJson()).toList(),
-          'extensions': extensions.map((e) => e.toJson()).toList(),
-          'topLevelVariables':
-              topLevelVariables.map((e) => e.toJson()).toList(),
-          'functions': functions.map((e) => e.toJson()).toList(),
-          'enums': enums.map((e) => e.toJson()).toList(),
-          'mixins': mixins.map((e) => e.toJson()).toList(),
-          'imports': imports.map((e) => e.toJson()).toList(),
-        },
-      );
+  void addToMap() {
+    super.addToMap();
+    this['classs'] = classs.map((e) => e.toJson()).toList();
+    this['extensions'] = extensions.map((e) => e.toJson()).toList();
+    this['topLevelVariables'] =
+        topLevelVariables.map((e) => e.toJson()).toList();
+    this['functions'] = functions.map((e) => e.toJson()).toList();
+    this['enums'] = enums.map((e) => e.toJson()).toList();
+    this['mixins'] = mixins.map((e) => e.toJson()).toList();
+    this['imports'] = imports.map((e) => e.toJson()).toList();
+  }
+
+  @override
+  void fromMap(Map<String, dynamic> map) {
+    classs = JSON(map)['classs']
+        .listValue
+        .map((e) => AnalyzerClassCache(e, e))
+        .toList();
+
+    enums = JSON(map)['enums']
+        .listValue
+        .map((e) => AnalyzerEnumCache(e, e))
+        .toList();
+
+    extensions = JSON(map)['extensions']
+        .listValue
+        .map((e) => AnalyzerExtensionCache(e, e))
+        .toList();
+
+    functions = JSON(map)['functions']
+        .listValue
+        .map((e) => AnalyzerMethodCache(e, e))
+        .toList();
+
+    mixins = JSON(map)['mixins']
+        .listValue
+        .map((e) => AnalyzerMixinCache(e, e))
+        .toList();
+
+    topLevelVariables = JSON(map)['topLevelVariables']
+        .listValue
+        .map((e) => AnalyzerPropertyAccessorCache(e, e))
+        .toList();
+
+    imports = JSON(map)['imports']
+        .listValue
+        .map((e) => AnalyzerImportCache(e, e))
+        .toList();
   }
 
   List<String> get exportNames => [
@@ -49,115 +81,67 @@ abstract class AnalyzerFileCache<T> extends AnalyzerCache<T> {
         functions.map((e) => e.name),
         enums.map((e) => e.name),
         mixins.map((e) => e.name),
-        extensions.map((e) => e.name ?? ''),
+        extensions.map((e) => e.name),
         topLevelVariables.map((e) => e.name),
       ].expand((element) => element).toList();
 }
 
-class AnalyzerFileJsonCacheImpl
-    extends AnalyzerFileCache<Map<String, dynamic>> {
-  AnalyzerFileJsonCacheImpl(super.element);
-
-  @override
-  List<AnalyzerClassCache> get classs => JSON(element)['classs']
-      .listValue
-      .map((e) => AnalyzerClassJsonCacheImpl(e))
-      .toList();
-
-  @override
-  List<AnalyzerEnumCache> get enums => JSON(element)['enums']
-      .listValue
-      .map((e) => AnalyzerEnumJsonCacheImpl(e))
-      .toList();
-
-  @override
-  List<AnalyzerExtensionCache> get extensions => JSON(element)['extensions']
-      .listValue
-      .map((e) => AnalyzerExtensionJsonCacheImpl(e))
-      .toList();
-
-  @override
-  List<AnalyzerMethodCache> get functions => JSON(element)['functions']
-      .listValue
-      .map((e) => AnalyzerMethodJsonCacheImpl(e))
-      .toList();
-
-  @override
-  List<AnalyzerMixinCache> get mixins => JSON(element)['mixins']
-      .listValue
-      .map((e) => AnalyzerMixinJsonCacheImpl(e))
-      .toList();
-
-  @override
-  List<AnalyzerPropertyAccessorCache> get topLevelVariables =>
-      JSON(element)['topLevelVariables']
-          .listValue
-          .map((e) => AnalyzerPropertyAccessorJsonCacheImpl(e))
-          .toList();
-
-  @override
-  List<AnalyzerImportCache> get imports => JSON(element)['imports']
-      .listValue
-      .map((e) => AnalyzerImportJsonCacheImpl(e))
-      .toList();
-}
-
 class AnalyzerLibraryElementCacheImpl
     extends AnalyzerFileCache<ResolvedLibraryResult> {
-  AnalyzerLibraryElementCacheImpl(super.element);
+  AnalyzerLibraryElementCacheImpl(super.element, super.map);
 
   @override
-  List<AnalyzerClassCache> get classs => element.libraryElement.units
-      .map((e) => e.classes)
-      .expand((element) => element)
-      .map((e) => AnalyzerClassElementCacheImpl(e))
-      .toList();
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
 
-  @override
-  List<AnalyzerEnumCache> get enums => element.libraryElement.units
-      .map((e) => e.enums)
-      .expand((element) => element)
-      .map((e) => AnalyzerEnumElementCacheImpl(e))
-      .toList();
-
-  @override
-  List<AnalyzerExtensionCache> get extensions => element.libraryElement.units
-      .map((e) => e.extensions)
-      .expand((element) => element)
-      .where((element) => element.name != null)
-      .map((e) => AnalyzerExtensionElementCacheImpl(e))
-      .toList();
-
-  @override
-  List<AnalyzerMethodCache> get functions => element.libraryElement.units
-      .map((e) => e.functions)
-      .expand((element) => element)
-      .map((e) => AnalyzerFunctionElementCacheImpl(e))
-      .toList();
-
-  @override
-  List<AnalyzerMixinCache> get mixins => element.libraryElement.units
-      .map((e) => e.mixins)
-      .expand((element) => element)
-      .map((e) => AnalyzerMixinElementCacheImpl(e))
-      .toList();
-
-  @override
-  List<AnalyzerPropertyAccessorCache> get topLevelVariables =>
-      element.libraryElement.units
-          .map((e) => e.topLevelVariables)
-          .expand((element) => element)
-          .map((e) => AnalyzerTopLevelVariableElementCacheImpl(e))
-          .toList();
-
-  @override
-  List<AnalyzerImportCache> get imports => element.importCaches;
+    classs = element.libraryElement.units
+        .map((e) => e.classes)
+        .expand((element) => element)
+        .map(
+          (e) => AnalyzerClassElementCacheImpl(e, map.getClass(e.name) ?? {}),
+        )
+        .toList();
+    enums = element.libraryElement.units
+        .map((e) => e.enums)
+        .expand((element) => element)
+        .map((e) => AnalyzerEnumElementCacheImpl(e, map.getEnum(e.name) ?? {}))
+        .toList();
+    extensions = element.libraryElement.units
+        .map((e) => e.extensions)
+        .expand((element) => element)
+        .where((element) => element.name != null)
+        .map((e) => AnalyzerExtensionElementCacheImpl(
+            e, map.getExtension(e.name ?? '') ?? {}))
+        .toList();
+    functions = element.libraryElement.units
+        .map((e) => e.functions)
+        .expand((element) => element)
+        .map((e) =>
+            AnalyzerFunctionElementCacheImpl(e, map.getFunction(e.name) ?? {}))
+        .toList();
+    mixins = element.libraryElement.units
+        .map((e) => e.mixins)
+        .expand((element) => element)
+        .map(
+            (e) => AnalyzerMixinElementCacheImpl(e, map.getMixin(e.name) ?? {}))
+        .toList();
+    topLevelVariables = element.libraryElement.units
+        .map((e) => e.topLevelVariables)
+        .expand((element) => element)
+        .map((e) => AnalyzerTopLevelVariableElementCacheImpl(
+              e,
+              map.getTopLevelVariable(e.name) ?? {},
+            ))
+        .toList();
+    imports = element.importCaches(
+        JSON(map)['imports'].listValue as List<Map<String, dynamic>>);
+  }
 }
 
 extension ResolvedLibraryResultAnalyzer on ResolvedLibraryResult {
   LibraryElementImpl get libraryElement => element as LibraryElementImpl;
 
-  List<AnalyzerImportCache> get importCaches {
+  List<AnalyzerImportCache> importCaches(List<Map<String, dynamic>> maps) {
     List<AnalyzerImportCache> imports = [];
     final directives = units
         .map((e) => e.unit)
@@ -166,7 +150,9 @@ extension ResolvedLibraryResultAnalyzer on ResolvedLibraryResult {
         .whereType<ImportDirectiveImpl>()
         .toList();
 
+    int index = -1;
     for (final element in directives) {
+      index++;
       final uriContent = element.uriContent;
       if (uriContent == null) continue;
       // Namespace? nameSpace = getLibrary(uriContent)?.element.exportNamespace;
@@ -189,8 +175,59 @@ extension ResolvedLibraryResultAnalyzer on ResolvedLibraryResult {
       if (JSON(uriContent).stringValue.startsWith("package:flutter/")) {
         continue;
       }
-      imports.add(AnalyzerImportDirectiveCacheImpl(element));
+      final cache = AnalyzerImportDirectiveCacheImpl(
+        element,
+        JSON(maps)[index].mapValue as Map<String, dynamic>,
+      );
+      cache.index = index;
+      imports.add(cache);
     }
     return imports;
+  }
+}
+
+extension on Map<String, dynamic> {
+  Map<String, dynamic>? getClass(String name) {
+    return JSON(this)['classs'].listValue.firstWhereOrNull((element) {
+      return JSON(element)['name'].stringValue == name;
+    });
+  }
+
+  Map<String, dynamic>? getEnum(String name) {
+    return JSON(this)['enums'].listValue.firstWhereOrNull((element) {
+      return JSON(element)['name'].stringValue == name;
+    });
+  }
+
+  Map<String, dynamic>? getMixin(String name) {
+    return JSON(this)['mixins'].listValue.firstWhereOrNull((element) {
+      return JSON(element)['name'].stringValue == name;
+    });
+  }
+
+  Map<String, dynamic>? getExtension(String name) {
+    return JSON(this)['extensions'].listValue.firstWhereOrNull((element) {
+      return JSON(element)['name'].stringValue == name;
+    });
+  }
+
+  Map<String, dynamic>? getFunction(String name) {
+    return JSON(this)['functions'].listValue.firstWhereOrNull((element) {
+      return JSON(element)['name'].stringValue == name;
+    });
+  }
+
+  Map<String, dynamic>? getTopLevelVariable(String name) {
+    return JSON(this)['topLevelVariables']
+        .listValue
+        .firstWhereOrNull((element) {
+      return JSON(element)['name'].stringValue == name;
+    });
+  }
+
+  Map<String, dynamic>? getImport(String name) {
+    return JSON(this)['imports'].listValue.firstWhereOrNull((element) {
+      return JSON(element)['name'].stringValue == name;
+    });
   }
 }

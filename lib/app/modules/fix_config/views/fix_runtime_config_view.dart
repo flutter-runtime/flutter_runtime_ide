@@ -82,8 +82,8 @@ class FixRuntimeConfigView extends StatelessWidget {
       Get.snackbar('未分析！', '请先分析库: ${config.name}');
       return;
     }
-    Get.dialog(
-      Dialog(child: FixConfigView(FixConfigController(config))),
-    );
+    // Get.dialog(
+    //   Dialog(child: FixConfigView(FixConfigController(controller.pa))),
+    // );
   }
 }

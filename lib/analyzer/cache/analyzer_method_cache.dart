@@ -2,89 +2,95 @@
 
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'package:get/get.dart';
+import '../../app/modules/fix_config/controllers/fix_select_controller.dart';
 import 'analyzer_cache.dart';
 import 'analyzer_property_accessor_cache.dart';
 
-abstract class AnalyzerMethodCache<T> extends AnalyzerCache<T> {
-  String get name;
-  List<AnalyzerPropertyAccessorCache> get parameters;
-  bool get isStatic;
-  AnalyzerMethodCache(super.element);
+class AnalyzerMethodCache<T> extends AnalyzerCache<T> with FixSelectItem {
+  @override
+  late String name;
+  List<AnalyzerPropertyAccessorCache> parameters = [];
+  late bool isStatic;
+  AnalyzerMethodCache(super.element, super.map);
 
   @override
-  Map<String, dynamic> toJson() {
-    return {...super.toJson()}..addAll(
-        {
-          'isStatic': isStatic,
-          'name': name,
-          'parameters': parameters.map((e) => e.toJson()).toList(),
-        },
-      );
+  void addToMap() {
+    super.addToMap();
+    this['isStatic'] = isStatic;
+    this['name'] = name;
+    this['parameters'] = parameters.map((e) => e.toJson()).toList();
   }
-}
-
-class AnalyzerMethodJsonCacheImpl
-    extends AnalyzerMethodCache<Map<String, dynamic>> {
-  AnalyzerMethodJsonCacheImpl(super.element);
 
   @override
-  bool get isStatic => JSON(element)['isStatic'].boolValue;
-
-  @override
-  String get name => JSON(element)['name'].stringValue;
-
-  @override
-  List<AnalyzerPropertyAccessorCache> get parameters =>
-      JSON(element)['parameters']
-          .listValue
-          .map((e) => AnalyzerPropertyAccessorJsonCacheImpl(e))
-          .toList();
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
+    parameters = JSON(element)['parameters']
+        .listValue
+        .map((e) => AnalyzerPropertyAccessorCache(e, e))
+        .toList();
+    isStatic = JSON(element)['isStatic'].boolValue;
+    name = JSON(element)['name'].stringValue;
+  }
 }
 
 class AnalyzerFunctionElementCacheImpl
     extends AnalyzerMethodCache<FunctionElementImpl> {
-  AnalyzerFunctionElementCacheImpl(super.element);
+  AnalyzerFunctionElementCacheImpl(super.element, super.map);
 
   @override
-  bool get isStatic => element.isStatic;
-
-  @override
-  String get name => element.name;
-
-  @override
-  List<AnalyzerPropertyAccessorCache> get parameters => element.parameters
-      .map((e) => AnalyzerParameterElementCacheImpl(e as ParameterElementImpl))
-      .toList();
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
+    parameters = element.parameters
+        .map((e) => AnalyzerParameterElementCacheImpl(
+              e as ParameterElementImpl,
+              JSON(map)['parameters'][e.name].mapValue as Map<String, dynamic>,
+            ))
+        .toList();
+    isStatic = element.isStatic;
+    name = element.name;
+  }
 }
 
 class AnalyzerConstructorElementCacheImpl
     extends AnalyzerMethodCache<ConstructorElementImpl> {
-  AnalyzerConstructorElementCacheImpl(super.element);
+  AnalyzerConstructorElementCacheImpl(super.element, super.map);
 
   @override
-  bool get isStatic => element.isStatic;
-
-  @override
-  String get name => element.name;
-
-  @override
-  List<AnalyzerPropertyAccessorCache> get parameters => element.parameters
-      .map((e) => AnalyzerParameterElementCacheImpl(e as ParameterElementImpl))
-      .toList();
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
+    parameters = element.parameters
+        .map((e) => AnalyzerParameterElementCacheImpl(
+              e as ParameterElementImpl,
+              JSON(map)['parameters'][e.name].mapValue as Map<String, dynamic>,
+            ))
+        .toList();
+    isStatic = element.isStatic;
+    name = element.name;
+  }
 }
 
 class AnalyzerMethodElementCacheImpl
     extends AnalyzerMethodCache<MethodElementImpl> {
-  AnalyzerMethodElementCacheImpl(super.element);
-
+  AnalyzerMethodElementCacheImpl(super.element, super.map);
   @override
-  bool get isStatic => element.isStatic;
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
+    parameters = element.parameters
+        .map((e) => AnalyzerParameterElementCacheImpl(
+              e as ParameterElementImpl,
+              map.getParameter(e.name) ?? {},
+            ))
+        .toList();
+    isStatic = element.isStatic;
+    name = element.name;
+  }
+}
 
-  @override
-  String get name => element.name;
-
-  @override
-  List<AnalyzerPropertyAccessorCache> get parameters => element.parameters
-      .map((e) => AnalyzerParameterElementCacheImpl(e as ParameterElementImpl))
-      .toList();
+extension on Map<String, dynamic> {
+  Map<String, dynamic>? getParameter(String name) {
+    return JSON(this)['parameters'].listValue.firstWhereOrNull((element) {
+      return JSON(element)['name'].stringValue == name;
+    });
+  }
 }

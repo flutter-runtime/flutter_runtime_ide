@@ -2,60 +2,70 @@
 
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'package:get/get.dart';
+import '../../app/modules/fix_config/controllers/fix_select_controller.dart';
 import 'analyzer_cache.dart';
 import 'analyzer_property_accessor_cache.dart';
 import 'analyzer_method_cache.dart';
 
-abstract class AnalyzerEnumCache<T> extends AnalyzerCache<T> {
-  List<AnalyzerPropertyAccessorCache> get fields;
-  List<AnalyzerMethodCache> get methods;
-  String get name;
-  AnalyzerEnumCache(super.element);
+class AnalyzerEnumCache<T> extends AnalyzerCache<T> with FixSelectItem {
+  List<AnalyzerPropertyAccessorCache> fields = [];
+  List<AnalyzerMethodCache> methods = [];
+  @override
+  late String name;
+  AnalyzerEnumCache(super.element, super.map);
 
   @override
-  Map<String, dynamic> toJson() {
-    return {...super.toJson()}..addAll(
-        {
-          'isEnable': isEnable,
-          'name': name,
-          'fields': fields.map((e) => e.toJson()).toList(),
-          'methods': methods.map((e) => e.toJson()).toList(),
-        },
-      );
+  void addToMap() {
+    super.addToMap();
+    this['fields'] = fields.map((e) => e.toJson()).toList();
+    this['methods'] = methods.map((e) => e.toJson()).toList();
+    this['name'] = name;
+  }
+
+  @override
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
+    fields = JSON(element)['fields']
+        .listValue
+        .map((e) => AnalyzerPropertyAccessorCache(e, e))
+        .toList();
+    methods = JSON(element)['methods']
+        .listValue
+        .map((e) => AnalyzerMethodCache(e, e))
+        .toList();
+    name = JSON(element)['name'].stringValue;
   }
 }
 
-class AnalyzerEnumJsonCacheImpl
-    extends AnalyzerEnumCache<Map<String, dynamic>> {
-  AnalyzerEnumJsonCacheImpl(super.element);
+class AnalyzerEnumElementCacheImpl extends AnalyzerEnumCache<EnumElementImpl> {
+  AnalyzerEnumElementCacheImpl(super.element, super.map);
 
   @override
-  String get name => JSON(element)['name'].stringValue;
-
-  @override
-  List<AnalyzerPropertyAccessorCache> get fields => JSON(element)['fields']
-      .listValue
-      .map((e) => AnalyzerPropertyAccessorJsonCacheImpl(e))
-      .toList();
-
-  @override
-  List<AnalyzerMethodCache> get methods => JSON(element)['methods']
-      .listValue
-      .map((e) => AnalyzerMethodJsonCacheImpl(e))
-      .toList();
+  void fromMap(Map<String, dynamic> map) {
+    super.fromMap(map);
+    fields = element.fields
+        .map(
+            (e) => AnalyzerFieldElementCacheImpl(e, map.getField(e.name) ?? {}))
+        .toList();
+    methods = element.methods
+        .map((e) =>
+            AnalyzerMethodElementCacheImpl(e, map.getMethod(e.name) ?? {}))
+        .toList();
+    name = element.name;
+  }
 }
 
-class AnalyzerEnumElementCacheImpl extends AnalyzerEnumCache<EnumElementImpl> {
-  AnalyzerEnumElementCacheImpl(super.element);
+extension on Map<String, dynamic> {
+  Map<String, dynamic>? getField(String name) {
+    return JSON(this)['fields'].listValue.firstWhereOrNull((element) {
+      return JSON(element)['name'].stringValue == name;
+    });
+  }
 
-  @override
-  List<AnalyzerPropertyAccessorCache> get fields =>
-      element.fields.map((e) => AnalyzerFieldElementCacheImpl(e)).toList();
-
-  @override
-  List<AnalyzerMethodCache> get methods =>
-      element.methods.map((e) => AnalyzerMethodElementCacheImpl(e)).toList();
-
-  @override
-  String get name => element.name;
+  Map<String, dynamic>? getMethod(String name) {
+    return JSON(this)['methods'].listValue.firstWhereOrNull((element) {
+      return JSON(element)['name'].stringValue == name;
+    });
+  }
 }
