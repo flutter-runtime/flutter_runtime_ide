@@ -1,7 +1,9 @@
 // ignore_for_file: implementation_imports
 
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
 import '../../app/modules/fix_config/controllers/fix_select_controller.dart';
 import 'analyzer_cache.dart';
@@ -62,8 +64,14 @@ class AnalyzerExtensionElementCacheImpl
               map.getMethod(e.name) ?? {},
             ))
         .toList();
-    extensionName = element.extendedType.toString();
     name = element.name ?? '';
+
+    final node = getAstNodeFromElement(element);
+
+    Unwrap(node)
+        .map((e) => e as ExtensionDeclaration)
+        .map((e) => e.extendedType.toSource())
+        .map((e) => extensionName = e);
   }
 }
 
