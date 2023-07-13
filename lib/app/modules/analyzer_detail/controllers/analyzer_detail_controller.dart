@@ -308,11 +308,12 @@ abstract class _AnalysisDartFile {
     for (FileSystemEntity entity in entitys) {
       final filePath = entity.path;
       if (extension(filePath) != ".dart") continue;
-      logger.v(filePath);
       // 根据文件路径获取到分析上下文
       await analysisDartFile(filePath);
       current += 1;
       progress.value = current / count;
+      logger.v(
+          '[${info.name}:${(progress * 100).toStringAsFixed(2)}%] $filePath');
     }
   }
 

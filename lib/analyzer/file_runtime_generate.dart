@@ -5,6 +5,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_class_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_enum_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_extension_cache.dart';
@@ -21,6 +22,7 @@ import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:analyzer/src/dart/analysis/results.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
+import 'package:process_run/process_run.dart';
 
 class FileRuntimeGenerate {
   final String sourcePath;
@@ -373,11 +375,7 @@ class FileRuntimeGenerate {
     Unwrap(element.asName).map((e) {
       readArgCode += 'as $e';
     });
-    final defaultValueCode = Unwrap(element.defaultValueCode).map((e) {
-          if (!e.isPrivate) return null;
-          return fileCache.defaultValueCodeFromTopLevelVariable(e);
-        }).value ??
-        element.defaultValueCode;
+    final defaultValueCode = defaultValueCodeFromParameter(element);
     return {
       "parameterName": element.name,
       "isNamed": element.isNamed,
@@ -386,6 +384,27 @@ class FileRuntimeGenerate {
       "createInstanceCode": readArgCode,
       // 'isDartCoreObject': element.type.isDartCoreObject,
     };
+  }
+
+  String? defaultValueCodeFromParameter(
+      AnalyzerPropertyAccessorCache elementCache) {
+    String? defaultValueCode = elementCache.defaultValueCode;
+    AnalyzerCache? parent = elementCache.parent;
+    while (parent != null) {
+      if (parent is AnalyzerClassCache) {
+        AnalyzerClassCache classCache = parent;
+        Unwrap(defaultValueCode)
+            .map((e) => classCache.defaultValueCodeFromClass(e))
+            .map((e) => defaultValueCode = e);
+      } else if (parent is AnalyzerFileCache) {
+        AnalyzerFileCache fileCache = parent;
+        Unwrap(defaultValueCode)
+            .map((e) => fileCache.defaultValueCodeFromTopLevelVariable(e))
+            .map((e) => defaultValueCode = e);
+      }
+      parent = parent.parent;
+    }
+    return defaultValueCode;
   }
 
   // String? getParameterAsName(AnalyzerPropertyAccessorCache impl) {

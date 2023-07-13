@@ -45,6 +45,14 @@ class AnalyzerClassCache<T> extends AnalyzerCache<T> with FixSelectItem {
     name = JSON(map)['name'].stringValue;
     isAbstract = JSON(map)['isAbstract'].boolValue;
   }
+
+  String? defaultValueCodeFromClass(String name) {
+    final field = fields.firstWhereOrNull((element) => element.name == name);
+    if (field != null && field.isStatic) {
+      return '${this.name}.${field.name}';
+    }
+    return null;
+  }
 }
 
 class AnalyzerClassElementCacheImpl
