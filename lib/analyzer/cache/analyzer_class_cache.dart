@@ -9,7 +9,7 @@ import 'analyzer_property_accessor_cache.dart';
 import 'analyzer_method_cache.dart';
 
 class AnalyzerClassCache<T> extends AnalyzerCache<T> with FixSelectItem {
-  AnalyzerClassCache(super.element, super.map);
+  AnalyzerClassCache(super.element, super.map, [super.parent]);
   List<AnalyzerPropertyAccessorCache> fields = [];
   List<AnalyzerMethodCache> methods = [];
   List<AnalyzerMethodCache> constructors = [];
@@ -32,15 +32,15 @@ class AnalyzerClassCache<T> extends AnalyzerCache<T> with FixSelectItem {
     super.fromMap(map);
     constructors = JSON(map)['constructors']
         .listValue
-        .map((e) => AnalyzerMethodCache(e, e))
+        .map((e) => AnalyzerMethodCache(e, e, this))
         .toList();
     fields = JSON(map)['fields']
         .listValue
-        .map((e) => AnalyzerPropertyAccessorCache(e, e))
+        .map((e) => AnalyzerPropertyAccessorCache(e, e, this))
         .toList();
     methods = JSON(map)['methods']
         .listValue
-        .map((e) => AnalyzerMethodCache(e, e))
+        .map((e) => AnalyzerMethodCache(e, e, this))
         .toList();
     name = JSON(map)['name'].stringValue;
     isAbstract = JSON(map)['isAbstract'].boolValue;
@@ -49,24 +49,22 @@ class AnalyzerClassCache<T> extends AnalyzerCache<T> with FixSelectItem {
 
 class AnalyzerClassElementCacheImpl
     extends AnalyzerClassCache<ClassElementImpl> {
-  AnalyzerClassElementCacheImpl(super.element, super.map);
+  AnalyzerClassElementCacheImpl(super.element, super.map, [super.parent]);
 
   @override
   void fromMap(Map map) {
     super.fromMap(map);
     constructors = element.constructors
         .map((e) => AnalyzerConstructorElementCacheImpl(
-              e,
-              map.getConstructor(e.name) ?? {},
-            ))
+            e, map.getConstructor(e.name) ?? {}, this))
         .toList();
     fields = element.fields
         .map((e) =>
-            AnalyzerFieldElementCacheImpl(e, map.getFields(e.name) ?? {}))
+            AnalyzerFieldElementCacheImpl(e, map.getFields(e.name) ?? {}, this))
         .toList();
     methods = element.methods
-        .map((e) =>
-            AnalyzerMethodElementCacheImpl(e, map.getMethod(e.name) ?? {}))
+        .map((e) => AnalyzerMethodElementCacheImpl(
+            e, map.getMethod(e.name) ?? {}, this))
         .toList();
     isAbstract = element.isAbstract;
     name = element.name;

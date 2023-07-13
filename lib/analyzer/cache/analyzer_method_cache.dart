@@ -2,6 +2,7 @@
 
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
 import '../../app/modules/fix_config/controllers/fix_select_controller.dart';
 import 'analyzer_cache.dart';
@@ -12,7 +13,7 @@ class AnalyzerMethodCache<T> extends AnalyzerCache<T> with FixSelectItem {
   late String name;
   List<AnalyzerPropertyAccessorCache> parameters = [];
   late bool isStatic;
-  AnalyzerMethodCache(super.element, super.map);
+  AnalyzerMethodCache(super.element, super.map, [super.parent]);
 
   @override
   void addToMap() {
@@ -27,7 +28,7 @@ class AnalyzerMethodCache<T> extends AnalyzerCache<T> with FixSelectItem {
     super.fromMap(map);
     parameters = JSON(element)['parameters']
         .listValue
-        .map((e) => AnalyzerPropertyAccessorCache(e, e))
+        .map((e) => AnalyzerPropertyAccessorCache(e, e, this))
         .toList();
     isStatic = JSON(element)['isStatic'].boolValue;
     name = JSON(element)['name'].stringValue;
@@ -36,16 +37,14 @@ class AnalyzerMethodCache<T> extends AnalyzerCache<T> with FixSelectItem {
 
 class AnalyzerFunctionElementCacheImpl
     extends AnalyzerMethodCache<FunctionElementImpl> {
-  AnalyzerFunctionElementCacheImpl(super.element, super.map);
+  AnalyzerFunctionElementCacheImpl(super.element, super.map, [super.parent]);
 
   @override
   void fromMap(Map map) {
     super.fromMap(map);
     parameters = element.parameters
-        .map((e) => AnalyzerParameterElementCacheImpl(
-              e as ParameterElementImpl,
-              JSON(map)['parameters'][e.name].mapValue as Map,
-            ))
+        .map((e) => AnalyzerParameterElementCacheImpl(e as ParameterElementImpl,
+            JSON(map)['parameters'][e.name].mapValue, this))
         .toList();
     isStatic = element.isStatic;
     name = element.name;
@@ -54,16 +53,14 @@ class AnalyzerFunctionElementCacheImpl
 
 class AnalyzerConstructorElementCacheImpl
     extends AnalyzerMethodCache<ConstructorElementImpl> {
-  AnalyzerConstructorElementCacheImpl(super.element, super.map);
+  AnalyzerConstructorElementCacheImpl(super.element, super.map, [super.parent]);
 
   @override
   void fromMap(Map map) {
     super.fromMap(map);
     parameters = element.parameters
         .map((e) => AnalyzerParameterElementCacheImpl(
-              e as ParameterElementImpl,
-              map.getParameter(e.name) ?? {},
-            ))
+            e as ParameterElementImpl, map.getParameter(e.name) ?? {}, this))
         .toList();
     isStatic = element.isStatic;
     name = element.name;
@@ -72,15 +69,13 @@ class AnalyzerConstructorElementCacheImpl
 
 class AnalyzerMethodElementCacheImpl
     extends AnalyzerMethodCache<MethodElementImpl> {
-  AnalyzerMethodElementCacheImpl(super.element, super.map);
+  AnalyzerMethodElementCacheImpl(super.element, super.map, [super.parent]);
   @override
   void fromMap(Map map) {
     super.fromMap(map);
     parameters = element.parameters
         .map((e) => AnalyzerParameterElementCacheImpl(
-              e as ParameterElementImpl,
-              map.getParameter(e.name) ?? {},
-            ))
+            e as ParameterElementImpl, map.getParameter(e.name) ?? {}, this))
         .toList();
     isStatic = element.isStatic;
     name = element.name;

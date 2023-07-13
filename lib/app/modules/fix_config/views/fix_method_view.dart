@@ -18,6 +18,12 @@ class FixMethodView extends StatelessWidget {
       appBar: AppBar(
         title: const Text('修复方法配置'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: () => controller.save(),
+            icon: const Icon(Icons.save),
+          )
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(15.0),
@@ -28,7 +34,7 @@ class FixMethodView extends StatelessWidget {
               trailing: Obx(
                 () => Switch(
                   value: controller.isShow.value,
-                  onChanged: (isOn) {},
+                  onChanged: (isOn) => controller.setOn(isOn),
                 ),
               ),
             ),

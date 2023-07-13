@@ -101,9 +101,11 @@ dependencies:
   flutter_runtime:
     path: {{{flutterRuntimePath}}}
   darty_json_safe: ^1.0.1
+{{#override}}
 dependency_overrides:
   {{pubName}}:
     path: {{{pubPath}}}
+{{/override}}
 ''';
 
 const functionMustache = '''

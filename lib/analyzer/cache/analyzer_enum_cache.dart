@@ -13,7 +13,7 @@ class AnalyzerEnumCache<T> extends AnalyzerCache<T> with FixSelectItem {
   List<AnalyzerMethodCache> methods = [];
   @override
   late String name;
-  AnalyzerEnumCache(super.element, super.map);
+  AnalyzerEnumCache(super.element, super.map, [super.parent]);
 
   @override
   void addToMap() {
@@ -28,29 +28,29 @@ class AnalyzerEnumCache<T> extends AnalyzerCache<T> with FixSelectItem {
     super.fromMap(map);
     fields = JSON(element)['fields']
         .listValue
-        .map((e) => AnalyzerPropertyAccessorCache(e, e))
+        .map((e) => AnalyzerPropertyAccessorCache(e, e, this))
         .toList();
     methods = JSON(element)['methods']
         .listValue
-        .map((e) => AnalyzerMethodCache(e, e))
+        .map((e) => AnalyzerMethodCache(e, e, this))
         .toList();
     name = JSON(element)['name'].stringValue;
   }
 }
 
 class AnalyzerEnumElementCacheImpl extends AnalyzerEnumCache<EnumElementImpl> {
-  AnalyzerEnumElementCacheImpl(super.element, super.map);
+  AnalyzerEnumElementCacheImpl(super.element, super.map, [super.parent]);
 
   @override
   void fromMap(Map map) {
     super.fromMap(map);
     fields = element.fields
-        .map(
-            (e) => AnalyzerFieldElementCacheImpl(e, map.getField(e.name) ?? {}))
+        .map((e) =>
+            AnalyzerFieldElementCacheImpl(e, map.getField(e.name) ?? {}, this))
         .toList();
     methods = element.methods
-        .map((e) =>
-            AnalyzerMethodElementCacheImpl(e, map.getMethod(e.name) ?? {}))
+        .map((e) => AnalyzerMethodElementCacheImpl(
+            e, map.getMethod(e.name) ?? {}, this))
         .toList();
     name = element.name;
   }

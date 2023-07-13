@@ -28,20 +28,28 @@ class FixExtensionView extends StatelessWidget {
       ),
       body: Column(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              const Text('扩展类型:'),
-              const SizedBox(width: 15),
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(
-                    labelText: '请输入扩展类型',
+          Obx(() => SwitchListTile(
+                value: controller.isEnable.value,
+                onChanged: (isOn) => controller.setOn(isOn),
+                title: const Text('是否显示'),
+              )),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Text('扩展类型:'),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      labelText: '请输入扩展类型',
+                    ),
+                    controller: controller.extensionNameController,
                   ),
-                  controller: controller.extensionNameController,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           Expanded(
             child: Padding(

@@ -14,7 +14,7 @@ class AnalyzerImportCache<T> extends AnalyzerCache<T> with FixSelectItem {
   List<String> hideNames = [];
   AnalyzerNameSpaceCache? namespace;
   int index = 0;
-  AnalyzerImportCache(super.element, super.map);
+  AnalyzerImportCache(super.element, super.map, [super.parent]);
 
   @override
   void addToMap() {
@@ -52,7 +52,7 @@ class AnalyzerImportCache<T> extends AnalyzerCache<T> with FixSelectItem {
         .map((e) => JSON(e).stringValue)
         .toList();
     namespace = Unwrap(JSON(element)['namespace'].rawValue)
-        .map((e) => AnalyzerNameSpaceCache(e as Map, e))
+        .map((e) => AnalyzerNameSpaceCache(e as Map, e, this))
         .value;
     index = JSON(element)['index'].intValue;
   }
@@ -63,7 +63,7 @@ class AnalyzerImportCache<T> extends AnalyzerCache<T> with FixSelectItem {
 
 class AnalyzerImportDirectiveCacheImpl
     extends AnalyzerImportCache<ImportDirectiveImpl> {
-  AnalyzerImportDirectiveCacheImpl(super.element, super.map);
+  AnalyzerImportDirectiveCacheImpl(super.element, super.map, [super.parent]);
   @override
   void fromMap(Map map) {
     super.fromMap(map);
@@ -71,7 +71,7 @@ class AnalyzerImportDirectiveCacheImpl
     asName = element.asName;
     shownNames = element.shownNames;
     hideNames = element.hideNames;
-    namespace = element.namespace(map);
+    namespace = element.namespace(map, this);
   }
 }
 
@@ -104,13 +104,18 @@ extension ImportDirectiveImplAnalyzer on ImportDirectiveImpl {
       .expand((element) => element)
       .toList();
 
-  AnalyzerNameSpaceCache? namespace(Map map) => Unwrap(uriContent)
-      .map((e) => AnalyzerPackageManager().getResolvedLibraryFromUriContent(e))
-      .map((e) => e.element)
-      .map((e) => e.exportNamespace)
-      .map((e) => AnalyzerNameSpaceCacheImpl(
-            e,
-            JSON(map)['namespaces'].mapValue as Map,
-          ))
-      .value;
+  AnalyzerNameSpaceCache? namespace(Map map, AnalyzerImportCache importCache) =>
+      Unwrap(uriContent)
+          .map((e) =>
+              AnalyzerPackageManager().getResolvedLibraryFromUriContent(e))
+          .map((e) => e.element)
+          .map((e) => e.exportNamespace)
+          .map(
+            (e) => AnalyzerNameSpaceCacheImpl(
+              e,
+              JSON(map)['namespaces'].mapValue,
+              importCache,
+            ),
+          )
+          .value;
 }

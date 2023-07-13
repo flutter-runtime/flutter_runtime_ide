@@ -176,10 +176,14 @@ $dart format ./
 
   Future<void> createPubspecFile(PackageInfo info) async {
     final pubspecFile = "$outPutPath/${info.cacheName}/pubspec.yaml";
-    final specName = info.name;
+    var specName = info.name;
+    if (info.name == 'flutter') {
+      specName = 'flutter_${info.version}';
+    }
     final pubspecContent = MustacheManager().render(pubspecMustache, {
       "pubName": specName,
       "pubPath": info.packagePath,
+      'override': !['flutter'].contains(info.name),
       'flutterRuntimePath':
           join(shellEnvironment['PWD']!, 'packages', 'flutter_runtime')
     });
@@ -352,6 +356,7 @@ class _GenerateDartFile extends _AnalysisDartFile {
     if (result == null) return;
 
     final sourcePath = 'package:${info.name}/$libraryPath';
+
     // final importAnalysisList = await getImportAnalysis(result);
     FileRuntimeGenerate generate = FileRuntimeGenerate(
       sourcePath,
@@ -365,118 +370,5 @@ class _GenerateDartFile extends _AnalysisDartFile {
         info.cacheName, 'lib', libraryPath);
     final file = File(outFile);
     await file.writeString(generateCode);
-
-    // if (result is ResolvedLibraryResultImpl) {
-    //   final sourcePath = 'package:${info.name}/$libraryPath';
-    //   final importAnalysisList = await getImportAnalysis(result);
-    //   FileRuntimeGenerate generate = FileRuntimeGenerate(
-    //     sourcePath,
-    //     packageConfig,
-    //     info,
-    //     result,
-    //     importAnalysisList,
-    //     fixConfig: fixConfig,
-    //   );
-    //   final generateCode = await generate.generateCode();
-
-    //   final outFile = "$outPutPath/${info.cacheName}${'/lib/$libraryPath'}";
-    //   final file = File(outFile);
-    //   await file.writeString(generateCode);
-    // } else if (result is NotLibraryButPartResult) {
-    //   logger.v(result);
-    // } else {
-    //   throw UnimplementedError(result.runtimeType.toString());
-    // }
   }
-
-  // Future<List<ImportAnalysis>> getImportAnalysis(
-  //     SomeResolvedLibraryResult result) async {
-  //   if (result is! ResolvedLibraryResultImpl) return [];
-  //   List<ImportAnalysis> imports = [];
-  //   for (var unit in result.units) {
-  //     for (var element in unit.unit.directives) {
-  //       if (element is! ImportDirectiveImpl) continue;
-  //       final uriContent = Unwrap(element.element).map((e) {
-  //             final fullName = e.importedLibrary?.source.fullName;
-  //             if (fullName == null) return fullName;
-
-  //             final infos = packageConfig.packages
-  //                 .where((e) => fullName.startsWith(e.packagePath))
-  //                 .toList();
-  //             if (infos.isEmpty) return null;
-  //             return 'package:${infos[0].name}/${fullName.split('/lib/')[1]}';
-  //           }).value ??
-  //           element.uri.stringValue;
-  //       Namespace? nameSpace = await Unwrap(uriContent).map((e) async {
-  //         final result = await getLibrary(e);
-  //         if (result is! ResolvedLibraryResultImpl) return null;
-  //         return result.element.exportNamespace;
-  //       }).value;
-
-  //       String? asName = element.prefix?.name;
-  //       final shownNames = element.combinators
-  //           .whereType<ShowCombinatorImpl>()
-  //           .map((e) => e.shownNames.map((e) => e.name).toList())
-  //           .fold<List<String>>(
-  //         [],
-  //         (previousValue, element) => previousValue..addAll(element),
-  //       );
-  //       final hideNames = element.combinators
-  //           .whereType<HideCombinatorImpl>()
-  //           .map((e) => e.hiddenNames.map((e) => e.name).toList())
-  //           .fold<List<String>>(
-  //         [],
-  //         (previousValue, element) => previousValue..addAll(element),
-  //       );
-  //       final filterImports = [
-  //         'dart:_js_embedded_names',
-  //         'dart:_js_helper',
-  //         'dart:_foreign_helper',
-  //         'dart:_rti',
-  //         'dart:html_common',
-  //         'dart:indexed_db',
-  //         'dart:_native_typed_data',
-  //         'dart:svg',
-  //         'dart:web_audio',
-  //         'dart:web_gl',
-  //         'dart:mirrors',
-  //       ];
-  //       if (filterImports.contains(JSON(uriContent).stringValue)) {
-  //         continue;
-  //       }
-  //       if (JSON(uriContent).stringValue.startsWith("package:flutter/")) {
-  //         continue;
-  //       }
-  //       imports.add(ImportAnalysis(
-  //         uriContent,
-  //         showNames: shownNames,
-  //         hideNames: hideNames,
-  //         asName: asName,
-  //         exportNamespace: nameSpace,
-  //       ));
-  //     }
-  //   }
-  //   return imports;
-  // }
-
-  // Future<SomeResolvedLibraryResult?> getLibrary(String uriContent) async {
-  //   String? packagePath;
-  //   String? libraryPath;
-  //   if (uriContent.startsWith("package:")) {
-  //     // package:ffi/ffi.dart
-  //     final content = uriContent.replaceFirst("package:", "");
-  //     final contentPaths = content.split('/');
-  //     final packageName = contentPaths[0];
-  //     contentPaths.removeAt(0);
-  //     final info = packageConfig.packages
-  //         .firstWhere((element) => element.name == packageName);
-  //     packagePath = info.rootUri.replaceFirst("file://", "").split('lib')[0];
-  //     libraryPath = join(packagePath, 'lib', contentPaths.join('/'));
-  //   }
-  //   if (packagePath == null || libraryPath == null) return null;
-  //   return AnalyzerPackageManager().getResolvedLibrary(
-  //     packagePath,
-  //     libraryPath,
-  //   );
-  // }
 }

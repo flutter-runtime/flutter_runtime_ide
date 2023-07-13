@@ -14,7 +14,7 @@ class AnalyzerMixinCache<T> extends AnalyzerCache<T> with FixSelectItem {
   List<AnalyzerMethodCache> constructors = [];
   @override
   late String name;
-  AnalyzerMixinCache(super.element, super.map);
+  AnalyzerMixinCache(super.element, super.map, [super.parent]);
 
   @override
   void addToMap() {
@@ -30,15 +30,15 @@ class AnalyzerMixinCache<T> extends AnalyzerCache<T> with FixSelectItem {
     super.fromMap(map);
     fields = JSON(element)['fields']
         .listValue
-        .map((e) => AnalyzerPropertyAccessorCache(e, e))
+        .map((e) => AnalyzerPropertyAccessorCache(e, e, this))
         .toList();
     methods = JSON(element)['methods']
         .listValue
-        .map((e) => AnalyzerMethodCache(e, e))
+        .map((e) => AnalyzerMethodCache(e, e, this))
         .toList();
     constructors = JSON(element)['constructors']
         .listValue
-        .map((e) => AnalyzerConstructorElementCacheImpl(e, e))
+        .map((e) => AnalyzerConstructorElementCacheImpl(e, e, this))
         .toList();
 
     name = JSON(element)['name'].stringValue;
@@ -47,28 +47,22 @@ class AnalyzerMixinCache<T> extends AnalyzerCache<T> with FixSelectItem {
 
 class AnalyzerMixinElementCacheImpl
     extends AnalyzerMixinCache<MixinElementImpl> {
-  AnalyzerMixinElementCacheImpl(super.element, super.map);
+  AnalyzerMixinElementCacheImpl(super.element, super.map, [super.parent]);
 
   @override
   void fromMap(Map map) {
     super.fromMap(map);
     constructors = element.constructors
         .map((e) => AnalyzerConstructorElementCacheImpl(
-              e,
-              map.getConstructor(e.name) ?? {},
-            ))
+            e, map.getConstructor(e.name) ?? {}, this))
         .toList();
     fields = element.fields
-        .map((e) => AnalyzerFieldElementCacheImpl(
-              e,
-              map.getFields(e.name) ?? {},
-            ))
+        .map((e) =>
+            AnalyzerFieldElementCacheImpl(e, map.getFields(e.name) ?? {}, this))
         .toList();
     methods = element.methods
         .map((e) => AnalyzerMethodElementCacheImpl(
-              e,
-              map.getMethod(e.name) ?? {},
-            ))
+            e, map.getMethod(e.name) ?? {}, this))
         .toList();
     name = element.name;
   }

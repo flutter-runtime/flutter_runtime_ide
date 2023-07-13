@@ -5,7 +5,7 @@ import 'analyzer_cache.dart';
 
 class AnalyzerNameSpaceCache<T> extends AnalyzerCache<T> {
   List<String> exportNames = [];
-  AnalyzerNameSpaceCache(super.element, super.map);
+  AnalyzerNameSpaceCache(super.element, super.map, [super.parent]);
 
   @override
   void addToMap() {
@@ -24,7 +24,7 @@ class AnalyzerNameSpaceCache<T> extends AnalyzerCache<T> {
 }
 
 class AnalyzerNameSpaceCacheImpl extends AnalyzerNameSpaceCache<Namespace> {
-  AnalyzerNameSpaceCacheImpl(super.element, super.map);
+  AnalyzerNameSpaceCacheImpl(super.element, super.map, [super.parent]);
 
   @override
   void fromMap(Map map) {

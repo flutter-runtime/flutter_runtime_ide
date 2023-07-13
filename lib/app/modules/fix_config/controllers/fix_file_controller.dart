@@ -107,6 +107,7 @@ class FixFileController extends GetxController {
       Unwrap(_cache).map((e) async {
         showHUD();
         await AnalyzerPackageManager().saveFileCache(info, e, filePath);
+        await Future.delayed(const Duration(milliseconds: 200));
         hideHUD();
       });
     });

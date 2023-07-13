@@ -373,11 +373,16 @@ class FileRuntimeGenerate {
     Unwrap(element.asName).map((e) {
       readArgCode += 'as $e';
     });
+    final defaultValueCode = Unwrap(element.defaultValueCode).map((e) {
+          if (!e.isPrivate) return null;
+          return fileCache.defaultValueCodeFromTopLevelVariable(e);
+        }).value ??
+        element.defaultValueCode;
     return {
       "parameterName": element.name,
       "isNamed": element.isNamed,
       "hasDefaultValue": element.hasDefaultValue,
-      "defaultValueCode": element.defaultValueCode,
+      "defaultValueCode": defaultValueCode,
       "createInstanceCode": readArgCode,
       // 'isDartCoreObject': element.type.isDartCoreObject,
     };

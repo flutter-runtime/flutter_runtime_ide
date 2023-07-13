@@ -5,6 +5,8 @@ import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:get/get.dart';
 
+import '../../../../common/common_function.dart';
+import 'fix_file_controller.dart';
 import 'fix_select_controller.dart';
 
 class FixMethodController extends GetxController {
@@ -17,5 +19,14 @@ class FixMethodController extends GetxController {
   FixMethodController(this.cache) {
     selectController = FixSelectController(cache.parameters);
     isShow.value = cache.isEnable;
+  }
+
+  save() {
+    cache.isEnable = isShow.value;
+    eventBus.fire(SaveFileCacheEvent());
+  }
+
+  setOn(bool isOn) {
+    isShow.value = isOn;
   }
 }
