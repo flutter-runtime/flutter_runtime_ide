@@ -204,7 +204,7 @@ class AnalyzerPackageManager {
   /// [fullPath] 全路径
   PackageInfo? getPackageInfoFromFullPath(String fullPath) {
     return packageConfig?.packages.firstWhereOrNull((element) {
-      return fullPath.startsWith(element.packagePath);
+      return fullPath.startsWith(element.libPath);
     });
   }
 

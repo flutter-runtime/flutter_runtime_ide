@@ -78,7 +78,7 @@ class AnalyzerParameterElementCacheImpl
     name = element.name;
     isNamed = element.isNamed;
     hasDefaultValue = element.hasDefaultValue;
-    defaultValueCode = element.defaultValueCode;
+    defaultValueCode = element.constantValue ?? element.defaultValueCode;
     final type = element.type;
     if (type is InvalidType) {
       // final node = getAstNodeFromElement(element);
@@ -123,6 +123,32 @@ class AnalyzerTopLevelVariableElementCacheImpl
 
 extension on ParameterElementImpl {
   String? get asName => type.bound2?.name;
+
+  String? get constantValue {
+    return Unwrap(constantInitializer).map((e) {
+      if (e is SimpleIdentifier) {
+        return Unwrap(e.staticElement).map((e) {
+          if (e is PropertyAccessorElementImpl) {
+            return Unwrap(e.variable).map((e) {
+              if (e is ConstFieldElementImpl) {
+                return Unwrap(e.constantInitializer).map((e) {
+                  if (e is DoubleLiteral) {
+                    return e.literal.lexeme;
+                  } else {
+                    logger.e(e.runtimeType);
+                  }
+                  return null;
+                }).value;
+              }
+              return null;
+            }).value;
+          }
+          return null;
+        }).value;
+      }
+      return null;
+    }).value;
+  }
 }
 
 extension DartTypeBound on DartType {
