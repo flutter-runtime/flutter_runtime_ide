@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:analyzer/dart/element/type.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
-import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart';
@@ -157,13 +155,16 @@ class AnalyzerDetailController extends GetxController {
         logger.i(log);
       },
     );
+    final flutter = await which('flutter');
     try {
       final shell = Shell(workingDirectory: rootPath, stdout: stdoutController);
-      await shell.run('''
-flutter pub get
+      final results = await shell.run('''
+$flutter pub get
 $dart format ./
+$flutter analyze
 ''');
-
+      final analyzerTexts = results[2].outLines;
+      logger.i(analyzerTexts);
       // 移除监听日志
       Logger.removeLogListener(callback);
     } catch (e) {
@@ -227,7 +228,7 @@ $dart format ./
 
   // 清理日志
   void clearLogs() {
-    logs.clear();
+    logs.value = [];
   }
 
   /// 改变全部的缓存状态
