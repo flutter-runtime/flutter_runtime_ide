@@ -7,15 +7,30 @@ import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-class AnalyzerDetailView extends StatelessWidget {
+class AnalyzerDetailView extends StatefulWidget {
   final AnalyzerDetailController controller;
   const AnalyzerDetailView(this.controller, {Key? key}) : super(key: key);
+
+  @override
+  State<AnalyzerDetailView> createState() => _AnalyzerDetailViewState();
+}
+
+class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 8, vsync: this);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-            '分析${controller.packageInfo.name}(${controller.packageInfo.version})'),
+            '分析${widget.controller.packageInfo.name}(${widget.controller.packageInfo.version})'),
         centerTitle: true,
         actions: [
           IconButton(
@@ -23,11 +38,11 @@ class AnalyzerDetailView extends StatelessWidget {
             icon: const Icon(Icons.auto_fix_high),
           ),
           IconButton(
-            onPressed: () => controller.analyzerPackage(),
+            onPressed: () => widget.controller.analyzerPackage(),
             icon: const Icon(Icons.analytics),
           ),
           IconButton(
-            onPressed: () => controller.openFolder(),
+            onPressed: () => widget.controller.openFolder(),
             icon: const Icon(Icons.folder_open),
           ),
         ],
@@ -36,7 +51,7 @@ class AnalyzerDetailView extends StatelessWidget {
         children: [
           Obx(
             () => LinearProgressIndicator(
-              value: controller.progress.value,
+              value: widget.controller.progress.value,
               color: Colors.green,
               minHeight: 8,
             ),
@@ -55,9 +70,9 @@ class AnalyzerDetailView extends StatelessWidget {
                 ),
                 Obx(
                   () => Switch(
-                    value: controller.useCache.value,
+                    value: widget.controller.useCache.value,
                     onChanged: (value) =>
-                        controller.changeAllCacheStates(value),
+                        widget.controller.changeAllCacheStates(value),
                   ),
                 )
               ],
@@ -67,13 +82,13 @@ class AnalyzerDetailView extends StatelessWidget {
           Container(
             constraints: const BoxConstraints(maxHeight: 200),
             child: ScrollablePositionedList.separated(
-              itemScrollController: controller.itemScrollController,
-              itemCount: controller.allDependenceInfos.length,
+              itemScrollController: widget.controller.itemScrollController,
+              itemCount: widget.controller.allDependenceInfos.length,
               separatorBuilder: (BuildContext context, int index) {
                 return const Divider();
               },
               itemBuilder: (BuildContext context, int index) {
-                final item = controller.allDependenceInfos[index];
+                final item = widget.controller.allDependenceInfos[index];
                 return Obx(() => SwitchListTile(
                       title: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -83,7 +98,8 @@ class AnalyzerDetailView extends StatelessWidget {
                             height: 20,
                             child: Obx(
                               () => CircularProgressIndicator(
-                                value: controller.getItemProgress(item.name),
+                                value: widget.controller
+                                    .getItemProgress(item.name),
                                 color: Colors.blue.shade300,
                               ),
                             ),
@@ -92,34 +108,75 @@ class AnalyzerDetailView extends StatelessWidget {
                           Text('${item.name}(${item.version})'),
                         ],
                       ),
-                      value: controller.getCacheStates(item.name).value,
+                      value: widget.controller.getCacheStates(item.name).value,
                       onChanged: (value) =>
-                          controller.changeCacheStates(item.name, value),
+                          widget.controller.changeCacheStates(item.name, value),
                     ));
               },
             ),
           ),
-          ListTile(
-            leading: Text(
-              '日志',
-              style: Theme.of(context).textTheme.headlineSmall,
+          Container(
+            padding: const EdgeInsets.all(8),
+            color: Colors.blue.shade300,
+            child: Row(
+              children: [
+                Text(
+                  '日志',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.clear_sharp),
+                  onPressed: () => widget.controller.clearLogs(),
+                ),
+                _logLevelTabbar(context),
+                Text(
+                  '分析信息:',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(foregroundColor: Colors.red),
+                  onPressed: () {},
+                  icon: const Icon(Icons.error_outline),
+                  label: Obx(
+                    () => Text(widget.controller.errorInfos.length.toString()),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.yellow,
+                  ),
+                  onPressed: () {},
+                  icon: const Icon(Icons.warning),
+                  label: Obx(
+                    () =>
+                        Text(widget.controller.warningInfos.length.toString()),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  style:
+                      ElevatedButton.styleFrom(foregroundColor: Colors.black),
+                  onPressed: () {},
+                  icon: const Icon(Icons.info),
+                  label: Obx(
+                    () => Text(widget.controller.infoInfos.length.toString()),
+                  ),
+                ),
+              ],
             ),
-            trailing: IconButton(
-              icon: const Icon(Icons.clear_sharp),
-              onPressed: () => controller.clearLogs(),
-            ),
-            tileColor: Colors.blue.shade300,
           ),
           Expanded(
             child: Obx(
               () => ListView.separated(
-                controller: controller.logScrollController,
-                itemCount: controller.logs.length,
+                controller: widget.controller.logScrollController,
+                itemCount: widget.controller.logs.length,
                 separatorBuilder: (BuildContext context, int index) {
                   return const Divider();
                 },
                 itemBuilder: (BuildContext context, int index) {
-                  LogEvent event = controller.logs[index];
+                  LogEvent event = widget.controller.logs[index];
                   Color? logTextColor;
                   switch (event.level) {
                     case Level.debug:
@@ -164,6 +221,79 @@ class AnalyzerDetailView extends StatelessWidget {
     );
   }
 
+  Widget _logLevelTabbar(BuildContext context) {
+    return Row(
+      children: [
+        ElevatedButton.icon(
+          style:
+              ElevatedButton.styleFrom(foregroundColor: Colors.grey.shade400),
+          onPressed: () {},
+          icon: const Icon(Icons.circle),
+          label: Obx(
+            () => Text(widget.controller.errorInfos.length.toString()),
+          ),
+        ),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(foregroundColor: Colors.black),
+          onPressed: () {},
+          icon: const Icon(Icons.circle),
+          label: Obx(
+            () => Text(widget.controller.errorInfos.length.toString()),
+          ),
+        ),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(foregroundColor: Colors.red),
+          onPressed: () {},
+          icon: const Icon(Icons.circle),
+          label: Obx(
+            () => Text(widget.controller.errorInfos.length.toString()),
+          ),
+        ),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(foregroundColor: Colors.green),
+          onPressed: () {},
+          icon: const Icon(Icons.circle),
+          label: Obx(
+            () => Text(widget.controller.errorInfos.length.toString()),
+          ),
+        ),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(foregroundColor: Colors.yellow),
+          onPressed: () {},
+          icon: const Icon(Icons.circle),
+          label: Obx(
+            () => Text(widget.controller.errorInfos.length.toString()),
+          ),
+        ),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(foregroundColor: Colors.white),
+          onPressed: () {},
+          icon: const Icon(Icons.circle),
+          label: Obx(
+            () => Text(widget.controller.errorInfos.length.toString()),
+          ),
+        ),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(foregroundColor: Colors.orange),
+          onPressed: () {},
+          icon: const Icon(Icons.circle),
+          label: Obx(
+            () => Text(widget.controller.errorInfos.length.toString()),
+          ),
+        ),
+        ElevatedButton.icon(
+          style:
+              ElevatedButton.styleFrom(foregroundColor: Colors.grey.shade300),
+          onPressed: () {},
+          icon: const Icon(Icons.circle),
+          label: Obx(
+            () => Text(widget.controller.errorInfos.length.toString()),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// 修复分析的结果
   fixAnalyzer() async {
     final result = await Get.defaultDialog<bool>(
@@ -173,6 +303,7 @@ class AnalyzerDetailView extends StatelessWidget {
       onCancel: () {},
     );
     if (!JSON(result).boolValue) return;
-    Get.dialog(FixConfigView(FixConfigController(controller.packageInfo)));
+    Get.dialog(
+        FixConfigView(FixConfigController(widget.controller.packageInfo)));
   }
 }

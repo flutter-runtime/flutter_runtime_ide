@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_runtime_ide/analyzer/analyze_info.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
+import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart';
@@ -43,6 +45,14 @@ class AnalyzerDetailController extends GetxController {
   final ScrollController logScrollController = ScrollController();
   final ItemScrollController itemScrollController = ItemScrollController();
 
+  /// 分析信息
+  var errorInfos = <AnalyzeInfo>[].obs;
+  var warningInfos = <AnalyzeInfo>[].obs;
+  var infoInfos = <AnalyzeInfo>[].obs;
+
+  /// 是否可以自动滚动日志
+  bool _autoScroll = false;
+
   AnalyzerDetailController(
     this.packageInfo,
     this.packageConfig,
@@ -70,12 +80,21 @@ class AnalyzerDetailController extends GetxController {
 
     /// 每隔 500 秒自动滚动
     _autoScrollLog();
+
+    Future.delayed(const Duration(microseconds: 500), () async {
+      showHUD();
+      await analyzerGenerateCode();
+      hideHUD();
+    });
   }
 
   /// 获取输出运行库保存的目录
   String get outPutPath {
     return join(AnalyzerPackageManager.defaultRuntimePath, 'runtime');
   }
+
+  /// 输出的库目录
+  String get packageOutputPath => join(outPutPath, packageInfo.name);
 
   // 分析依赖
   Future<void> analyzerPackage() async {
@@ -91,6 +110,8 @@ class AnalyzerDetailController extends GetxController {
       logger.e('没有依赖可以分析');
       return;
     }
+
+    _autoScroll = true;
 
     //先删除之前生成的库缓存
     await _deleteExitCache(infos[0]);
@@ -158,21 +179,24 @@ class AnalyzerDetailController extends GetxController {
     final flutter = await which('flutter');
     try {
       final shell = Shell(workingDirectory: rootPath, stdout: stdoutController);
-      final results = await shell.run('''
+      await shell.run('''
 $flutter pub get
 $dart format ./
-$flutter analyze
 ''');
-      final analyzerTexts = results[2].outLines;
-      logger.i(analyzerTexts);
+
       // 移除监听日志
       Logger.removeLogListener(callback);
     } catch (e) {
       logger.e(e);
       Get.snackbar('代码格式错误', e.toString());
     }
+
+    await analyzerGenerateCode();
+
     progress.value = 1;
     Get.snackbar('代码格式化完毕', '');
+
+    _autoScroll = false;
   }
 
   Future<void> createPubspecFile(PackageInfo info) async {
@@ -273,6 +297,7 @@ $open ${join(outPutPath, packageInfo.cacheName)} -a 'Visual Studio Code.app'
 
   _autoScrollLog() {
     Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (!_autoScroll) return;
       if (!logScrollController.hasClients) {
         timer.cancel();
         return;
@@ -281,6 +306,33 @@ $open ${join(outPutPath, packageInfo.cacheName)} -a 'Visual Studio Code.app'
           logScrollController.position.maxScrollExtent) return;
       logScrollController.jumpTo(logScrollController.position.maxScrollExtent);
     });
+  }
+
+  Future<void> analyzerGenerateCode() async {
+    final workDirectory = join(outPutPath, packageInfo.cacheName);
+    if (!await Directory(workDirectory).exists()) {
+      return;
+    }
+    final flutter = await which('flutter');
+    final shell = Shell(workingDirectory: workDirectory);
+    ProcessResult? result;
+    try {
+      result =
+          await shell.run('''$flutter analyze''').then((value) => value.first);
+    } catch (e) {
+      if (e is ShellException) {
+        result = e.result;
+      }
+    }
+    if (result == null) return;
+    final outLines = result.outLines;
+    final infos = parseAnalyzeInfos(outLines);
+    errorInfos.addAll(
+        infos.where((element) => element.infoType == AnalyzeInfoType.error));
+    warningInfos.addAll(
+        infos.where((element) => element.infoType == AnalyzeInfoType.warning));
+    infoInfos.addAll(
+        infos.where((element) => element.infoType == AnalyzeInfoType.info));
   }
 }
 
