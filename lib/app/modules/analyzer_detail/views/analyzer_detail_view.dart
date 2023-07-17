@@ -1,11 +1,15 @@
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/modules/analyzer_detail/controllers/analyzer_detail_controller.dart';
+import 'package:flutter_runtime_ide/app/modules/analyzer_detail/controllers/analyzer_info_controller.dart';
+import 'package:flutter_runtime_ide/app/modules/analyzer_detail/views/analyzer_info_view.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_config_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_config_view.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+
+import '../../../../analyzer/analyze_info.dart';
 
 class AnalyzerDetailView extends StatefulWidget {
   final AnalyzerDetailController controller;
@@ -129,6 +133,7 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
                   onPressed: () => widget.controller.clearLogs(),
                 ),
                 _logLevelTabbar(context),
+                const Spacer(),
                 Text(
                   '分析信息:',
                   style: Theme.of(context).textTheme.headlineSmall,
@@ -136,7 +141,8 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
                 const SizedBox(width: 10),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(foregroundColor: Colors.red),
-                  onPressed: () {},
+                  onPressed: () =>
+                      _showAnalyzerInfoView(widget.controller.errorInfos),
                   icon: const Icon(Icons.error_outline),
                   label: Obx(
                     () => Text(widget.controller.errorInfos.length.toString()),
@@ -147,7 +153,8 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
                   style: ElevatedButton.styleFrom(
                     foregroundColor: Colors.yellow,
                   ),
-                  onPressed: () {},
+                  onPressed: () =>
+                      _showAnalyzerInfoView(widget.controller.warningInfos),
                   icon: const Icon(Icons.warning),
                   label: Obx(
                     () =>
@@ -158,7 +165,8 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
                 ElevatedButton.icon(
                   style:
                       ElevatedButton.styleFrom(foregroundColor: Colors.black),
-                  onPressed: () {},
+                  onPressed: () =>
+                      _showAnalyzerInfoView(widget.controller.infoInfos),
                   icon: const Icon(Icons.info),
                   label: Obx(
                     () => Text(widget.controller.infoInfos.length.toString()),
@@ -233,6 +241,7 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
             () => Text(widget.controller.errorInfos.length.toString()),
           ),
         ),
+        const SizedBox(width: 10),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(foregroundColor: Colors.black),
           onPressed: () {},
@@ -241,6 +250,7 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
             () => Text(widget.controller.errorInfos.length.toString()),
           ),
         ),
+        const SizedBox(width: 10),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(foregroundColor: Colors.red),
           onPressed: () {},
@@ -249,6 +259,7 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
             () => Text(widget.controller.errorInfos.length.toString()),
           ),
         ),
+        const SizedBox(width: 10),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(foregroundColor: Colors.green),
           onPressed: () {},
@@ -257,6 +268,7 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
             () => Text(widget.controller.errorInfos.length.toString()),
           ),
         ),
+        const SizedBox(width: 10),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(foregroundColor: Colors.yellow),
           onPressed: () {},
@@ -265,6 +277,7 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
             () => Text(widget.controller.errorInfos.length.toString()),
           ),
         ),
+        const SizedBox(width: 10),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(foregroundColor: Colors.white),
           onPressed: () {},
@@ -273,6 +286,7 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
             () => Text(widget.controller.errorInfos.length.toString()),
           ),
         ),
+        const SizedBox(width: 10),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(foregroundColor: Colors.orange),
           onPressed: () {},
@@ -281,6 +295,7 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
             () => Text(widget.controller.errorInfos.length.toString()),
           ),
         ),
+        const SizedBox(width: 10),
         ElevatedButton.icon(
           style:
               ElevatedButton.styleFrom(foregroundColor: Colors.grey.shade300),
@@ -292,6 +307,12 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
         ),
       ],
     );
+  }
+
+  _showAnalyzerInfoView(List<AnalyzeInfo> infos) async {
+    Get.bottomSheet(AnalyzerInfoView(
+      AnalyzerInfoController(widget.controller.packageInfo, infos),
+    ));
   }
 
   /// 修复分析的结果

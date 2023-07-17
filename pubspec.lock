@@ -158,6 +158,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_expanded_tile:
+    dependency: "direct main"
+    description:
+      name: flutter_expanded_tile
+      sha256: "106e992ca20e168adc18ffeac8fbbc7ee84db62b670cc288d67132153114e035"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.3.7"
   flutter_lints:
     dependency: "direct dev"
     description:

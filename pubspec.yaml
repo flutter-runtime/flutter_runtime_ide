@@ -30,6 +30,7 @@ dependencies:
   # flutter_runtime_center:
   #   path: .runtime/
   event_bus: ^2.0.0
+  flutter_expanded_tile: ^0.3.7
 
 dev_dependencies:
   flutter_lints: ^2.0.0
