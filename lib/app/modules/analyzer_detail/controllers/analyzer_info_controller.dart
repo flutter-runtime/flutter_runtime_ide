@@ -33,7 +33,7 @@ class AnalyzerInfoController extends GetxController {
     Shell().run(
       '''
 $open $cachePath -a "Visual Studio Code.app"
-$code -g $fullFilePath:${info.line}:${info.column}"
+$code -g $fullFilePath:${info.line}:${info.column}
 ''',
     );
   }
