@@ -98,8 +98,9 @@ class HomeController extends GetxController {
 
   Future<void> analyzerAllPackageCode() async {
     showProgressHud();
+    final infos = AnalyzerPackageManager().allowGeneratedPackages;
     int index = 1;
-    int count = packageConfig.value!.packages.length;
+    int count = infos.length;
     double progress = 1.0 / count;
     for (var package in packageConfig.value!.packages) {
       await analyzerPackageCode(package.name, false);
@@ -121,18 +122,24 @@ class HomeController extends GetxController {
 
   // 生成一个全局调用的运行库
   Future<void> generateGlobaleRuntimePackage() async {
+    final packages = AnalyzerPackageManager().allowGeneratedPackages;
+
+    /// 检测对应的运行时库是否已经生成
+    for (var info in packages) {
+      final runtimePath = AnalyzerPackageManager.getRuntimePath(info);
+      if (!await Directory(runtimePath).exists()) {
+        Get.snackbar('错误', '${info.name}的运行时库不存在');
+        return;
+      }
+    }
     showHUD();
-    final packages = AnalyzerPackageManager().packageConfig?.packages ?? [];
+
     final data = {
       'pubName': 'flutter_runtime_center',
       'dependencies': packages.map((e) {
         return {
           'name': '${e.name}_runtime',
-          'path': join(
-            AnalyzerPackageManager.defaultRuntimePath,
-            'runtime',
-            basename(e.packagePath),
-          )
+          'path': AnalyzerPackageManager.getRuntimePath(e)
         };
       }).toList(),
     };

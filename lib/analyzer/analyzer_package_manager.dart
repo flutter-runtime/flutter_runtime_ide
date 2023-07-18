@@ -259,4 +259,25 @@ class AnalyzerPackageManager {
     });
     return completer.future;
   }
+
+  /// 根据依赖库的配置信息获取到对应运行时库的路径地址
+  /// [info] 依赖库的配置信息
+  static String getRuntimePath(PackageInfo info) {
+    return join(defaultRuntimePath, 'runtime', info.cacheName);
+  }
+
+  /// 从依赖库配置获取允许生成的依赖库列表
+  /// [config] 依赖库的配置信息
+  static List<PackageInfo> getAllowGeneratedPackages(PackageConfig config) {
+    return config.packages.where((element) {
+      return !getNotAllowPackageNames.contains(element.name);
+    }).toList();
+  }
+
+  /// 不允许生成的库的名称
+  static List<String> get getNotAllowPackageNames => [
+        'flutter_lints',
+        'flutter_test',
+        'lints',
+      ];
 }
