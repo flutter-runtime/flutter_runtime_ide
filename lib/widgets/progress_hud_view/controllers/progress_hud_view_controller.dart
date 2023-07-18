@@ -23,7 +23,6 @@ class ProgressHudViewController extends GetxController {
     if (_logCallback == null) {
       _logCallback = (event) {
         logEvents.add(event);
-        scrollToIndex(logEvents.length - 1);
       };
       Logger.addLogListener(_logCallback!);
     }

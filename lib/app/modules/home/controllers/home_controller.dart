@@ -4,6 +4,7 @@ import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
+import 'package:flutter_runtime_ide/analyzer/generate_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache/mustache_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
@@ -98,14 +99,24 @@ class HomeController extends GetxController {
 
   Future<void> analyzerAllPackageCode() async {
     showProgressHud();
-    final infos = AnalyzerPackageManager().allowGeneratedPackages;
+    final infos =
+        AnalyzerPackageManager.getAllowGeneratedPackages(packageConfig.value!);
     int index = 1;
     int count = infos.length;
     double progress = 1.0 / count;
-    for (var package in packageConfig.value!.packages) {
-      await analyzerPackageCode(package.name, false);
-      updateProgressHud(progress: progress * index);
+    for (var info in packageConfig.value!.packages) {
       index += 1;
+      final generateRuntime = GenerateRuntimePackage(
+        info,
+        packageConfig.value!,
+        dependency,
+        progress: (percent) {
+          updateProgressHud(
+            progress: progress * (index - 1) + progress * percent,
+          );
+        },
+      );
+      await generateRuntime.generate();
     }
     updateProgressHud(progress: 1.0);
   }
@@ -122,7 +133,9 @@ class HomeController extends GetxController {
 
   // 生成一个全局调用的运行库
   Future<void> generateGlobaleRuntimePackage() async {
-    final packages = AnalyzerPackageManager().allowGeneratedPackages;
+    final packages =
+        AnalyzerPackageManager.getAllowGeneratedPackages(packageConfig.value!);
+    if (packages.isEmpty) return;
 
     /// 检测对应的运行时库是否已经生成
     for (var info in packages) {
