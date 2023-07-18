@@ -27,56 +27,10 @@ class _FixImportViewState extends State<FixImportView>
       appBar: AppBar(
         title: const Text('修复导入'),
         centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: () {
-              if (_tabController.index == 0) {
-                _addShowValue();
-              } else if (_tabController.index == 1) {
-                _addHideValue();
-              }
-            },
-            icon: const Icon(Icons.add),
-          )
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(15.0),
-        child: Column(
-          children: [
-            TabBar(
-              controller: _tabController,
-              tabs: [
-                Tab(
-                  child: Text(
-                    'show',
-                    style: TextStyle(color: Colors.blue.shade300),
-                  ),
-                ),
-                Tab(
-                  child: Text(
-                    'hide',
-                    style: TextStyle(color: Colors.blue.shade300),
-                  ),
-                ),
-              ],
-            ),
-            const Divider(),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  FixSelectView(
-                    controller: widget.controller.selectShowController,
-                  ),
-                  FixSelectView(
-                    controller: widget.controller.selectHideController,
-                  ),
-                ],
-              ),
-            )
-          ],
-        ),
+        child: Container(),
       ),
     );
   }
@@ -89,17 +43,5 @@ class _FixImportViewState extends State<FixImportView>
       separatorBuilder: (context, index) => const Divider(),
       itemCount: values.length,
     );
-  }
-
-  _addHideValue() async {
-    final value = await showAddValue('请输入要隐藏的值');
-    if (value == null) return;
-    widget.controller.addHideValue(value);
-  }
-
-  _addShowValue() async {
-    final value = await showAddValue('请输入要显示的值');
-    if (value == null) return;
-    widget.controller.addShowValue(value);
   }
 }

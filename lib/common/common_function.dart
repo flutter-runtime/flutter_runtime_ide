@@ -1,12 +1,17 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:analyzer/dart/analysis/results.dart';
+import 'package:analyzer/dart/analysis/session.dart';
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/element/element.dart';
+import 'package:flutter/material.dart' hide Element;
 import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_select_controller.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:process_run/process_run.dart';
 import 'package:path/path.dart';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:event_bus/event_bus.dart';
 
 import '../app/modules/fix_config/views/fix_select_view.dart';
 
@@ -73,4 +78,19 @@ class AddValueView extends StatelessWidget {
       ),
     );
   }
+}
+
+EventBus eventBus = EventBus();
+
+AstNode? getAstNodeFromElement(Element element) {
+  AnalysisSession? session = element.session;
+  if (session == null) return null;
+  final library = element.library;
+  if (library is! LibraryElement) return null;
+  SomeParsedLibraryResult parsedLibResult =
+      session.getParsedLibraryByElement(library);
+  if (parsedLibResult is! ParsedLibraryResult) return null;
+  ElementDeclarationResult? elDeclarationResult =
+      parsedLibResult.getElementDeclaration(element);
+  return elDeclarationResult?.node;
 }

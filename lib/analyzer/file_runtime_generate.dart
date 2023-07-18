@@ -5,115 +5,83 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_cache.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_class_cache.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_enum_cache.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_extension_cache.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_file_cache.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_import_cache.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_method_cache.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_mixin_cache.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_property_accessor_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
-import 'package:flutter_runtime_ide/analyzer/mustache.dart';
-import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
-import 'package:flutter_runtime_ide/analyzer/package_config.dart';
+import 'package:flutter_runtime_ide/analyzer/mustache/mustache.dart';
+import 'package:flutter_runtime_ide/analyzer/mustache/mustache_manager.dart';
+import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:analyzer/src/dart/analysis/results.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
+import 'package:process_run/process_run.dart';
 
 class FileRuntimeGenerate {
   final String sourcePath;
   final PackageConfig packageConfig;
   final PackageInfo info;
-  final ResolvedLibraryResultImpl library;
-  final FixConfig? fixConfig;
-  late List<CompilationUnitElementImpl> _units;
-
-  final List<ClassElementImpl> _classs = [];
-  final List<ExtensionElementImpl> _extensions = [];
-  final List<TopLevelVariableElementImpl> _topLevelVariables = [];
-  final List<FunctionElementImpl> _functions = [];
-  final List<EnumElementImpl> _enums = [];
-  final List<MixinElementImpl> _mixins = [];
-  final List<TypeAliasElementImpl> _typeAliases = [];
-  final List<PropertyAccessorElementImpl> _accessors = [];
-  // List<PartElementImpl> _parts = [];
-
-  Set<String> importPathSets = {};
-
-  List<ImportAnalysis> importAnalysis = [];
+  final AnalyzerFileCache fileCache;
 
   FileRuntimeGenerate(
     this.sourcePath,
     this.packageConfig,
     this.info,
-    this.library,
-    this.importAnalysis, {
-    this.fixConfig,
-  }) {
-    importPathSets.add(sourcePath);
-    importAnalysis.add(ImportAnalysis(
-      sourcePath,
-    ));
-  }
+    this.fileCache,
+  );
 
   Future<String> generateCode() async {
-    _units =
-        library.element.units.whereType<CompilationUnitElementImpl>().toList();
-    for (var unit in _units) {
-      _classs.addAll(unit.classes.where((element) => !element.name.isPrivate));
-      _extensions.addAll(
-        unit.extensions.where((element) {
-          return Unwrap(element.name).map((e) {
-            final config = fixConfig?.getExtensionConfig(e);
-            final isEnable = config?.isEnable ?? true;
-            return !e.isPrivate && isEnable;
-          }).defaultValue(false);
-        }),
-      );
-      _topLevelVariables.addAll(
-          unit.topLevelVariables.where((element) => !element.name.isPrivate));
-      _functions
-          .addAll(unit.functions.where((element) => !element.name.isPrivate));
-      _enums.addAll(unit.enums.where((element) => !element.name.isPrivate));
-      _mixins.addAll(unit.mixins.where((element) => !element.name.isPrivate));
-      _typeAliases
-          .addAll(unit.typeAliases.where((element) => !element.name.isPrivate));
-      _accessors
-          .addAll(unit.accessors.where((element) => !element.name.isPrivate));
-    }
-
-    await addImportHideNames();
-
-    final classes = _classs.where((element) {
-      final classConfig = fixConfig?.getClassConfig(element.name);
-      if (!JSON(classConfig?.isEnable).boolValue) return false;
-      final metadata = element.metadata;
-      if (metadata.isEmpty) return true;
-      return metadata.any((element) {
-        return (element as ElementAnnotationImpl).annotationAst.name.name !=
-            "visibleForTesting";
-      });
-    }).map((e) {
-      return toClassData(e, classConfig: fixConfig?.getClassConfig(e.name));
-    }).toList();
-    // assert(_extensions.isEmpty);
+    // await addImportHideNames();
+    final classes = fileCache.classs
+        .where((e) => e.isEnable && !e.name.isPrivate)
+        .map((e) => toClassData(e))
+        .toList();
     classes.add(toGlobalClass());
-    classes.addAll(_extensions.map((e) {
-      final config =
-          Unwrap(e.name).map((e) => fixConfig?.getExtensionConfig(e)).value;
-      return toExtensionData(e, config);
-    }).toList());
-    classes.addAll(_enums.map((e) => toEnumData(e)).toList());
-    classes.addAll(_mixins.map((e) => toMixinData(e)).toList());
+    classes.addAll(fileCache.extensions
+        .where((element) {
+          return element.isEnable &&
+              !(element.name.isPrivate) &&
+              element.name.isNotEmpty;
+        })
+        .map((e) => toExtensionData(e))
+        .toList());
+    classes.addAll(fileCache.enums
+        .where((element) => element.isEnable && !element.name.isPrivate)
+        .map((e) => toEnumData(e))
+        .toList());
+    classes.addAll(fileCache.mixins
+        .where((element) => element.isEnable && !element.name.isPrivate)
+        .map((e) => toMixinData(e))
+        .toList());
 
     final data = {
       "pubName": info.name,
       "classes": classes,
     };
-    // logger.e(importPathSets);
-    final pathDatas = importAnalysis.map((e) {
+
+    var imports = [...fileCache.imports];
+    final contentData = {
+      'uriContent': sourcePath,
+    };
+    imports.add(AnalyzerImportCache(contentData, contentData));
+
+    final pathDatas = imports.map((e) {
+      final hideNames = e.hideNamesFromFileCache(fileCache);
       return {
         "uriContent": e.uriContent,
         'asName': e.asName,
         'hasAsName': e.asName != null,
-        'hasShowNames': e.showNames.isNotEmpty,
-        'hasHideNames': e.hideNames.isNotEmpty,
-        'showContent': e.showNames.join(","),
-        'hideContent': e.hideNames.join(','),
+        'hasShowNames': e.shownNames.isNotEmpty,
+        'hasHideNames': hideNames.isNotEmpty,
+        'showContent': e.shownNames.join(","),
+        'hideContent': hideNames.join(','),
       };
     }).toList();
     data['paths'] = pathDatas;
@@ -121,25 +89,20 @@ class FileRuntimeGenerate {
   }
 
   Map<String, dynamic> toGlobalClass() {
-    final getFields = _topLevelVariables
-        .map((e) => e.getter)
-        .whereType<PropertyAccessorElementImpl>()
+    final getFields = fileCache.topLevelVariables
+        .where((e) => e.isGetter && e.isEnable && !e.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
-    getFields.addAll(_typeAliases.map((e) => toTypeAliasData(e)).toList());
+    // getFields.addAll(_typeAliases.map((e) => toTypeAliasData(e)).toList());
 
-    final setFields = _topLevelVariables
-        .map((e) => e.setter)
-        .whereType<PropertyAccessorElementImpl>()
+    final setFields = fileCache.topLevelVariables
+        .where((e) => e.isSetter && e.isEnable && !e.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
-    final methods = _functions
-        .map((e) {
-          final config = fixConfig?.getMethodConfig(e.name);
-          if (config != null && !config.isEnable) return null;
-          return toFunctionData(e, config);
-        })
-        .whereType<Map<String, dynamic>>()
+
+    final methods = fileCache.functions
+        .where((element) => element.isEnable && !element.name.isPrivate)
+        .map((e) => toFunctionData(e))
         .toList();
     return {
       "className": "FR${md5(sourcePath)}",
@@ -162,45 +125,24 @@ class FileRuntimeGenerate {
     assert(allNames.length == filterNames.length);
   }
 
-  Map<String, dynamic> toClassData(
-    ClassElementImpl element, {
-    FixClassConfig? classConfig,
-  }) {
-    bool isStructAndUnionSubClass =
-        ['Struct', 'Union'].contains(element.supertype?.name);
+  Map<String, dynamic> toClassData(AnalyzerClassCache element) {
+    // bool isStructAndUnionSubClass =
+    //     ['Struct', 'Union'].contains(element.supertype?.name);
 
     final getFields = element.fields
-        .map((e) => e.getter)
-        .whereType<PropertyAccessorElementImpl>()
-        .where((element) => !element.name.isPrivate)
-        .map((e) {
-      return toPropertyAccessorData(e);
-    }).toList();
+        .where((e) => e.isGetter && e.isEnable && !e.name.isPrivate)
+        .map((e) => toPropertyAccessorData(e))
+        .toList();
     final setFields = element.fields
-        .map((e) => e.setter)
-        .whereType<PropertyAccessorElementImpl>()
-        .where((element) => !element.name.isPrivate)
-        .map((e) {
-      return toPropertyAccessorData(e);
-    }).toList();
-    final methods =
-        element.methods.where((element) => !element.isPrivate).map((e) {
-      return toMethodData(
-        e,
-        methodConfig: classConfig?.getMethodConfig(e.name),
-      );
-    }).toList();
+        .where((e) => e.isSetter && e.isEnable && !e.name.isPrivate)
+        .map((e) => toPropertyAccessorData(e))
+        .toList();
+    final methods = element.methods
+        .where((element) => element.isEnable && !element.name.isPrivate)
+        .map((e) => toMethodData(e))
+        .toList();
     final constructors = element.constructors
-        .where((element) => !element.name.isPrivate)
-        .where((element) {
-          final constructorConfig =
-              classConfig?.getConstructorConfig(element.name);
-          if (!JSON(constructorConfig?.isEnable).boolValue) return false;
-          if (element.name == '' && isStructAndUnionSubClass) {
-            return false;
-          }
-          return true;
-        })
+        .where((element) => element.isEnable && !element.name.isPrivate)
         .map((e) => toConstructorData(e))
         .toList();
     return {
@@ -217,23 +159,19 @@ class FileRuntimeGenerate {
     };
   }
 
-  Map<String, dynamic> toEnumData(EnumElementImpl element) {
+  Map<String, dynamic> toEnumData(AnalyzerEnumCache element) {
     final getFields = element.fields
-        .where((element) => !element.name.isPrivate)
-        .map((e) => e.getter)
-        .whereType<PropertyAccessorElementImpl>()
-        .map((e) {
-      return toPropertyAccessorData(e);
-    }).toList();
+        .where((element) =>
+            element.isEnable && element.isGetter && !element.name.isPrivate)
+        .map((e) => toPropertyAccessorData(e))
+        .toList();
     final setFields = element.fields
-        .where((element) => !element.name.isPrivate)
-        .map((e) => e.setter)
-        .whereType<PropertyAccessorElementImpl>()
-        .map((e) {
-      return toPropertyAccessorData(e);
-    }).toList();
+        .where((element) =>
+            element.isEnable && element.isSetter && !element.name.isPrivate)
+        .map((e) => toPropertyAccessorData(e))
+        .toList();
     final methods = element.methods
-        .where((element) => !element.isPrivate)
+        .where((element) => element.isEnable && !element.name.isPrivate)
         .map((e) => toMethodData(e))
         .toList();
     // final constructors = element.constructors
@@ -254,27 +192,23 @@ class FileRuntimeGenerate {
     };
   }
 
-  Map<String, dynamic> toMixinData(MixinElementImpl element) {
+  Map<String, dynamic> toMixinData(AnalyzerMixinCache element) {
     final getFields = element.fields
-        .map((e) => e.getter)
-        .whereType<PropertyAccessorElementImpl>()
-        .where((element) => !element.name.isPrivate)
-        .map((e) {
-      return toPropertyAccessorData(e);
-    }).toList();
+        .where((element) =>
+            element.isEnable && element.isGetter && !element.name.isPrivate)
+        .map((e) => toPropertyAccessorData(e))
+        .toList();
     final setFields = element.fields
-        .map((e) => e.setter)
-        .whereType<PropertyAccessorElementImpl>()
-        .where((element) => !element.name.isPrivate)
-        .map((e) {
-      return toPropertyAccessorData(e);
-    }).toList();
+        .where((element) =>
+            element.isEnable && element.isSetter && !element.name.isPrivate)
+        .map((e) => toPropertyAccessorData(e))
+        .toList();
     final methods = element.methods
-        .where((element) => !element.isPrivate)
+        .where((element) => element.isEnable && !element.name.isPrivate)
         .map((e) => toMethodData(e))
         .toList();
     final constructors = element.constructors
-        .where((element) => !element.name.isPrivate)
+        .where((element) => !element.name.isPrivate && !element.name.isPrivate)
         .map((e) => toConstructorData(e))
         .toList();
     return {
@@ -299,8 +233,9 @@ class FileRuntimeGenerate {
     };
   }
 
-  Map<String, dynamic> toFunctionData(FunctionElementImpl element,
-      [FixMethodConfig? methodConfig]) {
+  Map<String, dynamic> toFunctionData(
+    AnalyzerMethodCache element,
+  ) {
     String? customCallCode;
     if (element.name == '[]=' && element.parameters.length == 2) {
       customCallCode =
@@ -310,10 +245,8 @@ class FileRuntimeGenerate {
     } else if (element.name == '[]') {
       customCallCode = '''runtime[args['${element.parameters[0].name}']]''';
     }
-    final parameters = element.parameters.map((e) {
-      final config = methodConfig?.getParameterConfig(e.name);
-      return toParametersData(e as ParameterElementImpl, config);
-    }).toList();
+    final parameters =
+        element.parameters.map((e) => toParametersData(e)).toList();
     return {
       'callMethodName': element.name.replaceAll('\$', '\\\$'),
       "methodName": element.name,
@@ -325,7 +258,7 @@ class FileRuntimeGenerate {
   }
 
   Map<String, dynamic> toPropertyAccessorData(
-    PropertyAccessorElementImpl element,
+    AnalyzerPropertyAccessorCache element,
   ) {
     String fieldName = element.name;
     if (fieldName.endsWith("=")) {
@@ -338,40 +271,28 @@ class FileRuntimeGenerate {
     };
   }
 
-  Map<String, dynamic> toExtensionData(
-    ExtensionElementImpl element, [
-    FixExtensionConfig? extensionConfig,
-  ]) {
+  Map<String, dynamic> toExtensionData(AnalyzerExtensionCache element) {
     final getFields = element.fields
-        .where((element) => !element.name.isPrivate)
-        .map((e) => e.getter)
-        .whereType<PropertyAccessorElementImpl>()
+        .where((element) =>
+            element.isEnable && element.isGetter && !element.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
     final setFields = element.fields
-        .where((element) => !element.name.isPrivate)
-        .map((e) => e.setter)
-        .whereType<PropertyAccessorElementImpl>()
+        .where((element) =>
+            element.isEnable && element.isSetter && !element.name.isPrivate)
         .map((e) => toPropertyAccessorData(e))
         .toList();
     final methods = element.methods
-        .where((element) => !element.isPrivate)
-        .map((e) {
-          final config = extensionConfig?.getMethodConfig(e.name);
-          if (config != null && !config.isEnable) {
-            return null;
-          }
-          return toMethodData(e);
-        })
-        .whereType<Map<String, dynamic>>()
+        .where((element) => element.isEnable && !element.name.isPrivate)
+        .map((e) => toMethodData(e))
         .toList();
     // final runtimeType = runtimeNameWithType(element.extendedType);
-    final runtimeType = Unwrap(element.name)
-        .map((e) => getExtensionDeclaration(e))
-        .map((e) => getExtensionOnType(e))
-        .value;
+    // final runtimeType = Unwrap(element.name)
+    //     .map((e) => getExtensionDeclaration(e))
+    //     .map((e) => getExtensionOnType(e))
+    //     .value;
 
-    String? instanceType = Unwrap(runtimeType).map((e) {
+    String? instanceType = Unwrap(element.extensionName).map((e) {
       if (e.endsWith("?")) return e;
       return "$e?";
     }).value;
@@ -382,17 +303,14 @@ class FileRuntimeGenerate {
       "methods": methods,
       "constructors": [],
       "isAbstract": false,
-      'runtimeType': runtimeType,
+      'runtimeType': element.extensionName,
       'instanceType': instanceType,
       'prefix': '${element.name}(runtime).',
       'staticPrefix': '${element.name}.',
     };
   }
 
-  Map<String, dynamic> toMethodData(
-    MethodElementImpl element, {
-    FixMethodConfig? methodConfig,
-  }) {
+  Map<String, dynamic> toMethodData(AnalyzerMethodCache element) {
     String? customCallCode;
     // 支持的计算公式
     final supportOperations = [
@@ -430,12 +348,8 @@ class FileRuntimeGenerate {
     } else if (element.name == '~') {
       customCallCode = '${element.name}runtime';
     }
-    final parameters = element.parameters.map((e) {
-      return toParametersData(
-        e as ParameterElementImpl,
-        methodConfig?.getParameterConfig(e.name),
-      );
-    }).toList();
+    final parameters =
+        element.parameters.map((e) => toParametersData(e)).toList();
     return {
       'callMethodName': element.name.replaceAll('\$', '\\\$'),
       "methodName": element.name,
@@ -446,10 +360,9 @@ class FileRuntimeGenerate {
     };
   }
 
-  Map<String, dynamic> toConstructorData(ConstructorElementImpl element) {
-    final parameters = element.parameters
-        .map((e) => toParametersData(e as ParameterElementImpl))
-        .toList();
+  Map<String, dynamic> toConstructorData(AnalyzerMethodCache element) {
+    final parameters =
+        element.parameters.map((e) => toParametersData(e)).toList();
     return {
       "constructorName": element.name,
       "parameters": parameters,
@@ -457,72 +370,74 @@ class FileRuntimeGenerate {
     };
   }
 
-  Map<String, dynamic> toParametersData(
-    ParameterElementImpl element, [
-    FixParameterConfig? parameterConfig,
-  ]) {
+  Map<String, dynamic> toParametersData(AnalyzerPropertyAccessorCache element) {
     String readArgCode = '''args['${element.name}']''';
-    // String? displayTypeString = getTypeDisplayName(element.type);
-
-    // if (displayTypeString?.contains('InvalidType') ?? false) {
-    //   displayTypeString = getParameterTypeString(element);
-    // }
-    // if (displayTypeString == 'Object') {
-    //   readArgCode += ' as $displayTypeString';
-    // }
-    final asName = getParameterAsName(element);
-    if (asName != null) {
-      // readArgCode += ' as $asName';
-    }
-    if (parameterConfig?.type != null) {
-      readArgCode += ' as ${parameterConfig!.type}';
-    }
-    // readArgCode += ' as $displayTypeString';
-    // final defaultValueImportPath0 = defaultValueImportPath(element);
-    // if (defaultValueImportPath0 != null) {
-    //   importPathSets.add(defaultValueImportPath0);
-    // }
+    Unwrap(element.asName).map((e) {
+      readArgCode += 'as $e';
+    });
+    final defaultValueCode = defaultValueCodeFromParameter(element);
     return {
       "parameterName": element.name,
       "isNamed": element.isNamed,
       "hasDefaultValue": element.hasDefaultValue,
-      "defaultValueCode": element.defaultValueCode,
+      "defaultValueCode": defaultValueCode,
       "createInstanceCode": readArgCode,
       // 'isDartCoreObject': element.type.isDartCoreObject,
     };
   }
 
-  String? getParameterAsName(ParameterElementImpl impl) {
-    String? asName = impl.type.toString();
-    if (asName.contains('InvalidType')) {
-      asName = getParameterTypeString(impl);
-    }
-    var enclosingElement = impl.enclosingElement;
-    List<TypeParameterElement> typeParameters = [];
-    while (enclosingElement != null &&
-        enclosingElement is! CompilationUnitElementImpl) {
-      if (enclosingElement is TypeParameterizedElement) {
-        typeParameters.addAll(enclosingElement.typeParameters);
-        // if (typeParameters.isNotEmpty) {
-        //   for (var e in typeParameters) {
-        //     String? typeValue;
-        //     if (e.bound != null) {
-        //       typeValue = e.bound?.name;
-        //     } else if (e is TypeParameterElementImpl) {
-        //       typeValue = e.defaultType?.name;
-        //     } else {
-        //       throw UnimplementedError();
-        //     }
-        //     asName = asName?.replaceAll(e.name, typeValue ?? '');
-        //   }
-        // }
-        enclosingElement = enclosingElement.enclosingElement;
-      } else {
-        throw UnimplementedError();
+  String? defaultValueCodeFromParameter(
+      AnalyzerPropertyAccessorCache elementCache) {
+    String? defaultValueCode = elementCache.defaultValueCode;
+    AnalyzerCache? parent = elementCache.parent;
+    while (parent != null) {
+      if (parent is AnalyzerClassCache) {
+        AnalyzerClassCache classCache = parent;
+        Unwrap(defaultValueCode)
+            .map((e) => classCache.defaultValueCodeFromClass(e))
+            .map((e) => defaultValueCode = e);
+      } else if (parent is AnalyzerFileCache) {
+        AnalyzerFileCache fileCache = parent;
+        Unwrap(defaultValueCode)
+            .map((e) => fileCache.defaultValueCodeFromTopLevelVariable(e))
+            .map((e) => defaultValueCode = e);
       }
+      parent = parent.parent;
     }
-    return asName;
+    return defaultValueCode;
   }
+
+  // String? getParameterAsName(AnalyzerPropertyAccessorCache impl) {
+  //   String? asName = impl.type.toString();
+  //   if (asName.contains('InvalidType')) {
+  //     asName = getParameterTypeString(impl);
+  //   }
+  //   var enclosingElement = impl.enclosingElement;
+  //   List<TypeParameterElement> typeParameters = [];
+  //   while (enclosingElement != null &&
+  //       enclosingElement is! CompilationUnitElementImpl) {
+  //     if (enclosingElement is TypeParameterizedElement) {
+  //       typeParameters.addAll(enclosingElement.typeParameters);
+  //       // if (typeParameters.isNotEmpty) {
+  //       //   for (var e in typeParameters) {
+  //       //     String? typeValue;
+  //       //     if (e.bound != null) {
+  //       //       typeValue = e.bound?.name;
+  //       //     } else if (e is TypeParameterElementImpl) {
+  //       //       typeValue = e.defaultType?.name;
+  //       //     } else {
+  //       //       throw UnimplementedError();
+  //       //     }
+  //       //     asName = asName?.replaceAll(e.name, typeValue ?? '');
+  //       //   }
+  //       // }
+  //       enclosingElement = enclosingElement.enclosingElement;
+  //     } else {
+  //       throw UnimplementedError();
+  //     }
+  //   }
+  //   return asName;
+  // }
 
   String? getBoundName(DartType type) {
     if (type is TypeParameterType) {
@@ -567,32 +482,6 @@ class FileRuntimeGenerate {
     return 'package:${info.name}/$path';
   }
 
-  String? runtimeNameWithType(DartType dartType) {
-    Unwrap(importPathFromType(dartType)).map((e) {
-      importPathSets.add(e);
-    });
-    final name0 = dartType.name;
-    if (name0 == null) return null;
-    if (dartType is! InterfaceType) return name0;
-    if (dartType.typeArguments.isEmpty) return name0;
-    final typeArguments = dartType.typeArguments
-        .map((e) {
-          Unwrap(importPathFromType(e)).map((e) {
-            importPathSets.add(e);
-          });
-          if (e is InterfaceType) return e.name;
-          if (e is TypeParameterType) return e.bound.name;
-          if (e is InvalidType) {
-            logger.e(this);
-          }
-          return null;
-        })
-        .whereType<String>()
-        .toList();
-    if (typeArguments.isEmpty) return name0;
-    return '$name0<${typeArguments.join(",")}>';
-  }
-
   String? importPathFromLibrary(LibraryElement library) {
     if (library.isInSdk) {
       final names = library.name.split('.');
@@ -607,70 +496,67 @@ class FileRuntimeGenerate {
     return importPathFromLibrary(library);
   }
 
-  ExtensionDeclarationImpl? getExtensionDeclaration(
-    String name,
-  ) {
-    if (name == 'Join') {
-      logger.e(library);
-    }
-    final impls = library.units.map((e) {
-      final declarations = e.unit.declarations.toList();
+  // ExtensionDeclarationImpl? getExtensionDeclaration(
+  //   String name,
+  // ) {
+  //   final impls = library.units.map((e) {
+  //     final declarations = e.unit.declarations.toList();
 
-      return declarations
-          .whereType<ExtensionDeclarationImpl>()
-          .where((element) => element.name?.lexeme == name)
-          .toList();
-    }).fold<List<ExtensionDeclarationImpl>>([],
-        (previousValue, element) => previousValue..addAll(element)).toList();
-    if (impls.isEmpty) return null;
-    return impls.first;
-  }
+  //     return declarations
+  //         .whereType<ExtensionDeclarationImpl>()
+  //         .where((element) => element.name?.lexeme == name)
+  //         .toList();
+  //   }).fold<List<ExtensionDeclarationImpl>>([],
+  //       (previousValue, element) => previousValue..addAll(element)).toList();
+  //   if (impls.isEmpty) return null;
+  //   return impls.first;
+  // }
 
-  String? getExtensionOnType(ExtensionDeclarationImpl impl) {
-    final typeParameters = <String, dynamic>{};
-    Unwrap(impl.typeParameters).map((e) {
-      for (TypeParameterImpl e in e.typeParameters) {
-        final name = e.name.lexeme;
-        final type = getTypeArgumentName(e);
-        typeParameters[name] = type;
-      }
-      return e.typeParameters;
-    });
-    final type = impl.extendedType;
-    var source = type.toSource();
-    for (var element in typeParameters.keys) {
-      source = source.replaceAll(element, typeParameters[element]);
-    }
-    return source;
-  }
+  // String? getExtensionOnType(ExtensionDeclarationImpl impl) {
+  //   final typeParameters = <String, dynamic>{};
+  //   Unwrap(impl.typeParameters).map((e) {
+  //     for (TypeParameterImpl e in e.typeParameters) {
+  //       final name = e.name.lexeme;
+  //       final type = getTypeArgumentName(e);
+  //       typeParameters[name] = type;
+  //     }
+  //     return e.typeParameters;
+  //   });
+  //   final type = impl.extendedType;
+  //   var source = type.toSource();
+  //   for (var element in typeParameters.keys) {
+  //     source = source.replaceAll(element, typeParameters[element]);
+  //   }
+  //   return source;
+  // }
 
   // 给引入的库隐藏对应的名字 防止命名冲突
-  Future<void> addImportHideNames() async {
-    final needHideNames = <String>[];
-    needHideNames.addAll(_classs.map((e) => e.name).toList());
-    needHideNames
-        .addAll(_extensions.map((e) => e.name).whereType<String>().toList());
-    int index = 0;
-    for (var analysis in importAnalysis) {
-      List<String> hideNames = [];
+  // Future<void> addImportHideNames() async {
+  //   final needHideNames = <String>[];
+  //   needHideNames.addAll(_classs.map((e) => e.name).toList());
+  //   needHideNames
+  //       .addAll(_extensions.map((e) => e.name).whereType<String>().toList());
+  //   int index = 0;
+  //   for (var analysis in importAnalysis) {
+  //     List<String> hideNames = [];
 
-      Unwrap(analysis.uriContent)
-          .map((e) => fixConfig?.getImportConfig(index))
-          .map((e) {
-        hideNames.addAll(e.hideNames);
-      });
+  //     Unwrap(analysis.uriContent)
+  //         .map((e) => fixConfig?.getImportConfig(index))
+  //         .map((e) {
+  //       hideNames.addAll(e.hideNames);
+  //     });
 
-      index++;
+  //     index++;
 
-      for (var name in needHideNames) {
-        final exportNames = analysis.exportNamespace?.definedNames.keys ?? [];
-        if (exportNames.contains(name)) {
-          hideNames.add(name);
-        }
-      }
-      analysis.hideNames = hideNames.toSet().toList();
-    }
-  }
+  //     for (var name in needHideNames) {
+  //       final exportNames = analysis.exportNamespace?.definedNames.keys ?? [];
+  //       if (exportNames.contains(name)) {
+  //         hideNames.add(name);
+  //       }
+  //     }
+  //     analysis.hideNames = hideNames.toSet().toList();
+  //   }
+  // }
 
   String? getTypeArgumentName(TypeParameterImpl impl) {
     final bound = impl.bound;
@@ -682,91 +568,91 @@ class FileRuntimeGenerate {
     throw UnimplementedError();
   }
 
-  String? getParameterTypeString(ParameterElementImpl elementImpl) {
-    List<Element?> elements = [elementImpl];
-    var element = elementImpl.enclosingElement;
-    while (element != null && element is! CompilationUnitElementImpl) {
-      elements.add(element);
-      element = element.enclosingElement;
-    }
-    elements = elements.reversed.toList();
-    if (elements.isEmpty) return null;
-    AstNode? member;
-    for (var e in elements) {
-      if (e is ClassElementImpl) {
-        final classs = library.getClasss(e);
-        if (classs.isEmpty) return null;
-        member = classs.first;
-      } else if (e is MethodElementImpl) {
-        List<MethodDeclarationImpl>? methods;
+  // String? getParameterTypeString(ParameterElementImpl elementImpl) {
+  //   List<Element?> elements = [elementImpl];
+  //   var element = elementImpl.enclosingElement;
+  //   while (element != null && element is! CompilationUnitElementImpl) {
+  //     elements.add(element);
+  //     element = element.enclosingElement;
+  //   }
+  //   elements = elements.reversed.toList();
+  //   if (elements.isEmpty) return null;
+  //   AstNode? member;
+  //   for (var e in elements) {
+  //     if (e is ClassElementImpl) {
+  //       final classs = library.getClasss(e);
+  //       if (classs.isEmpty) return null;
+  //       member = classs.first;
+  //     } else if (e is MethodElementImpl) {
+  //       List<MethodDeclarationImpl>? methods;
 
-        if (member != null && member is ClassDeclarationImpl) {
-          methods = member.getMethods(e);
-        } else if (member != null && member is MixinDeclarationImpl) {
-          methods = member.getMethods(e);
-        } else if (member != null && member is ExtensionDeclarationImpl) {
-          methods = member.getMethods(e);
-        } else {
-          throw UnimplementedError(e.toString());
-        }
-        if (methods.isEmpty) return null;
-        member = methods.first;
-      } else if (e is MixinElementImpl) {
-        final mixins = library.getMixins(e);
-        if (mixins.isEmpty) return null;
-        member = mixins.first;
-      } else if (e is ConstructorElementImpl) {
-        if (member != null && member is ClassDeclarationImpl) {
-          final constructors = member.getConstructors(e);
-          if (constructors.isEmpty) return null;
-          member = constructors.first;
-        } else {
-          throw UnimplementedError(e.toString());
-        }
-      } else if (e is FunctionElementImpl) {
-        final functions = library.getFunctions(e);
-        if (functions.isEmpty) return null;
-        member = functions.first;
-      } else if (e is ParameterElementImpl) {
-        List<FormalParameterImpl> parameters;
-        if (member != null && member is MethodDeclarationImpl) {
-          parameters = member.parameters?.parameters.toList() ?? [];
-        } else if (member != null && member is FunctionDeclarationImpl) {
-          parameters = member.functionExpression.parameters?.parameters ?? [];
-        } else if (member != null && member is ConstructorDeclarationImpl) {
-          parameters = member.parameters.parameters;
-        } else {
-          throw UnimplementedError(e.toString());
-        }
-        parameters = parameters.where((element) {
-          return element.name?.lexeme == e.name;
-        }).toList();
-        if (parameters.isEmpty) return null;
-        member = parameters.first;
-      } else if (e is ExtensionElementImpl) {
-        final mixins = library.getExtensions(e);
-        if (mixins.isEmpty) return null;
-        member = mixins.first;
-      }
-    }
-    if (member == null) return null;
-    var parameter = member;
-    if (member is DefaultFormalParameterImpl) {
-      parameter = member.parameter;
-    }
-    if (parameter is SimpleFormalParameter) {
-      final type = parameter.type;
-      if (type is NamedTypeImpl) {
-        return type.toSource();
-      } else if (type is GenericFunctionTypeImpl) {
-        return 'dynamic';
-      } else {
-        throw UnimplementedError(type.toString());
-      }
-    } else {
-      return null;
-    }
-  }
+  //       if (member != null && member is ClassDeclarationImpl) {
+  //         methods = member.getMethods(e);
+  //       } else if (member != null && member is MixinDeclarationImpl) {
+  //         methods = member.getMethods(e);
+  //       } else if (member != null && member is ExtensionDeclarationImpl) {
+  //         methods = member.getMethods(e);
+  //       } else {
+  //         throw UnimplementedError(e.toString());
+  //       }
+  //       if (methods.isEmpty) return null;
+  //       member = methods.first;
+  //     } else if (e is MixinElementImpl) {
+  //       final mixins = library.getMixins(e);
+  //       if (mixins.isEmpty) return null;
+  //       member = mixins.first;
+  //     } else if (e is ConstructorElementImpl) {
+  //       if (member != null && member is ClassDeclarationImpl) {
+  //         final constructors = member.getConstructors(e);
+  //         if (constructors.isEmpty) return null;
+  //         member = constructors.first;
+  //       } else {
+  //         throw UnimplementedError(e.toString());
+  //       }
+  //     } else if (e is FunctionElementImpl) {
+  //       final functions = library.getFunctions(e);
+  //       if (functions.isEmpty) return null;
+  //       member = functions.first;
+  //     } else if (e is ParameterElementImpl) {
+  //       List<FormalParameterImpl> parameters;
+  //       if (member != null && member is MethodDeclarationImpl) {
+  //         parameters = member.parameters?.parameters.toList() ?? [];
+  //       } else if (member != null && member is FunctionDeclarationImpl) {
+  //         parameters = member.functionExpression.parameters?.parameters ?? [];
+  //       } else if (member != null && member is ConstructorDeclarationImpl) {
+  //         parameters = member.parameters.parameters;
+  //       } else {
+  //         throw UnimplementedError(e.toString());
+  //       }
+  //       parameters = parameters.where((element) {
+  //         return element.name?.lexeme == e.name;
+  //       }).toList();
+  //       if (parameters.isEmpty) return null;
+  //       member = parameters.first;
+  //     } else if (e is ExtensionElementImpl) {
+  //       final mixins = library.getExtensions(e);
+  //       if (mixins.isEmpty) return null;
+  //       member = mixins.first;
+  //     }
+  //   }
+  //   if (member == null) return null;
+  //   var parameter = member;
+  //   if (member is DefaultFormalParameterImpl) {
+  //     parameter = member.parameter;
+  //   }
+  //   if (parameter is SimpleFormalParameter) {
+  //     final type = parameter.type;
+  //     if (type is NamedTypeImpl) {
+  //       return type.toSource();
+  //     } else if (type is GenericFunctionTypeImpl) {
+  //       return 'dynamic';
+  //     } else {
+  //       throw UnimplementedError(type.toString());
+  //     }
+  //   } else {
+  //     return null;
+  //   }
+  // }
 }
 
 extension StringPrivate on String {

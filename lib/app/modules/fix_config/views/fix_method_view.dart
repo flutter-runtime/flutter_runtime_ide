@@ -1,5 +1,6 @@
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_runtime_ide/analyzer/cache/analyzer_property_accessor_cache.dart';
 import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_select_view.dart';
 import 'package:get/get.dart';
@@ -19,8 +20,8 @@ class FixMethodView extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () => _addParameterConfig(),
-            icon: const Icon(Icons.add),
+            onPressed: () => controller.save(),
+            icon: const Icon(Icons.save),
           )
         ],
       ),
@@ -33,7 +34,7 @@ class FixMethodView extends StatelessWidget {
               trailing: Obx(
                 () => Switch(
                   value: controller.isShow.value,
-                  onChanged: (isOn) => controller.setIsShow(isOn),
+                  onChanged: (isOn) => controller.setOn(isOn),
                 ),
               ),
             ),
@@ -41,8 +42,9 @@ class FixMethodView extends StatelessWidget {
             Expanded(
               child: FixSelectView(
                 controller: controller.selectController,
-                onTap: (item) =>
-                    Unwrap(item).map((e) => _showParameterInfoView(e)),
+                onTap: (item) => Unwrap(item).map((e) {
+                  return _showFixParameterView(e);
+                }),
               ),
             )
           ],
@@ -51,22 +53,7 @@ class FixMethodView extends StatelessWidget {
     );
   }
 
-  _addParameterConfig() async {
-    final items = controller.allParameter
-        .map((e) => FixParameterConfig()
-          ..name = e.name
-          ..type = '')
-        .toList();
-    final result = await showSelectItemDialog(items);
-    if (result == null) return;
-    controller.addConfig(result);
-  }
-
-  _showParameterInfoView(FixParameterConfig config) async {
-    final controller = FixParameterController(config.type);
-    await Get.dialog(
-      Dialog(child: FixParameterView(controller: controller)),
-    );
-    config.type = controller.typeController.text;
+  _showFixParameterView(AnalyzerPropertyAccessorCache cache) {
+    Get.dialog(FixParameterView(FixParameterController(cache)));
   }
 }

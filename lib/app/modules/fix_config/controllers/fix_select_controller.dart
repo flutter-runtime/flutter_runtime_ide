@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fuzzywuzzy/fuzzywuzzy.dart';
 import 'package:get/get.dart';
 
 class FixSelectController<T extends FixSelectItem> extends GetxController {
@@ -12,7 +13,7 @@ class FixSelectController<T extends FixSelectItem> extends GetxController {
 
   FixSelectController(
     this.items, {
-    this.allowDelete = true,
+    this.allowDelete = false,
     this.onDeleteCallBack,
   }) {
     displayItems.value = items;
@@ -32,7 +33,12 @@ class FixSelectController<T extends FixSelectItem> extends GetxController {
       displayItems.value = items;
       return;
     }
-    displayItems.value = filter(nameController.text);
+    displayItems.value = extractAllSorted(
+      query: nameController.text,
+      choices: items,
+      cutoff: 60,
+      getter: (obj) => obj.name,
+    ).map((e) => e.choice).toList();
   }
 
   void remove(T item) {
@@ -73,6 +79,6 @@ class FixSelectController<T extends FixSelectItem> extends GetxController {
   }
 }
 
-abstract class FixSelectItem {
+mixin FixSelectItem {
   String get name;
 }

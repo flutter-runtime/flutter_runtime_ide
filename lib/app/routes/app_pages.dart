@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../modules/analyzer_detail/bindings/analyzer_detail_binding.dart';
+import '../modules/analyzer_detail/views/analyzer_detail_view.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
 import '../modules/welcome/bindings/welcome_binding.dart';

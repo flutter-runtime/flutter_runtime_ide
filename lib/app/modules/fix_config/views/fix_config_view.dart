@@ -20,12 +20,6 @@ class FixConfigView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('修复库配置'),
-        actions: [
-          IconButton(
-            onPressed: () => _showAddFileView(),
-            icon: const Icon(Icons.add),
-          ),
-        ],
       ),
       body: Container(
         padding: const EdgeInsets.all(15),
@@ -64,38 +58,11 @@ class FixConfigView extends StatelessWidget {
     );
   }
 
-  _showAddFileView() async {
-    final paths = AnalyzerPackageManager()
-        .getPackageLibraryPaths(controller.packageInfo?.packagePath ?? '');
-    if (paths.isEmpty) {
-      Get.snackbar('未分析！', '请先分析库: ${controller.configuration.name}');
-      return;
-    }
-    final result = await showSelectItemDialog(paths
-        .map((e) {
-          return libraryPath(e);
-        })
-        .whereType<String>()
-        .map((e) {
-          return _AnalysisPath(e);
-        })
-        .toList());
-    if (result == null) return;
-    controller.addConfig(result.name);
-  }
-
-  _showFixFileView(FixConfig config) {
-    final fullPath = controller.getFullPath(config);
-    if (fullPath == null) return;
+  _showFixFileView(FixConfigItem item) {
     Get.dialog(Dialog(
-      child: FixFileView(controller: FixFileController(config, fullPath)),
+      child: FixFileView(
+        controller: FixFileController(controller.packageInfo, item.fullPath),
+      ),
     ));
   }
-}
-
-class _AnalysisPath extends FixSelectItem {
-  @override
-  final String name;
-
-  _AnalysisPath(this.name);
 }

@@ -10,9 +10,9 @@ import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/file_runtime_generate.dart';
 import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
-import 'package:flutter_runtime_ide/analyzer/mustache.dart';
-import 'package:flutter_runtime_ide/analyzer/mustache_manager.dart';
-import 'package:flutter_runtime_ide/analyzer/package_config.dart';
+import 'package:flutter_runtime_ide/analyzer/mustache/mustache.dart';
+import 'package:flutter_runtime_ide/analyzer/mustache/mustache_manager.dart';
+import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
@@ -218,32 +218,27 @@ class _GenerateDartFile extends _AnalysisDartFile {
     FixConfig? fixConfig = fixRuntimeConfiguration?.fixs
         .firstWhereOrNull((element) => element.path == libraryPath);
 
-    final result = await AnalyzerPackageManager().getResolvedLibrary(
-      info.packagePath,
+    final fileCache = await AnalyzerPackageManager().getAnalyzerFileCache(
+      info,
       filePath,
+      true,
     );
 
-    if (result is ResolvedLibraryResultImpl) {
-      final sourcePath = 'package:${info.name}/$libraryPath';
-      final importAnalysisList = await getImportAnalysis(result);
-      FileRuntimeGenerate generate = FileRuntimeGenerate(
-        sourcePath,
-        packageConfig,
-        info,
-        result,
-        importAnalysisList,
-        fixConfig: fixConfig,
-      );
-      final generateCode = await generate.generateCode();
+    if (fileCache == null) return;
 
-      final outFile = "$outPutPath/${info.cacheName}${'/lib/$libraryPath'}";
-      final file = File(outFile);
-      await file.writeString(generateCode);
-    } else if (result is NotLibraryButPartResult) {
-      logger.v(result);
-    } else {
-      throw UnimplementedError(result.runtimeType.toString());
-    }
+    final sourcePath = 'package:${info.name}/$libraryPath';
+    // final importAnalysisList = await getImportAnalysis(result);
+    FileRuntimeGenerate generate = FileRuntimeGenerate(
+      sourcePath,
+      packageConfig,
+      info,
+      fileCache,
+    );
+    final generateCode = await generate.generateCode();
+
+    final outFile = "$outPutPath/${info.cacheName}${'/lib/$libraryPath'}";
+    final file = File(outFile);
+    await file.writeString(generateCode);
   }
 
   Future<List<ImportAnalysis>> getImportAnalysis(
@@ -320,7 +315,6 @@ class _GenerateDartFile extends _AnalysisDartFile {
     String? packagePath;
     String? libraryPath;
     if (uriContent.startsWith("package:")) {
-      // package:ffi/ffi.dart
       final content = uriContent.replaceFirst("package:", "");
       final contentPaths = content.split('/');
       final packageName = contentPaths[0];

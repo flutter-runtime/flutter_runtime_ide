@@ -5,7 +5,7 @@ import '../controllers/fix_parameter_controller.dart';
 
 class FixParameterView extends StatelessWidget {
   final FixParameterController controller;
-  const FixParameterView({super.key, required this.controller});
+  const FixParameterView(this.controller, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +14,7 @@ class FixParameterView extends StatelessWidget {
         title: const Text('修复参数配置'),
         actions: [
           IconButton(
-            onPressed: () => Get.back(),
+            onPressed: () => controller.save(),
             icon: const Icon(Icons.save),
           )
         ],

@@ -14,7 +14,7 @@ class {{className}} extends FlutterRuntime<{{{runtimeType}}}>{
 ''';
 
 const fileMustache = '''
-// ignore_for_file: implementation_imports, unused_import, invalid_use_of_visible_for_testing_member, duplicate_import, deprecated_member_use, unused_shown_name
+// ignore_for_file: implementation_imports, unused_import, invalid_use_of_visible_for_testing_member, duplicate_import, deprecated_member_use, unused_shown_name, camel_case_types, 
 import 'dart:async';
 import 'package:flutter_runtime/flutter_runtime.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
@@ -101,9 +101,11 @@ dependencies:
   flutter_runtime:
     path: {{{flutterRuntimePath}}}
   darty_json_safe: ^1.0.1
+{{#override}}
 dependency_overrides:
   {{pubName}}:
     path: {{{pubPath}}}
+{{/override}}
 ''';
 
 const functionMustache = '''

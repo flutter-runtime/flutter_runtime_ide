@@ -23,7 +23,7 @@ class PackageConfig {
   }
 }
 
-class PackageInfo extends FixSelectItem {
+class PackageInfo with FixSelectItem {
   @override
   late String name;
   late String rootUri;

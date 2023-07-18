@@ -4,7 +4,7 @@ import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_select_view
 import 'package:get/get.dart';
 
 class FixTabView extends StatefulWidget {
-  final FixTabViewController controller;
+  final FixTabController controller;
   const FixTabView(this.controller, {super.key});
 
   @override
@@ -60,8 +60,8 @@ class FixTabViewSource<T extends FixSelectItem> {
   FixTabViewSource(this.tabName, this.selectController, {this.onTap});
 }
 
-class FixTabViewController extends GetxController {
+class FixTabController extends GetxController {
   final List<FixTabViewSource> items;
   late TabController tabController;
-  FixTabViewController(this.items);
+  FixTabController(this.items);
 }
