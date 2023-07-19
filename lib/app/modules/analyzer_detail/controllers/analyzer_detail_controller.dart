@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyze_info.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
+import 'package:flutter_runtime_ide/analyzer/generate_runtime_package.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
@@ -13,10 +15,8 @@ import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-import '../../../../analyzer/file_runtime_generate.dart';
 import '../../../../analyzer/mustache/mustache.dart';
 import '../../../../analyzer/mustache/mustache_manager.dart';
-import '../../../../common/common_function.dart';
 
 class AnalyzerDetailController extends GetxController {
   // 当前分析库的信息
@@ -26,7 +26,7 @@ class AnalyzerDetailController extends GetxController {
   // 当前分析工程的依赖配置信息
   final PackageDependency packageDependency;
   // 分析过程的日志列表
-  var logs = <LogEvent>[].obs;
+  var logs = <GenerateRuntimePackageProgress>[].obs;
 
   // 当前总分析进度
   var progress = 0.0.obs;
@@ -42,7 +42,7 @@ class AnalyzerDetailController extends GetxController {
   /// 是否全部使用缓存
   var useCache = false.obs;
 
-  final ScrollController logScrollController = ScrollController();
+  final ItemScrollController logScrollController = ItemScrollController();
   final ItemScrollController itemScrollController = ItemScrollController();
 
   /// 分析信息
@@ -52,6 +52,8 @@ class AnalyzerDetailController extends GetxController {
 
   /// 是否可以自动滚动日志
   bool _autoScroll = false;
+
+  var currentAnalyzeLog = Rx<LogEvent?>(null);
 
   AnalyzerDetailController(
     this.packageInfo,
@@ -78,9 +80,6 @@ class AnalyzerDetailController extends GetxController {
       return element.value;
     });
 
-    /// 每隔 500 秒自动滚动
-    _autoScrollLog();
-
     Future.delayed(const Duration(microseconds: 500), () async {
       // showHUD();
       await analyzerGenerateCode();
@@ -99,104 +98,61 @@ class AnalyzerDetailController extends GetxController {
   // 分析依赖
   Future<void> analyzerPackage() async {
     reset();
-
-    callback(event) => logs.add(event);
-    Logger.addLogListener(callback);
-
-    logger.i('开始分析......');
-
-    final infos = allDependenceInfos;
-    if (infos.isEmpty) {
-      logger.e('没有依赖可以分析');
-      return;
-    }
-
-    _autoScroll = true;
-
-    //先删除之前生成的库缓存
-    await _deleteExitCache(infos[0]);
-
-    // 分析开始计时
-    DateTime start = DateTime.now();
-
-    // 总共有 [count] 个任务
-    int count = infos.length + 2;
-
-    // 每个任务的进度
-    double progressIndex = 1.0 / count;
-
-    int index = 0;
-    for (var info in infos) {
-      itemScrollController.jumpTo(index: index);
-      const ignorePackages = [
-        'flutter',
-        'flutter_test',
-      ];
-      if (ignorePackages.contains(info.name)) {
-        index++;
-      }
-      _PreAnalysisDartFile analysisDartFile = _PreAnalysisDartFile(
-        info,
-        getCacheStates(info.name).value,
-      );
-      analysisDartFile.progress.listen((p0) {
-        setItemProgress(info.name, p0);
-      });
-      await analysisDartFile.analysis();
-      setItemProgress(info.name, 1);
-      index += 1;
-      progress.value = progressIndex * index;
-    }
-    DateTime end = DateTime.now();
-    logger.i("解析代码完毕, 耗时:${end.difference(start).inMilliseconds} 毫秒");
-
-    // 生成当前库的运行时库
-    _GenerateDartFile analysisDartFile = _GenerateDartFile(
-      infos[0],
+    GenerateRuntimePackage generateRuntimePackage = GenerateRuntimePackage(
+      packageInfo,
       packageConfig,
-      getCacheStates(infos[0].name).value,
+      packageDependency,
+      progress: (percent) => progress.value = 0.8 * percent,
+      logCallback: (event) => currentAnalyzeLog.value = event,
+      analyzeProgress: (progress) => _updateProgress(progress),
     );
-    analysisDartFile.progress.listen((p0) {
-      // double progress = currentProgress + p0 * progressIndex;
-    });
-    await analysisDartFile.analysis();
-    index++;
-    progress.value = progressIndex * index;
-
-    // 生成运行时库的依赖文件
-    await createPubspecFile(infos[0]);
-
-    // 对于代码进行格式化
-    final rootPath = join(outPutPath, infos.first.cacheName);
-    final dart = await which("dart");
-    StreamController<List<int>> stdoutController = StreamController();
-    stdoutController.stream.listen(
-      (event) {
-        String log = String.fromCharCodes(event);
-        logger.i(log);
-      },
-    );
-    final flutter = await which('flutter');
-    try {
-      final shell = Shell(workingDirectory: rootPath, stdout: stdoutController);
-      await shell.run('''
-$flutter pub get
-$dart format ./
-''');
-
-      // 移除监听日志
-      Logger.removeLogListener(callback);
-    } catch (e) {
-      logger.e(e);
-      Get.snackbar('代码格式错误', e.toString());
-    }
-
+    await generateRuntimePackage.generate();
+    _updateProgress(GenerateRuntimePackageProgress(
+      GenerateRuntimePackageProgressType.analyzeProject,
+      '正在分析[${packageInfo.name}]代码',
+      0,
+      packageName: packageInfo.name,
+    ));
     await analyzerGenerateCode();
-
+    _updateProgress(GenerateRuntimePackageProgress(
+      GenerateRuntimePackageProgressType.analyzeProject,
+      '正在分析[${packageInfo.name}]代码',
+      1,
+      packageName: packageInfo.name,
+    ));
     progress.value = 1;
-    Get.snackbar('代码格式化完毕', '');
+    currentAnalyzeLog.value =
+        LogEvent(Level.info, '生成${packageInfo.name}运行库完毕!');
+  }
 
-    _autoScroll = false;
+  void _updateProgress(GenerateRuntimePackageProgress progress) {
+    final index = logs.indexWhere((element) =>
+        element.progressType == progress.progressType &&
+        element.packageName == progress.packageName);
+    if (index == -1) {
+      logs.add(progress);
+      Future.delayed(const Duration(milliseconds: 500)).then(
+        (value) {
+          logScrollController.jumpTo(index: index + 1);
+          if (progress.progressType ==
+              GenerateRuntimePackageProgressType.analyze) {
+            final packageIndex = allDependenceInfos.indexWhere(
+              (e) => e.name == progress.packageName,
+            );
+            if (packageIndex != -1) {
+              itemScrollController.jumpTo(index: packageIndex);
+            }
+          }
+        },
+      );
+    } else {
+      logs[index] = progress;
+    }
+    if (progress.progressType == GenerateRuntimePackageProgressType.analyze) {
+      Unwrap(progress.packageName).map(
+        (e) => setItemProgress(e, progress.progress),
+      );
+    }
   }
 
   Future<void> createPubspecFile(PackageInfo info) async {
@@ -295,19 +251,6 @@ $open ${join(outPutPath, packageInfo.cacheName)} -a 'Visual Studio Code.app'
 ''');
   }
 
-  _autoScrollLog() {
-    Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      if (!_autoScroll) return;
-      if (!logScrollController.hasClients) {
-        timer.cancel();
-        return;
-      }
-      if (logScrollController.position.pixels ==
-          logScrollController.position.maxScrollExtent) return;
-      logScrollController.jumpTo(logScrollController.position.maxScrollExtent);
-    });
-  }
-
   Future<void> analyzerGenerateCode() async {
     final workDirectory = join(outPutPath, packageInfo.cacheName);
     if (!await Directory(workDirectory).exists()) {
@@ -333,96 +276,5 @@ $open ${join(outPutPath, packageInfo.cacheName)} -a 'Visual Studio Code.app'
         infos.where((element) => element.infoType == AnalyzeInfoType.warning));
     infoInfos.addAll(
         infos.where((element) => element.infoType == AnalyzeInfoType.info));
-  }
-}
-
-abstract class _AnalysisDartFile {
-  final PackageInfo info;
-  var progress = 0.0.obs;
-  _AnalysisDartFile(this.info);
-
-  Future<void> analysis() async {
-    if (!await Directory(info.libPath).exists()) {
-      return;
-    }
-
-    List<FileSystemEntity> entitys = [];
-    Completer<List<FileSystemEntity>> completer = Completer();
-    Directory(info.libPath).list(recursive: true).listen(
-      (event) {
-        entitys.add(event);
-      },
-      onDone: () => completer.complete(entitys),
-    );
-    await completer.future;
-    // 获取到当前需要分析目录下面所有的子元素
-    int count = entitys.length;
-    int current = 0;
-    for (FileSystemEntity entity in entitys) {
-      final filePath = entity.path;
-      if (extension(filePath) != ".dart") continue;
-      // 根据文件路径获取到分析上下文
-      await analysisDartFile(filePath);
-      current += 1;
-      progress.value = current / count;
-      logger.v(
-          '[${info.name}:${(progress * 100).toStringAsFixed(2)}%] $filePath');
-    }
-  }
-
-  Future<void> analysisDartFile(String filePath) async {
-    throw UnimplementedError();
-  }
-}
-
-class _PreAnalysisDartFile extends _AnalysisDartFile {
-  final bool useCache;
-  _PreAnalysisDartFile(PackageInfo info, this.useCache) : super(info);
-
-  @override
-  Future<void> analysisDartFile(String filePath) async {
-    await AnalyzerPackageManager().getAnalyzerFileCache(
-      info,
-      filePath,
-      useCache,
-    );
-  }
-}
-
-class _GenerateDartFile extends _AnalysisDartFile {
-  final PackageConfig packageConfig;
-  final bool useCache;
-  _GenerateDartFile(PackageInfo info, this.packageConfig, this.useCache)
-      : super(info);
-
-  @override
-  Future<void> analysisDartFile(String filePath) async {
-    // FixRuntimeConfiguration? fixRuntimeConfiguration =
-    //     AnalyzerPackageManager().getFixRuntimeConfiguration(info);
-    final libraryPath =
-        filePath.split(info.packagePath)[1].replaceFirst("/lib/", "");
-    // FixConfig? fixConfig = fixRuntimeConfiguration?.fixs
-    //     .firstWhereOrNull((element) => element.path == libraryPath);
-
-    final result = await AnalyzerPackageManager()
-        .getAnalyzerFileCache(info, filePath, useCache);
-
-    if (result == null) return;
-
-    final sourcePath = 'package:${info.name}/$libraryPath';
-
-    // final importAnalysisList = await getImportAnalysis(result);
-    FileRuntimeGenerate generate = FileRuntimeGenerate(
-      sourcePath,
-      packageConfig,
-      info,
-      result,
-    );
-    final generateCode = await generate.generateCode();
-
-    final outFile = join(AnalyzerPackageManager.defaultRuntimePath, 'runtime',
-        info.cacheName, 'lib', libraryPath);
-    final file = File(outFile);
-    await file.writeString(generateCode);
   }
 }

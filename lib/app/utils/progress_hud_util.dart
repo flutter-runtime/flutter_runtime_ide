@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_runtime_ide/analyzer/generate_runtime_package.dart';
 import 'package:flutter_runtime_ide/widgets/progress_hud_view/views/progress_hud_view_view.dart';
 import 'package:get/get.dart';
 import 'package:loading_indicator/loading_indicator.dart';
@@ -23,6 +24,11 @@ Future<void> showProgressHud() async {
 updateProgressHud({double progress = 0.0}) {
   ProgressHudViewController controller = Get.find<ProgressHudViewController>();
   controller.show(progress);
+}
+
+updateProgressHudText(GenerateRuntimePackageProgress progress) {
+  ProgressHudViewController controller = Get.find<ProgressHudViewController>();
+  controller.updateText(progress);
 }
 
 void hideProgressHud() {

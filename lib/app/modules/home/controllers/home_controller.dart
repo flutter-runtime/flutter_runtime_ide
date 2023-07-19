@@ -4,6 +4,7 @@ import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
+import 'package:flutter_runtime_ide/analyzer/file_runtime_generate.dart';
 import 'package:flutter_runtime_ide/analyzer/generate_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache/mustache_manager.dart';
@@ -14,6 +15,8 @@ import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'dart:async';
 import 'package:process_run/process_run.dart';
+
+import '../../../../analyzer/cache/analyzer_file_cache.dart';
 
 class HomeController extends GetxController {
   // 当前操作的工程路径
@@ -101,24 +104,27 @@ class HomeController extends GetxController {
     showProgressHud();
     final infos =
         AnalyzerPackageManager.getAllowGeneratedPackages(packageConfig.value!);
-    int index = 1;
+    int index = 0;
     int count = infos.length;
     double progress = 1.0 / count;
-    for (var info in packageConfig.value!.packages) {
+    for (var info in infos) {
       index += 1;
       final generateRuntime = GenerateRuntimePackage(
         info,
         packageConfig.value!,
         dependency,
+        allowInitProject: false,
         progress: (percent) {
           updateProgressHud(
             progress: progress * (index - 1) + progress * percent,
           );
         },
+        analyzeProgress: (progress) => updateProgressHudText(progress),
       );
       await generateRuntime.generate();
     }
     updateProgressHud(progress: 1.0);
+    Get.snackbar('成功!', '生成全部运行库完毕!');
   }
 
   search() {
@@ -147,19 +153,54 @@ class HomeController extends GetxController {
     }
     showHUD();
 
+    const pubName = 'flutter_runtime_center';
+
     final data = {
-      'pubName': 'flutter_runtime_center',
+      'pubName': pubName,
       'dependencies': packages.map((e) {
         return {
-          'name': '${e.name}_runtime',
+          'name': e.runtimeName,
           'path': AnalyzerPackageManager.getRuntimePath(e)
         };
       }).toList(),
     };
+
+    const relativePath = '$pubName.dart';
+
+    final fileData = {
+      'imports': packages
+          .map((e) => {
+                'uriContent': 'package:${e.runtimeName}/${e.runtimeName}.dart',
+              })
+          .toList()
+    };
+
+    /// 生成运行时入口文件
+    final runtimeGenerate = FileRuntimeGenerate(
+      fileCache: AnalyzerFileCache(fileData, fileData),
+      globalClassName: AnalyzerPackageManager.md5ClassName(relativePath),
+      pubName: 'flutter_runtime_center',
+      runtimeClassNames: packages.map((e) {
+        return AnalyzerPackageManager.md5ClassName('${e.runtimeName}.dart');
+      }).toList(),
+    );
+
+    final root = join(progectPath.value, '.runtime');
+
+    final generateCode = await runtimeGenerate.generateCode();
+    final file = File(join(root, 'lib', relativePath));
+    await file.writeString(generateCode);
+
     final yamlContent =
         MustacheManager().render(globaleRuntimePackageMustache, data);
-    final runtimePath = join(progectPath.value, '.runtime', 'pubspec.yaml');
+    final runtimePath = join(root, 'pubspec.yaml');
     await File(runtimePath).writeString(yamlContent);
+    final flutter = await which("flutter");
+    final dart = await which("dart");
+    await Shell(workingDirectory: root).run('''
+$flutter pub get
+$dart format ./
+''');
     hideHUD();
   }
 }

@@ -11,6 +11,8 @@ import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 
 import '../common/common_function.dart';
+import 'cache/analyzer_file_cache.dart';
+import 'cache/analyzer_import_cache.dart';
 import 'file_runtime_generate.dart';
 import 'mustache/mustache.dart';
 import 'mustache/mustache_manager.dart';
@@ -30,7 +32,15 @@ class GenerateRuntimePackage {
   final Progress? progress;
 
   /// 分析期间产生的日志
-  final List<LogEvent> _logs = [];
+  final LogCallback? logCallback;
+
+  /// 分析的进度
+  /// [packageName] 当前分析库名称
+  /// [progress] 当前分析的进度
+  final void Function(GenerateRuntimePackageProgress progress)? analyzeProgress;
+
+  /// 是否允许生成完毕初始化工程 默认 true
+  final bool allowInitProject;
 
   /// 创建运行库生成器
   /// [info] 依赖库信息
@@ -41,15 +51,15 @@ class GenerateRuntimePackage {
     this.packageConfig,
     this.packageDependency, {
     this.progress,
+    this.logCallback,
+    this.analyzeProgress,
+    this.allowInitProject = true,
   });
-
-  /// 获取分析期间的日志信息
-  List<LogEvent> get logs => _logs;
 
   // 分析依赖
   Future<void> generate() async {
     /// 创建坚挺日志的回掉
-    callback(event) => logs.add(event);
+    callback(event) => logCallback?.call(event);
 
     /// 添加日志坚挺
     Logger.addLogListener(callback);
@@ -81,7 +91,8 @@ class GenerateRuntimePackage {
     DateTime start = DateTime.now();
 
     // 总共有 [count] 个任务
-    int count = infos.length + 2;
+    int count = infos.length + 1;
+    if (allowInitProject) count++;
 
     int index = 0;
 
@@ -90,6 +101,12 @@ class GenerateRuntimePackage {
       index += 1;
       _PreAnalysisDartFile analysisDartFile = _PreAnalysisDartFile(info, true);
       analysisDartFile.progress.listen((p0) {
+        analyzeProgress?.call(GenerateRuntimePackageProgress(
+          GenerateRuntimePackageProgressType.analyze,
+          '正在分析[${info.name}]代码',
+          p0,
+          packageName: info.name,
+        ));
         _setProgress(count, index, itemProgress: p0);
       });
       await analysisDartFile.analysis();
@@ -105,37 +122,58 @@ class GenerateRuntimePackage {
     );
     index++;
     analysisDartFile.progress.listen((p0) {
+      analyzeProgress?.call(GenerateRuntimePackageProgress(
+        GenerateRuntimePackageProgressType.generate,
+        '正在生成[${info.name}]代码',
+        p0,
+        packageName: info.name,
+      ));
       _setProgress(count, index, itemProgress: p0);
     });
     await analysisDartFile.analysis();
 
-    index++;
     // 生成运行时库的依赖文件
     await createPubspecFile(infos[0]);
-    _setProgress(count, index, itemProgress: 0.5);
 
-    // 对于代码进行格式化
-    final rootPath = AnalyzerPackageManager.getRuntimePath(info);
-    final dart = await which("dart");
-    StreamController<List<int>> stdoutController = StreamController();
-    stdoutController.stream.listen(
-      (event) {
-        String log = String.fromCharCodes(event);
-        logger.i(log);
-      },
-    );
-    final flutter = await which('flutter');
-    try {
-      final shell = Shell(workingDirectory: rootPath, stdout: stdoutController);
-      await shell.run('''
+    if (allowInitProject) {
+      index++;
+      _setProgress(count, index, itemProgress: 0);
+      analyzeProgress?.call(GenerateRuntimePackageProgress(
+        GenerateRuntimePackageProgressType.initProject,
+        '正在初始化[${info.name}]代码',
+        0,
+        packageName: info.name,
+      ));
+      // 对于代码进行格式化
+      final rootPath = AnalyzerPackageManager.getRuntimePath(info);
+      final dart = await which("dart");
+      StreamController<List<int>> stdoutController = StreamController();
+      stdoutController.stream.listen(
+        (event) {
+          String log = String.fromCharCodes(event);
+          logger.i(log);
+        },
+      );
+      final flutter = await which('flutter');
+      try {
+        final shell =
+            Shell(workingDirectory: rootPath, stdout: stdoutController);
+        await shell.run('''
 $flutter pub get
 $dart format ./
 ''');
 
-      // 移除监听日志
-      Logger.removeLogListener(callback);
-    } catch (e) {
-      logger.e(e);
+        // 移除监听日志
+        Logger.removeLogListener(callback);
+      } catch (e) {
+        logger.e(e);
+      }
+      analyzeProgress?.call(GenerateRuntimePackageProgress(
+        GenerateRuntimePackageProgressType.initProject,
+        '正在初始化[${info.name}]代码',
+        1,
+        packageName: info.name,
+      ));
     }
     _setProgress(count, index);
   }
@@ -146,7 +184,7 @@ $dart format ./
   /// [itemProgress] 当前任务总体的进度
   _setProgress(int count, int index, {double? itemProgress}) {
     index = max(1, index);
-    double indexProgress = index / count;
+    double indexProgress = 1 / count;
 
     double currentProgress;
     if (itemProgress != null) {
@@ -162,12 +200,9 @@ $dart format ./
   Future<void> createPubspecFile(PackageInfo info) async {
     final pubspecFile =
         join(AnalyzerPackageManager.getRuntimePath(info), 'pubspec.yaml');
-    var specName = info.name;
-    if (info.name == 'flutter') {
-      specName = 'flutter_${info.version}';
-    }
     final pubspecContent = MustacheManager().render(pubspecMustache, {
-      "pubName": specName,
+      'runtimeName': info.runtimeName,
+      "pubName": info.name,
       "pubPath": info.packagePath,
       'override': !['flutter'].contains(info.name),
       'flutterRuntimePath':
@@ -213,35 +248,29 @@ $dart format ./
 
 abstract class _AnalysisDartFile {
   final PackageInfo info;
+
   var progress = 0.0.obs;
   _AnalysisDartFile(this.info);
 
+  String get action;
+
   Future<void> analysis() async {
-    if (!await Directory(info.libPath).exists()) {
+    List<File> entitys = await AnalyzerPackageManager.readAllSourceFiles(info);
+    if (entitys.isEmpty) {
+      progress.value = 1.0;
       return;
     }
-
-    List<FileSystemEntity> entitys = [];
-    Completer<List<FileSystemEntity>> completer = Completer();
-    Directory(info.libPath).list(recursive: true).listen(
-      (event) {
-        entitys.add(event);
-      },
-      onDone: () => completer.complete(entitys),
-    );
-    await completer.future;
     // 获取到当前需要分析目录下面所有的子元素
     int count = entitys.length;
     int current = 0;
-    for (FileSystemEntity entity in entitys) {
+    for (var entity in entitys) {
+      current += 1;
       final filePath = entity.path;
-      if (extension(filePath) != ".dart") continue;
       // 根据文件路径获取到分析上下文
       await analysisDartFile(filePath);
-      current += 1;
       progress.value = current / count;
       logger.v(
-          '[${info.name}:${(progress * 100).toStringAsFixed(2)}%] $filePath');
+          '[$action][${info.name}:${(progress * 100).toStringAsFixed(2)}%] $filePath');
     }
   }
 
@@ -262,6 +291,9 @@ class _PreAnalysisDartFile extends _AnalysisDartFile {
       useCache,
     );
   }
+
+  @override
+  String get action => '分析';
 }
 
 class _GenerateDartFile extends _AnalysisDartFile {
@@ -286,12 +318,17 @@ class _GenerateDartFile extends _AnalysisDartFile {
 
     final sourcePath = 'package:${info.name}/$libraryPath';
 
+    final contentData = {
+      'uriContent': sourcePath,
+    };
+    result.imports.add(AnalyzerImportCache(contentData, contentData));
+
     // final importAnalysisList = await getImportAnalysis(result);
     FileRuntimeGenerate generate = FileRuntimeGenerate(
-      sourcePath,
-      packageConfig,
-      info,
-      result,
+      fileCache: result,
+      globalClassName:
+          AnalyzerPackageManager.md5ClassName(info.relativePath(sourcePath)),
+      pubName: info.name,
     );
     final generateCode = await generate.generateCode();
 
@@ -300,4 +337,103 @@ class _GenerateDartFile extends _AnalysisDartFile {
     final file = File(outFile);
     await file.writeString(generateCode);
   }
+
+  @override
+  Future<void> analysis() async {
+    await super.analysis();
+
+    /// 创建统一运行入口文件
+
+    /// 获取当前库的所有代码文件
+    final sourceFiles = await AnalyzerPackageManager.readAllSourceFiles(info);
+
+    /// 统一入口文件地址
+    final entryFile = join(
+      AnalyzerPackageManager.defaultRuntimePath,
+      'runtime',
+      info.cacheName,
+      'lib',
+      '${info.runtimeName}.dart',
+    );
+
+    /// 相对路径列表
+    final relativePaths = sourceFiles
+        .map((e) {
+          final relativePath = info.relativePathFromFullPath(e.path);
+          final runtimeFullPath = join(
+            AnalyzerPackageManager.defaultRuntimePath,
+            'runtime',
+            info.cacheName,
+            'lib',
+            relativePath,
+          );
+          if (!File(runtimeFullPath).existsSync()) return null;
+          return relativePath;
+        })
+        .whereType<String>()
+        .toList();
+
+    final map = {
+      'classs': [],
+      'imports': relativePaths.map((e) {
+        return {
+          'uriContent': e,
+        };
+      }).toList(),
+    };
+
+    final generate = FileRuntimeGenerate(
+      globalClassName:
+          AnalyzerPackageManager.md5ClassName('${info.runtimeName}.dart'),
+      pubName: info.name,
+      fileCache: AnalyzerFileCache(map, map),
+      runtimeClassNames: relativePaths.map((e) {
+        return AnalyzerPackageManager.md5ClassName(e);
+      }).toList(),
+    );
+
+    final generateCode = await generate.generateCode();
+
+    final file = File(entryFile);
+    await file.writeString(generateCode);
+  }
+
+  @override
+  String get action => '生成';
+}
+
+class GenerateRuntimePackageProgress {
+  /// 进度类型
+  final GenerateRuntimePackageProgressType progressType;
+
+  /// 进度提示
+  final String title;
+
+  /// 进度
+  final double progress;
+
+  final String? packageName;
+
+  GenerateRuntimePackageProgress(
+    this.progressType,
+    this.title,
+    this.progress, {
+    this.packageName,
+  });
+
+  String get log => '$title: ${(progress * 100).toStringAsFixed(2)}%';
+}
+
+enum GenerateRuntimePackageProgressType {
+  /// 分析进度
+  analyze,
+
+  /// 生成进度
+  generate,
+
+  /// 初始化工程进度
+  initProject,
+
+  /// 分析工程代码
+  analyzeProject,
 }

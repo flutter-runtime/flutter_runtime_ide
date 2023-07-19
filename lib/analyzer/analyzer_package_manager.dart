@@ -32,6 +32,9 @@ class AnalyzerPackageManager {
   // 存储每一个库对应分析的上下文
   final Map<String, AnalysisContextCollection> _collections = {};
 
+  /// 存储分析缓存 用于运行提速
+  final Map<String, AnalyzerFileCache> _fileCacheMap = {};
+
   List<FixRuntimeConfiguration> fixRuntimeConfiguration = [];
   PackageConfig? packageConfig;
 
@@ -133,10 +136,14 @@ class AnalyzerPackageManager {
     String filePath, [
     bool useCache = true,
   ]) async {
-    final cache = await readFileCache(info, filePath);
     if (useCache) {
+      if (_fileCacheMap.containsKey(filePath)) {
+        return _fileCacheMap[filePath];
+      }
+      final cache = await readFileCache(info, filePath);
       if (cache != null) {
         logger.i('[🟢使用缓存] $filePath');
+        _fileCacheMap[filePath] = cache;
         return cache;
       }
     }
@@ -144,11 +151,13 @@ class AnalyzerPackageManager {
     if (result is! ResolvedLibraryResult) {
       return null;
     }
+    final cache = await readFileCache(info, filePath);
     final elementCache = AnalyzerLibraryElementCacheImpl(
       result,
       Unwrap(cache).map((e) => e.map).defaultValue({}),
     );
     await saveFileCache(info, elementCache, filePath);
+    _fileCacheMap[filePath] = elementCache;
     return cache;
   }
 
@@ -246,12 +255,18 @@ class AnalyzerPackageManager {
 
   /// 根据依赖库的配置信息读取全部的代码文件路径
   /// [info] 当前分析文件对应库信息
-  Future<List<FileSystemEntity>> readAllSourceFiles(PackageInfo info) async {
-    List<FileSystemEntity> files = [];
-    Completer<List<FileSystemEntity>> completer = Completer();
-    final stream = Directory(info.libPath).list(recursive: true);
+  static Future<List<File>> readAllSourceFiles(PackageInfo info) async {
+    final directory = Directory(info.libPath);
+    if (!directory.existsSync()) {
+      return [];
+    }
+    List<File> files = [];
+    Completer<List<File>> completer = Completer();
+    final stream = directory.list(recursive: true);
     stream.listen((event) {
-      files.add(event);
+      if (event is File && extension(event.path) == '.dart') {
+        files.add(event);
+      }
     }, onDone: () {
       completer.complete(files);
     }, onError: (e) {
@@ -280,4 +295,10 @@ class AnalyzerPackageManager {
         'flutter_test',
         'lints',
       ];
+
+  /// 根据相对于依赖库中相对路径获取加密的 md5 的类名
+  /// [relativePath] 相对路径
+  static String md5ClassName(String relativePath) {
+    return "FR${md5(relativePath)}";
+  }
 }

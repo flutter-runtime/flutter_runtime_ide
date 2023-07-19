@@ -24,7 +24,7 @@ class FixConfigController extends GetxController {
   /// 读取当前依赖的所有源文件
   Future<void> readAllFile() async {
     final allSourceFiles =
-        await AnalyzerPackageManager().readAllSourceFiles(packageInfo);
+        await AnalyzerPackageManager.readAllSourceFiles(packageInfo);
     final selectItems = allSourceFiles
         .whereType<File>()
         .map((e) => e.path)

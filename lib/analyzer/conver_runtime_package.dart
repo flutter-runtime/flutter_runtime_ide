@@ -227,12 +227,13 @@ class _GenerateDartFile extends _AnalysisDartFile {
     if (fileCache == null) return;
 
     final sourcePath = 'package:${info.name}/$libraryPath';
+
     // final importAnalysisList = await getImportAnalysis(result);
     FileRuntimeGenerate generate = FileRuntimeGenerate(
-      sourcePath,
-      packageConfig,
-      info,
-      fileCache,
+      globalClassName:
+          AnalyzerPackageManager.md5ClassName(info.relativePath(sourcePath)),
+      pubName: info.name,
+      fileCache: fileCache,
     );
     final generateCode = await generate.generateCode();
 

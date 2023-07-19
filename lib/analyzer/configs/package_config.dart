@@ -55,6 +55,23 @@ class PackageInfo with FixSelectItem {
   String get libPath => join(packagePath, packageUri);
   // 获取缓存在本地的文件夹名称
   String get cacheName => '$name-$version';
+
+  String get runtimeName {
+    if (name == 'flutter') {
+      return '${name}_$version';
+    } else {
+      return '${name}_runtime';
+    }
+  }
+
+  /// 根据引入的路径获取相对路径
+  String relativePath(String sourcePath) {
+    return sourcePath.split('package:$name/').last;
+  }
+
+  String relativePathFromFullPath(String fullPath) {
+    return fullPath.split(libPath).last;
+  }
 }
 
 class PackageDependency {
