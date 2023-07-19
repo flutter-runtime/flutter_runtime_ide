@@ -70,6 +70,14 @@ class HomeController extends GetxController {
     packageConfig.value = PackageConfig.fromJson(jsonDecode(content));
     AnalyzerPackageManager().packageConfig = packageConfig.value;
 
+    /// 讲依赖当前库路径修为为绝对路径
+    for (var info in packageConfig.value!.packages) {
+      if (info.rootUri == '../') {
+        final userPath = platformEnvironment['HOME']!;
+        info.rootUri = join(userPath, progectPath.value.split(userPath).last);
+      }
+    }
+
     // 读取修复的配置
     await AnalyzerPackageManager().loadFixRuntimeConfiguration();
     search();

@@ -166,7 +166,7 @@ $dart format ./
         // 移除监听日志
         Logger.removeLogListener(callback);
       } catch (e) {
-        logger.e(e);
+        logger.e(e.toString());
       }
       analyzeProgress?.call(GenerateRuntimePackageProgress(
         GenerateRuntimePackageProgressType.initProject,
