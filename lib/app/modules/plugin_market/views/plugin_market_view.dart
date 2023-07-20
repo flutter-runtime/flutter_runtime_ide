@@ -1,5 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_runtime_ide/app/modules/plugin_market/controllers/add_plugin_controller.dart';
+import 'package:flutter_runtime_ide/app/modules/plugin_market/views/add_plugin_view.dart';
+import 'package:flutter_runtime_ide/app/modules/plugin_market/views/create_plugin_view.dart';
+import 'package:flutter_runtime_ide/common/common_function.dart';
 
 import 'package:get/get.dart';
 
@@ -27,6 +31,12 @@ class _PluginMarketViewState extends State<PluginMarketView> {
       appBar: AppBar(
         title: const Text('插件市场'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: () => _createPlugin(),
+            icon: const Icon(Icons.queue),
+          ),
+        ],
       ),
       body: Row(
         children: [
@@ -40,7 +50,7 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                       title: const Text('插件'),
                       backgroundColor: Colors.blue.shade400,
                       trailing: IconButton(
-                        onPressed: () {},
+                        onPressed: () => addPlugin(),
                         icon: const Icon(Icons.add),
                       ),
                     ),
@@ -53,7 +63,8 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                     const SizedBox(height: 10),
                     CupertinoListTile(
                       title: const Text('已安装'),
-                      trailing: Text('12'),
+                      trailing:
+                          Text(controller.installedPlugins.length.toString()),
                       onTap: () =>
                           controller.isShowInstalledPluginList.toggle(),
                       backgroundColor: Colors.blue.shade400,
@@ -61,12 +72,14 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                     if (controller.isShowInstalledPluginList.value)
                       Expanded(
                         child: ListView.separated(
-                          itemCount: 100,
+                          itemCount: controller.installedPlugins.length,
                           separatorBuilder: (BuildContext context, int index) {
                             return const Divider();
                           },
                           itemBuilder: (BuildContext context, int index) {
-                            return CupertinoListTile(title: Text('插件${index}'));
+                            final cli = controller.installedPlugins[index];
+                            return CupertinoListTile(
+                                title: Text('${cli.name}(${cli.ref})'));
                           },
                         ),
                       ),
@@ -96,5 +109,22 @@ class _PluginMarketViewState extends State<PluginMarketView> {
         ],
       ),
     );
+  }
+
+  /// 添加插件
+  Future<void> addPlugin() async {
+    final addPluginController = AddPluginController();
+    await Get.dialog(Dialog(child: AddPluginView(addPluginController)));
+    controller.addPlugin(
+      addPluginController.urlController.text,
+      addPluginController.refController.text,
+      addPluginController.isLocalPlugin.value,
+      addPluginController.isOverwrite.value,
+    );
+  }
+
+  /// 创建模板项目
+  Future<void> _createPlugin() async {
+    await Get.dialog(const Dialog(child: CreatePluginView()));
   }
 }

@@ -113,6 +113,15 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.0.2"
+  dcm:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: main
+      resolved-ref: "1f8b015be4ac8d1e7e91cea17374efedd12dd9cb"
+      url: "https://github.com/josercc/dcm.git"
+    source: git
+    version: "1.2.0"
   event_bus:
     dependency: "direct main"
     description:
@@ -216,6 +225,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.2"
+  io:
+    dependency: transitive
+    description:
+      name: io
+      sha256: "2ec25704aba361659e10e3e5f5d672068d332fc8ac516421d483a11e5cbd061e"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "1.0.4"
   js:
     dependency: transitive
     description:

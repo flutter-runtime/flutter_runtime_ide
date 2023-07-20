@@ -31,13 +31,18 @@ dependencies:
   #   path: .runtime/
   event_bus: ^2.0.0
   flutter_expanded_tile: ^0.3.7
+  dcm:
+    git:
+      url: https://github.com/josercc/dcm.git
+      ref: main
 
 dev_dependencies:
   flutter_lints: ^2.0.0
   flutter_test:
     sdk: flutter
 
-# dependency_overrides:
+dependency_overrides:
+  process_run: ^0.13.0
 # analyzer:
 #   path: /Users/king/.pub-cache/hosted/pub.flutter-io.cn/analyzer-5.13.0
 
