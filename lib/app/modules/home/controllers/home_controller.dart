@@ -74,7 +74,7 @@ class HomeController extends GetxController {
     for (var info in packageConfig.value!.packages) {
       if (info.rootUri == '../') {
         final userPath = platformEnvironment['HOME']!;
-        info.rootUri = join(userPath, progectPath.value.split(userPath).last);
+        info.rootUri = '$userPath${progectPath.value.split(userPath).last}';
       }
     }
 

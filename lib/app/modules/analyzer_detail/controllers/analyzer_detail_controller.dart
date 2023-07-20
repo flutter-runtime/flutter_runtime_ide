@@ -81,9 +81,9 @@ class AnalyzerDetailController extends GetxController {
     });
 
     Future.delayed(const Duration(microseconds: 500), () async {
-      // showHUD();
+      showHUD();
       await analyzerGenerateCode();
-      // hideHUD();
+      hideHUD();
     });
   }
 
