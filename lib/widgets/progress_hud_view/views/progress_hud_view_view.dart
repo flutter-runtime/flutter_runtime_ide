@@ -47,42 +47,13 @@ class ProgressHudView extends GetView<ProgressHudViewController> {
                   return ScrollablePositionedList.builder(
                     itemBuilder: (context, index) {
                       if (index == -1) return Container();
-                      LogEvent event = logEvents[index];
-                      Color? logTextColor;
-                      switch (event.level) {
-                        case Level.debug:
-                          logTextColor = Colors.black;
-                          break;
-                        case Level.error:
-                          logTextColor = Colors.red;
-                          break;
-                        case Level.info:
-                          logTextColor = Colors.green;
-                          break;
-                        case Level.warning:
-                          logTextColor = Colors.yellow;
-                          break;
-                        case Level.nothing:
-                          logTextColor = Colors.white;
-                          break;
-                        case Level.wtf:
-                          logTextColor = Colors.orange;
-                          break;
-                        case Level.verbose:
-                          logTextColor = Colors.grey.shade400;
-                          break;
-                        default:
-                      }
+                      final element = logEvents[index];
+
                       return ListTile(
-                        title: Text(
-                          event.message.toString(),
-                          style: TextStyle(color: logTextColor),
-                        ),
-                        subtitle: Text(
-                          event.time.toString(),
-                          style: TextStyle(color: Colors.grey.shade200),
-                        ),
-                      );
+                          title: Text(
+                        element.log,
+                        style: const TextStyle(color: Colors.white),
+                      ));
                     },
                     // separatorBuilder: (context, index) => const Divider(),
                     itemCount: logEvents.length,
