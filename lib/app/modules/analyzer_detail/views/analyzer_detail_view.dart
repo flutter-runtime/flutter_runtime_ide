@@ -1,5 +1,6 @@
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_runtime_ide/analyzer/generate_runtime_package.dart';
 import 'package:flutter_runtime_ide/app/modules/analyzer_detail/controllers/analyzer_detail_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/analyzer_detail/controllers/analyzer_info_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/analyzer_detail/views/analyzer_info_view.dart';
@@ -84,7 +85,7 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
             tileColor: Colors.blue.shade300,
           ),
           Container(
-            constraints: const BoxConstraints(maxHeight: 200),
+            constraints: const BoxConstraints(maxHeight: 300),
             child: ScrollablePositionedList.separated(
               itemScrollController: widget.controller.itemScrollController,
               itemCount: widget.controller.allDependenceInfos.length,
@@ -128,12 +129,22 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
                   '日志',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.clear_sharp),
-                  onPressed: () => widget.controller.clearLogs(),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Obx(() {
+                    LogEvent? event = widget.controller.currentAnalyzeLog.value;
+                    if (event == null) return Container();
+                    return Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        event.message,
+                        maxLines: 1,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 20),
+                      ),
+                    );
+                  }),
                 ),
-                _logLevelTabbar(context),
-                const Spacer(),
                 Text(
                   '分析信息:',
                   style: Theme.of(context).textTheme.headlineSmall,
@@ -177,135 +188,22 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
           ),
           Expanded(
             child: Obx(
-              () => ListView.separated(
-                controller: widget.controller.logScrollController,
+              () => ScrollablePositionedList.separated(
+                itemScrollController: widget.controller.logScrollController,
                 itemCount: widget.controller.logs.length,
                 separatorBuilder: (BuildContext context, int index) {
                   return const Divider();
                 },
                 itemBuilder: (BuildContext context, int index) {
-                  LogEvent event = widget.controller.logs[index];
-                  Color? logTextColor;
-                  switch (event.level) {
-                    case Level.debug:
-                      logTextColor = Colors.black;
-                      break;
-                    case Level.error:
-                      logTextColor = Colors.red;
-                      break;
-                    case Level.info:
-                      logTextColor = Colors.green;
-                      break;
-                    case Level.warning:
-                      logTextColor = Colors.yellow;
-                      break;
-                    case Level.nothing:
-                      logTextColor = Colors.white;
-                      break;
-                    case Level.wtf:
-                      logTextColor = Colors.orange;
-                      break;
-                    case Level.verbose:
-                      logTextColor = Colors.grey.shade500;
-                      break;
-                    default:
-                  }
-                  return ListTile(
-                    title: Text(
-                      event.message.toString(),
-                      style: TextStyle(color: logTextColor),
-                    ),
-                    subtitle: Text(
-                      event.time.toString(),
-                      style: TextStyle(color: Colors.grey.shade400),
-                    ),
-                  );
+                  GenerateRuntimePackageProgress progress =
+                      widget.controller.logs[index];
+                  return ListTile(title: Text(progress.log));
                 },
               ),
             ),
           )
         ],
       ),
-    );
-  }
-
-  Widget _logLevelTabbar(BuildContext context) {
-    return Row(
-      children: [
-        ElevatedButton.icon(
-          style:
-              ElevatedButton.styleFrom(foregroundColor: Colors.grey.shade400),
-          onPressed: () {},
-          icon: const Icon(Icons.circle),
-          label: Obx(
-            () => Text(widget.controller.errorInfos.length.toString()),
-          ),
-        ),
-        const SizedBox(width: 10),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(foregroundColor: Colors.black),
-          onPressed: () {},
-          icon: const Icon(Icons.circle),
-          label: Obx(
-            () => Text(widget.controller.errorInfos.length.toString()),
-          ),
-        ),
-        const SizedBox(width: 10),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(foregroundColor: Colors.red),
-          onPressed: () {},
-          icon: const Icon(Icons.circle),
-          label: Obx(
-            () => Text(widget.controller.errorInfos.length.toString()),
-          ),
-        ),
-        const SizedBox(width: 10),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(foregroundColor: Colors.green),
-          onPressed: () {},
-          icon: const Icon(Icons.circle),
-          label: Obx(
-            () => Text(widget.controller.errorInfos.length.toString()),
-          ),
-        ),
-        const SizedBox(width: 10),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(foregroundColor: Colors.yellow),
-          onPressed: () {},
-          icon: const Icon(Icons.circle),
-          label: Obx(
-            () => Text(widget.controller.errorInfos.length.toString()),
-          ),
-        ),
-        const SizedBox(width: 10),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(foregroundColor: Colors.white),
-          onPressed: () {},
-          icon: const Icon(Icons.circle),
-          label: Obx(
-            () => Text(widget.controller.errorInfos.length.toString()),
-          ),
-        ),
-        const SizedBox(width: 10),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(foregroundColor: Colors.orange),
-          onPressed: () {},
-          icon: const Icon(Icons.circle),
-          label: Obx(
-            () => Text(widget.controller.errorInfos.length.toString()),
-          ),
-        ),
-        const SizedBox(width: 10),
-        ElevatedButton.icon(
-          style:
-              ElevatedButton.styleFrom(foregroundColor: Colors.grey.shade300),
-          onPressed: () {},
-          icon: const Icon(Icons.circle),
-          label: Obx(
-            () => Text(widget.controller.errorInfos.length.toString()),
-          ),
-        ),
-      ],
     );
   }
 

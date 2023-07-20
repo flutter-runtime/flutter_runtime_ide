@@ -29,7 +29,10 @@ import 'package:darty_json_safe/darty_json_safe.dart';
 
 const getFieldMustache = '''
 @override
-dynamic getField(String fieldName) {
+dynamic getField(
+    FlutterRuntimeCallPath callPath,
+    String fieldName,
+) {
   {{#getFields}}
   {{#isStatic}}
   if (fieldName == "{{fieldName}}") return {{{staticPrefix}}}{{fieldValue}};
@@ -38,12 +41,21 @@ dynamic getField(String fieldName) {
   if (fieldName == "{{fieldName}}") return {{{prefix}}}{{fieldValue}};
   {{/isStatic}}
   {{/getFields}}
+  {{#isGlobal}}
+  {{#runtimeNames}}
+  if (callPath.className == r'{{{runtimeName}}}') return {{{runtimeName}}}(callPath.runtime).getField(callPath,fieldName);
+  {{/runtimeNames}}
+  {{/isGlobal}}
 }
 ''';
 
 const setFieldMustache = '''
 @override
-void setField(String fieldName, dynamic value) {
+void setField(
+    FlutterRuntimeCallPath callPath,
+    String fieldName,
+    dynamic value,
+  ) {
   {{#setFields}}
     {{#isStatic}}
       if (fieldName == "{{fieldName}}") {{>prefixMustache}}{{fieldValue}} = value;
@@ -52,21 +64,39 @@ void setField(String fieldName, dynamic value) {
       if (fieldName == "{{fieldName}}") {{>prefixMustache}}{{fieldValue}} = value;
     {{/isStatic}}
   {{/setFields}}
+  {{#isGlobal}}
+  {{#runtimeNames}}
+  if (callPath.className == r'{{{runtimeName}}}')  {{{runtimeName}}}(callPath.runtime).setField(callPath,fieldName,value);
+  {{/runtimeNames}}
+  {{/isGlobal}}
 }
 ''';
 
 const methodMustache = '''
 @override
-dynamic call(String methodName,[Map args = const {}]) {
+dynamic call(
+    FlutterRuntimeCallPath callPath,
+    String methodName, [
+    Map args = const {},
+  ]) {
   {{#methods}}
   {{>functionMustache}}
   {{/methods}}
+  {{#isGlobal}}
+  {{#runtimeNames}}
+  if (callPath.className == r'{{{runtimeName}}}') return {{{runtimeName}}}(callPath.runtime).call(callPath,methodName,args);
+  {{/runtimeNames}}
+  {{/isGlobal}}
 }
 ''';
 
 const constructorMustache = '''
-
-{{{instanceType}}} createRuntimeInstance(String constructorName,[Map args = const {},]) {
+@override
+dynamic createInstance(
+    FlutterRuntimeCallPath callPath,
+    String constructorName, [
+    Map args = const {},
+  ]) {
   {{^isAbstract}}
     {{#constructors}}
       if (constructorName == "{{constructorName}}")
@@ -82,6 +112,11 @@ const constructorMustache = '''
         );
     {{/constructors}}
   {{/isAbstract}}
+  {{#isGlobal}}
+  {{#runtimeNames}}
+  if (callPath.className == r'{{{runtimeName}}}') return {{{runtimeName}}}(callPath.runtime).createInstance(callPath,constructorName,args);
+  {{/runtimeNames}}
+  {{/isGlobal}}
   return null;
 } 
 ''';
@@ -93,7 +128,7 @@ const defaultValueMustache = '''
 ''';
 
 const pubspecMustache = '''
-name: {{pubName}}_runtime
+name: {{{runtimeName}}}
 environment:
   sdk: '>=2.18.0 <3.0.0'
 
