@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import '../../analyzer_detail/views/analyzer_detail_view.dart';
 import '../../fix_config/controllers/fix_runtime_config_controller.dart';
 import '../../fix_config/views/fix_runtime_config_view.dart';
+import '../../plugin_market/views/plugin_market_view.dart';
 import '../controllers/home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -18,6 +19,10 @@ class HomeView extends GetView<HomeController> {
         title: const Text('首页'),
         centerTitle: true,
         actions: [
+          IconButton(
+            onPressed: () => _showPluginMarketView(),
+            icon: const Icon(Icons.apps),
+          ),
           IconButton(
             onPressed: () => controller.analyzerAllPackageCode(),
             icon: const Icon(Icons.analytics),
@@ -172,5 +177,10 @@ class HomeView extends GetView<HomeController> {
         ),
       ),
     );
+  }
+
+  /// 显示插件市场界面
+  _showPluginMarketView() {
+    Get.dialog(const Dialog(child: PluginMarketView()));
   }
 }
