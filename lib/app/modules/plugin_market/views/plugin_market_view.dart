@@ -7,6 +7,7 @@ import 'package:flutter_runtime_ide/common/common_function.dart';
 
 import 'package:get/get.dart';
 
+import '../controllers/create_plugin_controller.dart';
 import '../controllers/plugin_market_controller.dart';
 
 class PluginMarketView extends StatefulWidget {
@@ -125,6 +126,12 @@ class _PluginMarketViewState extends State<PluginMarketView> {
 
   /// 创建模板项目
   Future<void> _createPlugin() async {
-    await Get.dialog(const Dialog(child: CreatePluginView()));
+    final createPluginController = CreatePluginController();
+    await Get.dialog(Dialog(child: CreatePluginView(createPluginController)));
+    controller.createPlugin(
+      createPluginController.nameController.text,
+      createPluginController.urlController.text,
+      createPluginController.refController.text,
+    );
   }
 }

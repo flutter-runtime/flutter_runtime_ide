@@ -9,6 +9,15 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "61.0.0"
+  analyze_cache:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: main
+      resolved-ref: "5cfd1f61b037652839d7fb54753a949719d5b7c1"
+      url: "https://github.com/flutter-runtime/analyze_cache.git"
+    source: git
+    version: "1.0.0"
   analyzer:
     dependency: "direct main"
     description:
@@ -583,5 +592,5 @@ packages:
     source: hosted
     version: "3.1.2"
 sdks:
-  dart: ">=2.19.0 <3.0.0"
+  dart: ">=2.19.6 <3.0.0"
   flutter: ">=3.3.0"

@@ -5,8 +5,6 @@ import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:flutter_runtime_ide/app/modules/analyzer_detail/controllers/analyzer_detail_controller.dart';
 import 'package:get/get.dart';
 import '../../analyzer_detail/views/analyzer_detail_view.dart';
-import '../../fix_config/controllers/fix_runtime_config_controller.dart';
-import '../../fix_config/views/fix_runtime_config_view.dart';
 import '../../plugin_market/views/plugin_market_view.dart';
 import '../controllers/home_controller.dart';
 
@@ -26,18 +24,6 @@ class HomeView extends GetView<HomeController> {
           IconButton(
             onPressed: () => controller.analyzerAllPackageCode(),
             icon: const Icon(Icons.analytics),
-          ),
-          IconButton(
-            onPressed: () async {
-              final manager = AnalyzerPackageManager();
-              await manager.loadFixRuntimeConfiguration();
-              final controller = FixRuntimeConfigController();
-              Get.dialog(
-                Dialog(child: FixRuntimeConfigView(controller: controller)),
-                barrierDismissible: false,
-              );
-            },
-            icon: const Icon(Icons.bug_report),
           ),
           IconButton(
             onPressed: () => controller.generateGlobaleRuntimePackage(),

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
+import 'package:flutter_runtime_ide/common/command_run.dart';
+import 'package:flutter_runtime_ide/widgets/run_command/run_command_view.dart';
+import 'package:flutter_runtime_ide/widgets/run_command/run_conmand_controller.dart';
 import 'package:get/get.dart';
 import 'package:dcm/dcm.dart';
+import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 
 class PluginMarketController extends GetxController {
@@ -24,6 +28,7 @@ class PluginMarketController extends GetxController {
   /// 加载已安装的插件
   _loadInstalledClis() async {
     installedPlugins.value = await CliVersionManager().allInstalled();
+    isShowInstalledPluginList.value = installedPlugins.isNotEmpty;
   }
 
   /// 添加插件
@@ -60,5 +65,23 @@ class PluginMarketController extends GetxController {
       }
     }
     hideHUD();
+  }
+
+  /// 创建插件
+  Future<void> createPlugin(String name, String url, String ref) async {
+    Get.dialog(Dialog(
+      child: RunCommandView(RunCommandController([
+        CommandRun(
+          'dcm',
+          'create -n $name -u $url -r $ref',
+          workingDirectory: platformEnvironment['HOME'],
+        ),
+        CommandRun(
+          'flutter',
+          'pub get',
+          workingDirectory: join(platformEnvironment['HOME']!, name),
+        ),
+      ])),
+    ));
   }
 }

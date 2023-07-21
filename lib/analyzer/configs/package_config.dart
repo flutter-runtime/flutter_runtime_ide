@@ -1,5 +1,4 @@
 import 'package:darty_json_safe/darty_json_safe.dart';
-import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_select_controller.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:path/path.dart';
 
@@ -23,8 +22,7 @@ class PackageConfig {
   }
 }
 
-class PackageInfo with FixSelectItem {
-  @override
+class PackageInfo {
   late String name;
   late String rootUri;
   late String packageUri;

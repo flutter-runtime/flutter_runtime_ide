@@ -1,49 +1,10 @@
 // ignore_for_file: implementation_imports
 
+import 'package:analyze_cache/analyze_cache.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
-import 'package:get/get.dart';
-import '../../app/modules/fix_config/controllers/fix_select_controller.dart';
-import 'analyzer_cache.dart';
 import 'analyzer_method_cache.dart';
 import 'analyzer_property_accessor_cache.dart';
-
-class AnalyzerMixinCache<T> extends AnalyzerCache<T> with FixSelectItem {
-  List<AnalyzerPropertyAccessorCache> fields = [];
-  List<AnalyzerMethodCache> methods = [];
-  List<AnalyzerMethodCache> constructors = [];
-  @override
-  late String name;
-  AnalyzerMixinCache(super.element, super.map, [super.parent]);
-
-  @override
-  void addToMap() {
-    super.addToMap();
-    this['fields'] = fields.map((e) => e.toJson()).toList();
-    this['methods'] = methods.map((e) => e.toJson()).toList();
-    this['constructors'] = constructors.map((e) => e.toJson()).toList();
-    this['name'] = name;
-  }
-
-  @override
-  void fromMap(Map map) {
-    super.fromMap(map);
-    fields = JSON(element)['fields']
-        .listValue
-        .map((e) => AnalyzerPropertyAccessorCache(e, e, this))
-        .toList();
-    methods = JSON(element)['methods']
-        .listValue
-        .map((e) => AnalyzerMethodCache(e, e, this))
-        .toList();
-    constructors = JSON(element)['constructors']
-        .listValue
-        .map((e) => AnalyzerConstructorElementCacheImpl(e, e, this))
-        .toList();
-
-    name = JSON(element)['name'].stringValue;
-  }
-}
 
 class AnalyzerMixinElementCacheImpl
     extends AnalyzerMixinCache<MixinElementImpl> {

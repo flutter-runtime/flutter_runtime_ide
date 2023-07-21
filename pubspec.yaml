@@ -35,6 +35,10 @@ dependencies:
     git:
       url: https://github.com/josercc/dcm.git
       ref: main
+  analyze_cache:
+    git:
+      url: https://github.com/flutter-runtime/analyze_cache.git
+      ref: main
 
 dev_dependencies:
   flutter_lints: ^2.0.0

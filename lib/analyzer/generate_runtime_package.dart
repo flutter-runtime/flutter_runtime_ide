@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:analyze_cache/analyze_cache.dart' hide StringPrivate, ListFirst;
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
@@ -11,8 +12,6 @@ import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 
 import '../common/common_function.dart';
-import 'cache/analyzer_file_cache.dart';
-import 'cache/analyzer_import_cache.dart';
 import 'file_runtime_generate.dart';
 import 'mustache/mustache.dart';
 import 'mustache/mustache_manager.dart';

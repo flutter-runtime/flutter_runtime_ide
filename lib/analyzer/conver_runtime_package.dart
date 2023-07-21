@@ -21,8 +21,6 @@ import 'package:process_run/process_run.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
 import 'package:analyzer/src/dart/resolver/scope.dart';
 
-import 'fix_runtime_configuration.dart';
-
 // 将指定库转换为运行时库
 class ConverRuntimePackage {
   // 输入的路径
@@ -31,8 +29,6 @@ class ConverRuntimePackage {
   final PackageConfig packageConfig;
   // 存储依赖的层级关系
   final PackageDependency packageDependency;
-
-  List<FixConfig> fixConfig = [];
 
   /// 创建转换器
   ConverRuntimePackage(
@@ -211,12 +207,8 @@ class _GenerateDartFile extends _AnalysisDartFile {
 
   @override
   Future<void> analysisDartFile(String filePath) async {
-    FixRuntimeConfiguration? fixRuntimeConfiguration =
-        AnalyzerPackageManager().getFixRuntimeConfiguration(info);
     final libraryPath =
         filePath.split(info.packagePath)[1].replaceFirst("/lib/", "");
-    FixConfig? fixConfig = fixRuntimeConfiguration?.fixs
-        .firstWhereOrNull((element) => element.path == libraryPath);
 
     final fileCache = await AnalyzerPackageManager().getAnalyzerFileCache(
       info,

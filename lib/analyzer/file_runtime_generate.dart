@@ -1,22 +1,12 @@
 // ignore_for_file: implementation_imports
 
+import 'package:analyze_cache/analyze_cache.dart' hide StringPrivate, ListFirst;
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
-import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
-import 'package:flutter_runtime_ide/analyzer/cache/analyzer_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/cache/analyzer_class_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/cache/analyzer_enum_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/cache/analyzer_extension_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/cache/analyzer_file_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/cache/analyzer_import_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/cache/analyzer_method_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/cache/analyzer_mixin_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/cache/analyzer_property_accessor_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
-import 'package:flutter_runtime_ide/analyzer/import_analysis.dart';
+
 import 'package:flutter_runtime_ide/analyzer/muatache_data/mustache_class_data.dart';
 import 'package:flutter_runtime_ide/analyzer/muatache_data/mustache_constructor_data.dart';
 import 'package:flutter_runtime_ide/analyzer/muatache_data/mustache_field_data.dart';
@@ -26,8 +16,6 @@ import 'package:flutter_runtime_ide/analyzer/muatache_data/mustache_method_data.
 import 'package:flutter_runtime_ide/analyzer/muatache_data/mustache_parameter_data.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache/mustache_manager.dart';
-import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
-import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:analyzer/src/dart/analysis/results.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
 import 'package:process_run/process_run.dart';

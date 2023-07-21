@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:darty_json_safe/darty_json_safe.dart';
+import 'package:analyze_cache/analyze_cache.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
@@ -15,8 +15,6 @@ import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'dart:async';
 import 'package:process_run/process_run.dart';
-
-import '../../../../analyzer/cache/analyzer_file_cache.dart';
 
 class HomeController extends GetxController {
   // 当前操作的工程路径
@@ -78,8 +76,6 @@ class HomeController extends GetxController {
       }
     }
 
-    // 读取修复的配置
-    await AnalyzerPackageManager().loadFixRuntimeConfiguration();
     search();
     hideHUD();
   }
