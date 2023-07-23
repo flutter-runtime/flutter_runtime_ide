@@ -41,30 +41,23 @@ class PluginMarketController extends GetxController {
     bool isLocal = false,
     bool isOverwrite = false,
   ]) async {
-    showHUD();
-    final dcm = await which('dcm');
+    CommandRun commandRun;
     if (isLocal) {
-      try {
-        var command = '''$dcm local -p $url''';
-        if (isOverwrite) {
-          command += ' -f';
-        }
-        Shell().run(command);
-      } catch (e) {
-        Get.snackbar('错误', e.toString());
+      var command = 'local -p $url';
+      if (isOverwrite) {
+        command += ' -f';
       }
+      commandRun = CommandRun('dcm', command);
     } else {
-      try {
-        var command = '''$dcm install -p $url@$ref''';
-        if (isOverwrite) {
-          command += ' -f';
-        }
-        Shell().run(command);
-      } catch (e) {
-        Get.snackbar('错误', e.toString());
+      var command = 'install -p $url@$ref';
+      if (isOverwrite) {
+        command += ' -f';
       }
+      commandRun = CommandRun('dcm', command);
     }
-    hideHUD();
+    Get.dialog(
+      Dialog(child: RunCommandView(RunCommandController([commandRun]))),
+    );
   }
 
   /// 创建插件
