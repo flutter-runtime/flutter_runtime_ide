@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/modules/plugin_market/controllers/add_plugin_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/plugin_market/views/add_plugin_view.dart';
+import 'package:flutter_runtime_ide/app/modules/plugin_market/views/command_detail_view.dart';
 import 'package:flutter_runtime_ide/app/modules/plugin_market/views/create_plugin_view.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 
@@ -64,8 +65,8 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                     const SizedBox(height: 10),
                     CupertinoListTile(
                       title: const Text('已安装'),
-                      trailing:
-                          Text(controller.installedPlugins.length.toString()),
+                      trailing: Text(
+                          '(${controller.installedPlugins.length.toString()})'),
                       onTap: () =>
                           controller.isShowInstalledPluginList.toggle(),
                       backgroundColor: Colors.blue.shade400,
@@ -120,6 +121,16 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                   ],
                 ),
               )),
+          Expanded(
+            child: Obx(() {
+              final info = controller.currentPluginInfo.value;
+              if (info == null) {
+                return Container();
+              } else {
+                return CommandDetailView(info);
+              }
+            }),
+          )
         ],
       ),
     );

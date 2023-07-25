@@ -40,6 +40,7 @@ dependencies:
       url: https://github.com/flutter-runtime/analyze_cache.git
       ref: main
   pubspec_yaml: ^3.1.0
+  markdown_widget: ^2.2.0
 
 dev_dependencies:
   flutter_lints: ^2.0.0

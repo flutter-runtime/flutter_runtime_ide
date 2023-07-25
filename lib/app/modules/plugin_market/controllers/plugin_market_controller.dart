@@ -108,7 +108,15 @@ class CommandInfo {
   final PubspecYaml yaml;
   const CommandInfo(this.cli, this.yaml);
 
+  /// 获取描述
   String get description => yaml.description.unsafe ?? '';
+
+  /// 获取命令支持的方法
+  List<CommandFunction> get functions => JSON(yaml.customFields)['commands']
+      .mapValue
+      .entries
+      .map((e) => CommandFunction(e.key, e.value))
+      .toList();
 }
 
 class CommandFunction {
