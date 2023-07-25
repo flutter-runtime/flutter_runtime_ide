@@ -78,9 +78,22 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                             return const Divider();
                           },
                           itemBuilder: (BuildContext context, int index) {
-                            final cli = controller.installedPlugins[index];
-                            return CupertinoListTile(
-                                title: Text('${cli.name}(${cli.ref})'));
+                            final info = controller.installedPlugins[index];
+
+                            return Obx(() {
+                              final currentInfo =
+                                  controller.currentPluginInfo.value;
+                              return CupertinoListTile(
+                                title:
+                                    Text('${info.cli.name}(${info.cli.ref})'),
+                                subtitle: Text(info.description),
+                                backgroundColor:
+                                    currentInfo == info ? Colors.white : null,
+                                onTap: () {
+                                  controller.updateInfo(info);
+                                },
+                              );
+                            });
                           },
                         ),
                       ),

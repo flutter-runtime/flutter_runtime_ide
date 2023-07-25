@@ -47,37 +47,42 @@ class HomeController extends GetxController {
       return;
     }
     showHUD();
-    // 获取依赖详细配置
-    final flutter = await which("flutter");
-    List<ProcessResult> results =
-        await Shell().run('''$flutter pub deps --json''');
-    final result = results[0];
-    if (result.errText.isNotEmpty) {
-      Get.snackbar("错误!", result.errText);
-      return;
-    }
+    try {
+      // 获取依赖详细配置
+      final flutter = await which("flutter");
+      List<ProcessResult> results =
+          await Shell().run('''$flutter pub deps --json''');
+      final result = results[0];
 
-    String depsContent = result.stdout;
-    final startIndex = depsContent.indexOf('{');
-    depsContent = depsContent.substring(startIndex);
-    final depsJson = json.decode(depsContent);
-    dependency = PackageDependency.fromJson(depsJson);
+      String depsContent = result.stdout;
+      final startIndex = depsContent.indexOf('{');
+      depsContent = depsContent.substring(startIndex);
+      final depsJson = json.decode(depsContent);
+      dependency = PackageDependency.fromJson(depsJson);
 
-    // 读取文件内容
-    String content = await File(packageConfigPath).readAsString();
-    packageConfig.value = PackageConfig.fromJson(jsonDecode(content));
-    AnalyzerPackageManager().packageConfig = packageConfig.value;
+      // 读取文件内容
+      String content = await File(packageConfigPath).readAsString();
+      packageConfig.value = PackageConfig.fromJson(jsonDecode(content));
+      AnalyzerPackageManager().packageConfig = packageConfig.value;
 
-    /// 讲依赖当前库路径修为为绝对路径
-    for (var info in packageConfig.value!.packages) {
-      if (info.rootUri == '../') {
-        final userPath = platformEnvironment['HOME']!;
-        info.rootUri = '$userPath${progectPath.value.split(userPath).last}';
+      /// 讲依赖当前库路径修为为绝对路径
+      for (var info in packageConfig.value!.packages) {
+        if (info.rootUri == '../') {
+          final userPath = platformEnvironment['HOME']!;
+          info.rootUri = '$userPath${progectPath.value.split(userPath).last}';
+        }
+      }
+
+      search();
+      hideHUD();
+    } catch (e) {
+      hideHUD();
+      if (e is ShellException) {
+        Get.snackbar("错误!", e.result?.stderr);
+      } else {
+        Get.snackbar("错误!", e.toString());
       }
     }
-
-    search();
-    hideHUD();
   }
 
   // 分析第三方库代码

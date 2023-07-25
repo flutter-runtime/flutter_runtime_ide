@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:flutter_runtime_ide/common/command_run.dart';
@@ -7,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:dcm/dcm.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
+import 'package:pubspec_yaml/pubspec_yaml.dart';
 
 class PluginMarketController extends GetxController {
   /// 插件名称的输入框
@@ -19,15 +23,31 @@ class PluginMarketController extends GetxController {
   var isShowRecommendPluginList = false.obs;
 
   /// 已经安装的插件列表
-  var installedPlugins = <Cli>[].obs;
+  var installedPlugins = <CommandInfo>[].obs;
+
+  // 当前选中的插件
+  var currentPluginInfo = Rxn<CommandInfo>();
 
   PluginMarketController() {
     _loadInstalledClis();
   }
 
+  /// 当前选中插件的索引 没有选中返回-1
+  int get currentPluginIndex => Unwrap(currentPluginInfo.value)
+      .map((e) => installedPlugins.indexOf(e))
+      .defaultValue(-1);
+
   /// 加载已安装的插件
   _loadInstalledClis() async {
-    installedPlugins.value = await CliVersionManager().allInstalled();
+    final allCli = await CliVersionManager().allInstalled();
+    final commandInfos = await Future.wait(allCli.map((e) async {
+      final pubYamlPath = join(e.installPath, 'pubspec.yaml');
+      final yaml = await File(pubYamlPath)
+          .readAsString()
+          .then((value) => PubspecYaml.loadFromYamlString(value));
+      return CommandInfo(e, yaml);
+    }).toList());
+    installedPlugins.value = commandInfos;
     isShowInstalledPluginList.value = installedPlugins.isNotEmpty;
   }
 
@@ -84,4 +104,22 @@ class PluginMarketController extends GetxController {
       ])),
     ));
   }
+
+  void updateInfo(CommandInfo info) {
+    currentPluginInfo.value = info;
+  }
+}
+
+class CommandInfo {
+  final Cli cli;
+  final PubspecYaml yaml;
+  const CommandInfo(this.cli, this.yaml);
+
+  String get description => yaml.description.unsafe ?? '';
+}
+
+class CommandFunction {
+  final String name;
+  final Map parameters;
+  CommandFunction(this.name, this.parameters);
 }
