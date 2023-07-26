@@ -4,8 +4,6 @@ import 'package:flutter_runtime_ide/app/modules/plugin_market/controllers/add_pl
 import 'package:flutter_runtime_ide/app/modules/plugin_market/views/add_plugin_view.dart';
 import 'package:flutter_runtime_ide/app/modules/plugin_market/views/command_detail_view.dart';
 import 'package:flutter_runtime_ide/app/modules/plugin_market/views/create_plugin_view.dart';
-import 'package:flutter_runtime_ide/common/common_function.dart';
-
 import 'package:get/get.dart';
 
 import '../controllers/create_plugin_controller.dart';
@@ -74,34 +72,55 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                     if (controller.isShowInstalledPluginList.value)
                       Expanded(
                         child: ListView.separated(
-                          itemCount: controller.installedPlugins.length,
+                          itemCount: controller.pluginNames.length,
                           separatorBuilder: (BuildContext context, int index) {
                             return const Divider();
                           },
                           itemBuilder: (BuildContext context, int index) {
-                            final info = controller.installedPlugins[index];
-
-                            return Obx(() {
-                              final currentInfo =
-                                  controller.currentPluginInfo.value;
-                              return CupertinoListTile(
-                                title:
-                                    Text('${info.cli.name}(${info.cli.ref})'),
-                                subtitle: Text(info.description),
-                                backgroundColor:
-                                    currentInfo == info ? Colors.white : null,
-                                onTap: () {
-                                  controller.updateInfo(info);
-                                },
-                              );
-                            });
+                            final name = controller.pluginNames[index];
+                            final versions =
+                                controller.getInstalledVersion(name);
+                            return ExpansionTile(
+                              title: Text(name),
+                              children: List.generate(versions.length, (index) {
+                                return Obx(() {
+                                  final info =
+                                      controller.currentPluginInfo.value;
+                                  return CupertinoListTile(
+                                    title: Text(versions[index].cli.ref),
+                                    subtitle: Text(versions[index].description),
+                                    trailing: TextButton(
+                                      onPressed: () => controller.activePlugin(
+                                        versions[index],
+                                        !versions[index].isActive,
+                                      ),
+                                      child: Icon(
+                                        Icons.check_circle,
+                                        color: versions[index].isActive
+                                            ? Colors.green.shade400
+                                            : Colors.grey,
+                                      ),
+                                    ),
+                                    onTap: versions[index].isActive
+                                        ? () {
+                                            controller
+                                                .updateInfo(versions[index]);
+                                          }
+                                        : null,
+                                    backgroundColor: versions[index] == info
+                                        ? Colors.red.shade100
+                                        : null,
+                                  );
+                                });
+                              }),
+                            );
                           },
                         ),
                       ),
                     const SizedBox(height: 10),
                     CupertinoListTile(
                       title: const Text('推荐'),
-                      trailing: Text('12'),
+                      trailing: const Text('(0)'),
                       onTap: () =>
                           controller.isShowRecommendPluginList.toggle(),
                       backgroundColor: Colors.blue.shade400,
@@ -109,7 +128,7 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                     if (controller.isShowRecommendPluginList.value)
                       Expanded(
                         child: ListView.separated(
-                          itemCount: 100,
+                          itemCount: 0,
                           separatorBuilder: (BuildContext context, int index) {
                             return const Divider();
                           },
@@ -140,12 +159,13 @@ class _PluginMarketViewState extends State<PluginMarketView> {
   Future<void> addPlugin() async {
     final addPluginController = AddPluginController();
     await Get.dialog(Dialog(child: AddPluginView(addPluginController)));
-    controller.addPlugin(
-      addPluginController.urlController.text,
-      addPluginController.refController.text,
-      addPluginController.isLocalPlugin.value,
-      addPluginController.isOverwrite.value,
-    );
+    final url = addPluginController.urlController.text;
+    final ref = addPluginController.refController.text;
+    final isLocal = addPluginController.isLocalPlugin.value;
+    final isOverwrite = addPluginController.isOverwrite.value;
+    if (url.isEmpty) return;
+    if (!isLocal && ref.isEmpty) return;
+    controller.addPlugin(url, ref, isLocal, isOverwrite);
   }
 
   /// 创建模板项目

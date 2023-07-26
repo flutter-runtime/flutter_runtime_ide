@@ -3,12 +3,16 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/modules/plugin_market/controllers/plugin_market_controller.dart';
+import 'package:get/get.dart';
 import 'package:markdown_widget/widget/markdown.dart';
 import 'package:path/path.dart';
 
-class CommandDetailView extends StatelessWidget {
+class CommandDetailView extends GetView<PluginMarketController> {
   final CommandInfo info;
   const CommandDetailView(this.info, {super.key});
+
+  @override
+  String? get tag => 'PluginMarketView';
 
   @override
   Widget build(BuildContext context) {
@@ -45,12 +49,23 @@ class CommandDetailView extends StatelessWidget {
               CupertinoListTile(
                 title: Row(
                   children: [
-                    ElevatedButton(onPressed: () {}, child: const Text('卸载')),
-                    const SizedBox(width: 10),
-                    ElevatedButton(onPressed: () {}, child: const Text('重装')),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                      onPressed: () => controller.uninstallPlugin(info),
+                      child: const Text('卸载'),
+                    ),
                     const SizedBox(width: 10),
                     ElevatedButton(
-                        onPressed: () {}, child: const Text('安装其他版本')),
+                      onPressed: () => controller.reinstallPlugin(info),
+                      child: const Text('重装'),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: () => controller.installOtherVersion(info),
+                      child: const Text('安装其他版本'),
+                    ),
                   ],
                 ),
               ),
