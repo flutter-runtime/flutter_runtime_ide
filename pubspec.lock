@@ -434,6 +434,15 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.1.0"
+  plugin_channel:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: main
+      resolved-ref: "395c2e1c7716e9fe183036caa3fa3675ee30d15e"
+      url: "https://github.com/flutter-runtime/plugin_channel.git"
+    source: git
+    version: "1.0.0"
   plugin_platform_interface:
     dependency: transitive
     description:

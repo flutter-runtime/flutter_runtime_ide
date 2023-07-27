@@ -1,3 +1,5 @@
+// ignore_for_file: implementation_imports
+
 import 'package:analyze_cache/analyze_cache.dart';
 import 'package:analyzer/src/dart/resolver/scope.dart';
 

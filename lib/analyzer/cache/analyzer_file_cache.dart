@@ -157,10 +157,4 @@ extension on Map {
       return JSON(element)['name'].stringValue == name;
     });
   }
-
-  Map? getImport(String name) {
-    return JSON(this)['imports'].listValue.firstWhereOrNull((element) {
-      return JSON(element)['name'].stringValue == name;
-    });
-  }
 }

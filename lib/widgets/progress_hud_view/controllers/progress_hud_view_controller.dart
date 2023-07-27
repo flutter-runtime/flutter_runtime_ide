@@ -1,10 +1,7 @@
 import 'dart:math';
 
-import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/analyzer/generate_runtime_package.dart';
-import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
-import 'package:logger/logger.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 class ProgressHudViewController extends GetxController {

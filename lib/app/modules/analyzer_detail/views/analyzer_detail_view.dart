@@ -1,4 +1,3 @@
-import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/generate_runtime_package.dart';
 import 'package:flutter_runtime_ide/app/modules/analyzer_detail/controllers/analyzer_detail_controller.dart';
@@ -20,12 +19,9 @@ class AnalyzerDetailView extends StatefulWidget {
 
 class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 8, vsync: this);
   }
 
   @override

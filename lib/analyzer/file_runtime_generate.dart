@@ -1,10 +1,6 @@
 // ignore_for_file: implementation_imports
 
 import 'package:analyze_cache/analyze_cache.dart' hide StringPrivate, ListFirst;
-import 'package:analyzer/dart/ast/ast.dart';
-import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/type.dart';
-import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 
 import 'package:flutter_runtime_ide/analyzer/muatache_data/mustache_class_data.dart';
@@ -16,9 +12,6 @@ import 'package:flutter_runtime_ide/analyzer/muatache_data/mustache_method_data.
 import 'package:flutter_runtime_ide/analyzer/muatache_data/mustache_parameter_data.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache/mustache_manager.dart';
-import 'package:analyzer/src/dart/analysis/results.dart';
-import 'package:analyzer/src/dart/ast/ast.dart';
-import 'package:process_run/process_run.dart';
 
 class FileRuntimeGenerate {
   final String globalClassName;

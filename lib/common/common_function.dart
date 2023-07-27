@@ -26,8 +26,8 @@ String md5(String source) {
   return crypto.md5.convert(utf8.encode(source)).toString().toString();
 }
 
-Future<String?> showAddValue(String title) {
-  return Get.dialog<String>(Dialog(child: AddValueView(title)));
+Future<String?> showAddValue(String title, [String? value]) {
+  return Get.dialog<String>(Dialog(child: AddValueView(title, value: value)));
 }
 
 String? libraryPath(String fullPath) {
@@ -37,11 +37,13 @@ String? libraryPath(String fullPath) {
 
 class AddValueView extends StatelessWidget {
   final String title;
-  const AddValueView(this.title, {super.key});
+  final String? value;
+  const AddValueView(this.title, {super.key, this.value});
 
   @override
   Widget build(BuildContext context) {
-    TextEditingController textEditingController = TextEditingController();
+    TextEditingController textEditingController =
+        TextEditingController(text: value);
     return Container(
       padding: const EdgeInsets.all(15),
       constraints: const BoxConstraints(maxWidth: 300),

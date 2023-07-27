@@ -1,3 +1,5 @@
+// ignore_for_file: implementation_imports, deprecated_member_use
+
 import 'package:analyze_cache/analyze_cache.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/src/dart/element/element.dart';

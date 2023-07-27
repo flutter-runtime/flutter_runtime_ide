@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:path/path.dart';
@@ -27,6 +29,7 @@ class PackageInfo {
   late String rootUri;
   late String packageUri;
   late String languageVersion;
+  late String version;
 
   PackageInfo.fromJson(Map<String, dynamic> json) {
     final jsonValue = JSON(json);
@@ -36,18 +39,24 @@ class PackageInfo {
     languageVersion = jsonValue["languageVersion"].stringValue;
   }
 
+  Future<void> initVersion([String? setVersion]) async {
+    if (setVersion != null) {
+      version = setVersion;
+      return;
+    }
+    final names = basename(packagePath).split('-');
+    if (names.length == 2) {
+      version = names[1];
+    } else {
+      final versionCode = await this.versionCode();
+      version = versionCode ?? md5Version;
+    }
+  }
+
   // 获取本地的路径 去掉 file://
   String get packagePath => rootUri.replaceFirst("file://", "");
   // 获取根据库在本地的路径经过md5加密获取的版本号
   String get md5Version => md5(packagePath);
-  // 获取当前库的版本
-  // 如果依赖的路径存在版本号,则返回版本号
-  // 如果依赖的路径不存在版本号,则返回md5加密的版本号
-  String get version {
-    final names = basename(packagePath).split('-');
-    if (names.length == 2) return names[1];
-    return md5Version;
-  }
 
   // 获取源代码所在的文件目录
   String get libPath => join(packagePath, packageUri);
@@ -69,6 +78,37 @@ class PackageInfo {
 
   String relativePathFromFullPath(String fullPath) {
     return fullPath.split(libPath).last;
+  }
+
+  Future<String?> versionCode() async {
+    final sdkNames = [
+      'flutter',
+      'sky_engin',
+      'flutter_driver',
+      'flutter_goldens',
+      'flutter_goldens_client',
+      'flutter_localizations',
+      'flutter_test',
+      'flutter_tools',
+      'flutter_web_plugins',
+      'fuchsia_remote_debug_protocol',
+      'integration_test',
+    ];
+    if (sdkNames.contains(name)) {
+      final paths = split(packagePath);
+      paths.removeRange(paths.length - 2, paths.length - 1);
+      final root = joinAll(paths);
+      final versionPath = join(root, 'version');
+      return loadVersionFromFile(File(versionPath));
+    } else {
+      final versionPath = join(packagePath, 'version');
+      return loadVersionFromFile(File(versionPath));
+    }
+  }
+
+  Future<String?> loadVersionFromFile(File file) async {
+    if (!await file.exists()) return null;
+    return file.readAsString();
   }
 }
 

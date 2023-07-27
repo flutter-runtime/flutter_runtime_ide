@@ -134,7 +134,9 @@ environment:
 
 dependencies:
   flutter_runtime:
-    path: {{{flutterRuntimePath}}}
+    git:
+      url: https://github.com/flutter-runtime/flutter_runtime.git
+      ref: 0.1.0
   darty_json_safe: ^1.0.1
 {{#override}}
 dependency_overrides:

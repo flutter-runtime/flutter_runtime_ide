@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:darty_json_safe/darty_json_safe.dart';
@@ -11,10 +10,8 @@ import 'package:flutter_runtime_ide/common/plugin_manager.dart';
 import 'package:flutter_runtime_ide/widgets/run_command/run_command_view.dart';
 import 'package:flutter_runtime_ide/widgets/run_command/run_conmand_controller.dart';
 import 'package:get/get.dart';
-import 'package:dcm/dcm.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
-import 'package:pubspec_yaml/pubspec_yaml.dart';
 
 class PluginMarketController extends GetxController {
   /// 插件名称的输入框
@@ -27,13 +24,17 @@ class PluginMarketController extends GetxController {
   var isShowRecommendPluginList = false.obs;
 
   /// 已经安装的插件列表
-  var installedPlugins = <CommandInfo>[];
+  var installedPlugins = <Rx<CommandInfo>>[];
 
   // 当前选中的插件
   var currentPluginInfo = Rxn<CommandInfo>();
 
   /// 插件名称列表
   var pluginNames = <String>[].obs;
+
+  final String projectPath;
+
+  PluginMarketController(this.projectPath);
 
   @override
   void onReady() {
@@ -43,26 +44,14 @@ class PluginMarketController extends GetxController {
 
   /// 当前选中插件的索引 没有选中返回-1
   int get currentPluginIndex => Unwrap(currentPluginInfo.value)
-      .map((e) => installedPlugins.indexOf(e))
+      .map((e) => installedPlugins.map((e) => e.value).toList().indexOf(e))
       .defaultValue(-1);
 
   /// 加载已安装的插件
   _loadInstalledClis() async {
     showHUD();
-    final allCli = await PluginManager().allInstalled();
-    final activePlugins = await _loadActivePlugins();
-    final commandInfos = await Future.wait(allCli.map((e) async {
-      final pubYamlPath = join(e.installPath, 'pubspec.yaml');
-      final yaml = await File(pubYamlPath)
-          .readAsString()
-          .then((value) => PubspecYaml.loadFromYamlString(value));
-      return CommandInfo(e, yaml)
-        ..isActive = activePlugins.any((element) {
-          return element.name == e.name && element.ref == e.ref;
-        });
-    }).toList());
-
-    installedPlugins = commandInfos;
+    final commandInfos = await PluginManager().allInstalled(projectPath);
+    installedPlugins = commandInfos.map((e) => e.obs).toList();
     pluginNames.value = commandInfos.map((e) => e.cli.name).toSet().toList();
 
     isShowInstalledPluginList.value = installedPlugins.isNotEmpty;
@@ -170,74 +159,53 @@ class PluginMarketController extends GetxController {
   }
 
   /// 根据插件名称查出当前已经安装的版本
-  List<CommandInfo> getInstalledVersion(String name) {
+  List<Rx<CommandInfo>> getInstalledVersion(String name) {
     return installedPlugins
-        .where((element) => element.cli.name == name)
+        .where((element) => element.value.cli.name == name)
         .toList();
   }
 
-  /// 存储在本地已经激活的插件列表文件路径
-  String get activePluginPath {
-    return join(platformEnvironment['HOME']!, '.active_plugins.json');
+  Future<void> activePlugin(Rx<CommandInfo> info) async {
+    bool isActive = !info.value.isActive;
+
+    /// 其他的版本失去激活
+    for (var infoR in installedPlugins) {
+      if (infoR == info) {
+        infoR.update((val) => val?..isActive = isActive);
+      } else {
+        infoR.update((val) => val?..isActive = !isActive);
+      }
+    }
+
+    /// 让当激活的自动选中
+    currentPluginInfo.value = info.value;
+
+    /// 获取当前已经激活的列表
+    final plugins = installedPlugins
+        .map((e) => e.value)
+        .where((element) => element.isActive)
+        .map((e) => ActivePluginInfo()
+          ..name = e.cli.name
+          ..ref = e.cli.ref)
+        .toList();
+    showHUD();
+    await PluginManager().saveActivePlugins(plugins, projectPath);
+    hideHUD();
   }
 
-  /// 读取已经激活的插件列表
-  Future<List<ActivePluginInfo>> _loadActivePlugins() async {
-    final file = File(activePluginPath);
-    if (!await file.exists()) return [];
-    return file.readAsString().then((value) => JSON(json.decode(value))
-        .listValue
-        .map((e) => ActivePluginInfo.fromJson(e))
-        .toList());
-  }
-
-  /// 保存已经激活的插件列表
-  Future<void> _saveActivePlugins(List<ActivePluginInfo> plugins) async {
-    final file = File(activePluginPath);
-    await file
-        .writeAsString(json.encode(plugins.map((e) => e.toJson()).toList()));
-  }
-
-  Future<void> activePlugin(CommandInfo info, bool isActive) async {}
-}
-
-class CommandInfo {
-  final Cli cli;
-  final PubspecYaml yaml;
-
-  /// 是否激活
-  bool isActive = false;
-
-  CommandInfo(this.cli, this.yaml);
-
-  /// 获取描述
-  String get description => yaml.description.unsafe ?? '';
-
-  /// 获取命令支持的方法
-  List<CommandFunction> get functions => JSON(yaml.customFields)['commands']
-      .mapValue
-      .entries
-      .map((e) => CommandFunction(e.key, e.value))
-      .toList();
-}
-
-class CommandFunction {
-  final String name;
-  final Map parameters;
-  CommandFunction(this.name, this.parameters);
-}
-
-/// 激活的插件信息
-class ActivePluginInfo {
-  late String name;
-  late String ref;
-  ActivePluginInfo.fromJson(Map<String, dynamic> map) {
-    final json = JSON(map);
-    name = json['name'].stringValue;
-    ref = json['ref'].stringValue;
-  }
-
-  Map<String, dynamic> toJson() {
-    return {'name': name, 'ref': ref};
+  switchDeveloper(bool isDeveloper) async {
+    currentPluginInfo.update((val) {
+      val?.isDeveloper = isDeveloper;
+    });
+    final info = currentPluginInfo.value;
+    if (info == null) return;
+    if (!isDeveloper) {
+      /// 如果不是开发模式 则重新编译插件
+      await Get.dialog(
+        RunCommandView(
+          RunCommandController([PluginManager().rebuildCommand(info)]),
+        ),
+      );
+    }
   }
 }

@@ -10,14 +10,19 @@ import '../controllers/create_plugin_controller.dart';
 import '../controllers/plugin_market_controller.dart';
 
 class PluginMarketView extends StatefulWidget {
-  const PluginMarketView({Key? key}) : super(key: key);
+  final PluginMarketController controller;
+  const PluginMarketView(this.controller, {Key? key}) : super(key: key);
 
   @override
   State<PluginMarketView> createState() => _PluginMarketViewState();
 }
 
 class _PluginMarketViewState extends State<PluginMarketView> {
-  final controller = Get.put(tag: 'PluginMarketView', PluginMarketController());
+  @override
+  void initState() {
+    super.initState();
+    Get.put(tag: 'PluginMarketView', widget.controller);
+  }
 
   @override
   void dispose() {
@@ -54,62 +59,57 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                         icon: const Icon(Icons.add),
                       ),
                     ),
-                    CupertinoListTile(
-                      title: TextField(
-                        decoration: const InputDecoration(labelText: '请输入插件名称'),
-                        controller: controller.nameController,
-                      ),
-                    ),
+                    // CupertinoListTile(
+                    //   title: TextField(
+                    //     decoration: const InputDecoration(labelText: '请输入插件名称'),
+                    //     controller: widget.controller.nameController,
+                    //   ),
+                    // ),
                     const SizedBox(height: 10),
                     CupertinoListTile(
                       title: const Text('已安装'),
                       trailing: Text(
-                          '(${controller.installedPlugins.length.toString()})'),
+                          '(${widget.controller.installedPlugins.length.toString()})'),
                       onTap: () =>
-                          controller.isShowInstalledPluginList.toggle(),
+                          widget.controller.isShowInstalledPluginList.toggle(),
                       backgroundColor: Colors.blue.shade400,
                     ),
-                    if (controller.isShowInstalledPluginList.value)
+                    if (widget.controller.isShowInstalledPluginList.value)
                       Expanded(
                         child: ListView.separated(
-                          itemCount: controller.pluginNames.length,
+                          itemCount: widget.controller.pluginNames.length,
                           separatorBuilder: (BuildContext context, int index) {
                             return const Divider();
                           },
                           itemBuilder: (BuildContext context, int index) {
-                            final name = controller.pluginNames[index];
+                            final name = widget.controller.pluginNames[index];
                             final versions =
-                                controller.getInstalledVersion(name);
+                                widget.controller.getInstalledVersion(name);
                             return ExpansionTile(
                               title: Text(name),
                               children: List.generate(versions.length, (index) {
                                 return Obx(() {
                                   final info =
-                                      controller.currentPluginInfo.value;
-                                  return CupertinoListTile(
-                                    title: Text(versions[index].cli.ref),
-                                    subtitle: Text(versions[index].description),
-                                    trailing: TextButton(
-                                      onPressed: () => controller.activePlugin(
-                                        versions[index],
-                                        !versions[index].isActive,
-                                      ),
-                                      child: Icon(
+                                      widget.controller.currentPluginInfo.value;
+                                  final version = versions[index];
+                                  return Obx(
+                                    () => CupertinoListTile(
+                                      title: Text(version.value.cli.ref),
+                                      subtitle: Text(version.value.description),
+                                      trailing: Icon(
                                         Icons.check_circle,
-                                        color: versions[index].isActive
+                                        color: version.value.isActive
                                             ? Colors.green.shade400
                                             : Colors.grey,
                                       ),
+                                      onTap: () {
+                                        return widget.controller
+                                            .activePlugin(version);
+                                      },
+                                      backgroundColor: version.value == info
+                                          ? Colors.red.shade100
+                                          : null,
                                     ),
-                                    onTap: versions[index].isActive
-                                        ? () {
-                                            controller
-                                                .updateInfo(versions[index]);
-                                          }
-                                        : null,
-                                    backgroundColor: versions[index] == info
-                                        ? Colors.red.shade100
-                                        : null,
                                   );
                                 });
                               }),
@@ -122,10 +122,10 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                       title: const Text('推荐'),
                       trailing: const Text('(0)'),
                       onTap: () =>
-                          controller.isShowRecommendPluginList.toggle(),
+                          widget.controller.isShowRecommendPluginList.toggle(),
                       backgroundColor: Colors.blue.shade400,
                     ),
-                    if (controller.isShowRecommendPluginList.value)
+                    if (widget.controller.isShowRecommendPluginList.value)
                       Expanded(
                         child: ListView.separated(
                           itemCount: 0,
@@ -133,7 +133,7 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                             return const Divider();
                           },
                           itemBuilder: (BuildContext context, int index) {
-                            return CupertinoListTile(title: Text('插件${index}'));
+                            return CupertinoListTile(title: Text('插件$index'));
                           },
                         ),
                       ),
@@ -142,7 +142,7 @@ class _PluginMarketViewState extends State<PluginMarketView> {
               )),
           Expanded(
             child: Obx(() {
-              final info = controller.currentPluginInfo.value;
+              final info = widget.controller.currentPluginInfo.value;
               if (info == null) {
                 return Container();
               } else {
@@ -165,14 +165,18 @@ class _PluginMarketViewState extends State<PluginMarketView> {
     final isOverwrite = addPluginController.isOverwrite.value;
     if (url.isEmpty) return;
     if (!isLocal && ref.isEmpty) return;
-    controller.addPlugin(url, ref, isLocal, isOverwrite);
+    widget.controller.addPlugin(url, ref, isLocal, isOverwrite);
   }
 
   /// 创建模板项目
   Future<void> _createPlugin() async {
     final createPluginController = CreatePluginController();
     await Get.dialog(Dialog(child: CreatePluginView(createPluginController)));
-    controller.createPlugin(
+    final name = createPluginController.nameController.text;
+    final url = createPluginController.urlController.text;
+    final ref = createPluginController.refController.text;
+    if (name.isEmpty || url.isEmpty || ref.isEmpty) return;
+    widget.controller.createPlugin(
       createPluginController.nameController.text,
       createPluginController.urlController.text,
       createPluginController.refController.text,

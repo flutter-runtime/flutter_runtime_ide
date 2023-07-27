@@ -6,14 +6,8 @@ import 'dart:io';
 import 'package:analyze_cache/analyze_cache.dart';
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
-import 'package:analyzer/dart/analysis/session.dart';
-import 'package:analyzer/dart/ast/ast.dart';
-import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_file_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/cache/analyzer_property_accessor_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
@@ -270,5 +264,14 @@ class AnalyzerPackageManager {
   /// [relativePath] 相对路径
   static String md5ClassName(String relativePath) {
     return "FR${md5(relativePath)}";
+  }
+}
+
+extension FileWrite on File {
+  Future<void> writeString(String content) async {
+    if (!await exists()) {
+      await create(recursive: true);
+    }
+    await writeAsString(content);
   }
 }

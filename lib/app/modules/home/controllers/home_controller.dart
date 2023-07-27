@@ -1,20 +1,22 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:analyze_cache/analyze_cache.dart';
+import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
-import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/file_runtime_generate.dart';
 import 'package:flutter_runtime_ide/analyzer/generate_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache/mustache.dart';
 import 'package:flutter_runtime_ide/analyzer/mustache/mustache_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
-import 'package:flutter_runtime_ide/common/common_function.dart';
-import 'package:get/get.dart';
+import 'package:flutter_runtime_ide/common/define.dart';
+import 'package:get/get.dart' hide FirstWhereExt;
 import 'package:path/path.dart';
 import 'dart:async';
 import 'package:process_run/process_run.dart';
+
+import '../../../../common/plugin_manager.dart';
 
 class HomeController extends GetxController {
   // 当前操作的工程路径
@@ -30,10 +32,16 @@ class HomeController extends GetxController {
 
   late PackageDependency dependency;
 
+  /// 当前启用的插件信息列表
+  late List<CommandInfo> activePlugins;
+
   HomeController() {
     progectPath.value = Get.arguments as String;
     Future.delayed(Duration.zero).then((value) async {
       await readPackageConfig();
+      activePlugins = await PluginManager()
+          .allInstalled(progectPath.value)
+          .then((value) => value.where((element) => element.isActive).toList());
     });
   }
 
@@ -65,8 +73,14 @@ class HomeController extends GetxController {
       packageConfig.value = PackageConfig.fromJson(jsonDecode(content));
       AnalyzerPackageManager().packageConfig = packageConfig.value;
 
+      /// 获取当前工程的设置版本配置
+      final versions = await PluginManager().getVersions(progectPath.value);
+
       /// 讲依赖当前库路径修为为绝对路径
       for (var info in packageConfig.value!.packages) {
+        final version = versions.firstWhereOrNull(
+            (element) => element.packagePath == info.packagePath);
+        await info.initVersion(version?.version);
         if (info.rootUri == '../') {
           final userPath = platformEnvironment['HOME']!;
           info.rootUri = '$userPath${progectPath.value.split(userPath).last}';
@@ -81,30 +95,6 @@ class HomeController extends GetxController {
         Get.snackbar("错误!", e.result?.stderr);
       } else {
         Get.snackbar("错误!", e.toString());
-      }
-    }
-  }
-
-  // 分析第三方库代码
-  // [packagePath] 第三方库的路径
-  FutureOr<void> analyzerPackageCode(
-    String packageName, [
-    bool showProgress = true,
-  ]) async {
-    final config = packageConfig.value;
-    if (config == null) return;
-    ConverRuntimePackage package = ConverRuntimePackage(
-      join(AnalyzerPackageManager.defaultRuntimePath, 'runtime'),
-      config,
-      dependency,
-    );
-    try {
-      await package.conver(packageName, showProgress);
-    } catch (e) {
-      if (e is Error) {
-        logger.e(e.stackTrace.toString());
-      } else {
-        logger.e(e.toString());
       }
     }
   }
@@ -129,6 +119,7 @@ class HomeController extends GetxController {
           );
         },
         analyzeProgress: (progress) => updateProgressHudText(progress),
+        commandInfo: getFixPlugin(info),
       );
       await generateRuntime.generate();
     }
@@ -211,5 +202,52 @@ $flutter pub get
 $dart format ./
 ''');
     hideHUD();
+  }
+
+  /// 获取指定库所关联的修复命令
+  CommandInfo? getFixPlugin(PackageInfo info) {
+    return activePlugins.firstWhereOrNull((element) {
+      return element.functions.any((element) {
+        final name = JSON(element.parameters)['name'].stringValue;
+        final version = JSON(element.parameters)['version'].stringValue;
+        return element.name == fixCommandName &&
+            name == info.name &&
+            version == info.version;
+      });
+    });
+  }
+
+  setPackageVersion(PackageInfo packageInfo, String version) async {
+    packageInfo.version = version;
+    final versions = await PluginManager().getVersions(progectPath.value);
+    final versionConifg = versions.firstWhereOrNull(
+        (element) => element.packagePath == packageInfo.packagePath);
+    if (versionConifg != null) {
+      versionConifg.version = version;
+    } else {
+      versions.add(Version()
+        ..version = version
+        ..packagePath = packageInfo.packagePath);
+    }
+    await PluginManager().saveVersions(versions, progectPath.value);
+  }
+}
+
+class Version {
+  late String version;
+  late String packagePath;
+  Version();
+
+  Version.fromJson(Map<String, dynamic> map) {
+    final json = JSON(map);
+    version = json['version'].stringValue;
+    packagePath = json['packagePath'].stringValue;
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'version': version,
+      'packagePath': packagePath,
+    };
   }
 }

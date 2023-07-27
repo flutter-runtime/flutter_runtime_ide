@@ -5,7 +5,6 @@ import 'package:flutter_runtime_ide/common/command_run.dart';
 import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
-import 'package:process_run/shell.dart';
 
 class RunCommandController extends GetxController {
   final List<CommandRun> commands;

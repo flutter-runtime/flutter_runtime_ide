@@ -7,6 +7,8 @@ import 'package:get/get.dart';
 import 'package:markdown_widget/widget/markdown.dart';
 import 'package:path/path.dart';
 
+import '../../../../common/plugin_manager.dart';
+
 class CommandDetailView extends GetView<PluginMarketController> {
   final CommandInfo info;
   const CommandDetailView(this.info, {super.key});
@@ -65,6 +67,18 @@ class CommandDetailView extends GetView<PluginMarketController> {
                     ElevatedButton(
                       onPressed: () => controller.installOtherVersion(info),
                       child: const Text('安装其他版本'),
+                    ),
+                    const Spacer(),
+                    SizedBox(
+                      width: 300,
+                      child: SwitchListTile(
+                        value: info.isDeveloper,
+                        title: const Text('开发'),
+                        subtitle: const Text('打开可以直接修改插件代码运行'),
+                        onChanged: (value) {
+                          controller.switchDeveloper(!info.isDeveloper);
+                        },
+                      ),
                     ),
                   ],
                 ),

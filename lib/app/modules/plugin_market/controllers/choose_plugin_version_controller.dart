@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_runtime_ide/app/modules/plugin_market/controllers/plugin_market_controller.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart';
