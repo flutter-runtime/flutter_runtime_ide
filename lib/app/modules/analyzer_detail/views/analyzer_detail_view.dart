@@ -1,11 +1,8 @@
-import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/generate_runtime_package.dart';
 import 'package:flutter_runtime_ide/app/modules/analyzer_detail/controllers/analyzer_detail_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/analyzer_detail/controllers/analyzer_info_controller.dart';
 import 'package:flutter_runtime_ide/app/modules/analyzer_detail/views/analyzer_info_view.dart';
-import 'package:flutter_runtime_ide/app/modules/fix_config/controllers/fix_config_controller.dart';
-import 'package:flutter_runtime_ide/app/modules/fix_config/views/fix_config_view.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -22,12 +19,9 @@ class AnalyzerDetailView extends StatefulWidget {
 
 class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 8, vsync: this);
   }
 
   @override
@@ -38,10 +32,6 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
             '分析${widget.controller.packageInfo.name}(${widget.controller.packageInfo.version})'),
         centerTitle: true,
         actions: [
-          IconButton(
-            onPressed: () => fixAnalyzer(),
-            icon: const Icon(Icons.auto_fix_high),
-          ),
           IconButton(
             onPressed: () => widget.controller.analyzerPackage(),
             icon: const Icon(Icons.analytics),
@@ -211,18 +201,5 @@ class _AnalyzerDetailViewState extends State<AnalyzerDetailView>
     Get.bottomSheet(AnalyzerInfoView(
       AnalyzerInfoController(widget.controller.packageInfo, infos),
     ));
-  }
-
-  /// 修复分析的结果
-  fixAnalyzer() async {
-    final result = await Get.defaultDialog<bool>(
-      title: '警告!',
-      middleText: '需要提前使用缓存进行分析工程，是否继续?',
-      onConfirm: () => Get.back(result: true),
-      onCancel: () {},
-    );
-    if (!JSON(result).boolValue) return;
-    Get.dialog(
-        FixConfigView(FixConfigController(widget.controller.packageInfo)));
   }
 }

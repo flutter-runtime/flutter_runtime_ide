@@ -2,22 +2,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
+import 'package:analyze_cache/analyze_cache.dart';
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
-import 'package:analyzer/dart/analysis/session.dart';
-import 'package:analyzer/dart/ast/ast.dart';
-import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/src/dart/element/element.dart';
 import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/analyzer/cache/analyzer_file_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/cache/analyzer_property_accessor_cache.dart';
-import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
-import 'package:flutter_runtime_ide/analyzer/fix_runtime_configuration.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
-import 'package:get/get.dart';
-import 'package:get/get_rx/src/rx_typedefs/rx_typedefs.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 
@@ -35,7 +26,6 @@ class AnalyzerPackageManager {
   /// 存储分析缓存 用于运行提速
   final Map<String, AnalyzerFileCache> _fileCacheMap = {};
 
-  List<FixRuntimeConfiguration> fixRuntimeConfiguration = [];
   PackageConfig? packageConfig;
 
   // 根据库的路径和文件的路径获取分析结果
@@ -76,32 +66,6 @@ class AnalyzerPackageManager {
 
   Map<String, SomeResolvedLibraryResult> results(String packagePath) {
     return _libraries[packagePath] ?? {};
-  }
-
-  Future<void> loadFixRuntimeConfiguration() async {
-    final loadPath = join(defaultRuntimePath, '.fix_runtime.json');
-    if (!await File(loadPath).exists()) {
-      return;
-    }
-    final jsonText = await File(loadPath).readAsString();
-    fixRuntimeConfiguration = JSON(jsonDecode(jsonText)).listValue.map((e) {
-      return FixRuntimeConfiguration.fromJson(e);
-    }).toList();
-  }
-
-  Future<void> saveFixRuntimeConfiguration(String root) async {
-    final jsonValue = fixRuntimeConfiguration.map((e) => e.toJson()).toList();
-    final jsonText = const JsonEncoder.withIndent('  ').convert(jsonValue);
-    final savePath = join(root, '.fix_runtime.json');
-    await File(savePath).writeAsString(jsonText);
-  }
-
-  FixRuntimeConfiguration? getFixRuntimeConfiguration(PackageInfo info) {
-    final path = basename(info.rootUri);
-    final configurations =
-        fixRuntimeConfiguration.where((element) => element.baseName == path);
-    if (configurations.isEmpty) return null;
-    return configurations.first;
   }
 
   List<String> getPackageLibraryPaths(String packagePath) {
@@ -300,5 +264,14 @@ class AnalyzerPackageManager {
   /// [relativePath] 相对路径
   static String md5ClassName(String relativePath) {
     return "FR${md5(relativePath)}";
+  }
+}
+
+extension FileWrite on File {
+  Future<void> writeString(String content) async {
+    if (!await exists()) {
+      await create(recursive: true);
+    }
+    await writeAsString(content);
   }
 }

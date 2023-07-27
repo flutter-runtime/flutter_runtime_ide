@@ -31,13 +31,28 @@ dependencies:
   #   path: .runtime/
   event_bus: ^2.0.0
   flutter_expanded_tile: ^0.3.7
+  dcm:
+    git:
+      url: https://github.com/josercc/dcm.git
+      ref: 1.3.0
+  analyze_cache:
+    git:
+      url: https://github.com/flutter-runtime/analyze_cache.git
+      ref: main
+  pubspec_yaml: ^3.1.0
+  markdown_widget: ^2.2.0
+  plugin_channel:
+    git:
+      url: https://github.com/flutter-runtime/plugin_channel.git
+      ref: main
 
 dev_dependencies:
   flutter_lints: ^2.0.0
   flutter_test:
     sdk: flutter
 
-# dependency_overrides:
+dependency_overrides:
+  process_run: 0.13.0
 # analyzer:
 #   path: /Users/king/.pub-cache/hosted/pub.flutter-io.cn/analyzer-5.13.0
 

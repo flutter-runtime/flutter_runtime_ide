@@ -2,13 +2,12 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:darty_json_safe/darty_json_safe.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/analyzer/analyze_info.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
-import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
 import 'package:flutter_runtime_ide/analyzer/generate_runtime_package.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
+import 'package:flutter_runtime_ide/common/plugin_manager.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart';
@@ -50,15 +49,16 @@ class AnalyzerDetailController extends GetxController {
   var warningInfos = <AnalyzeInfo>[].obs;
   var infoInfos = <AnalyzeInfo>[].obs;
 
-  /// 是否可以自动滚动日志
-  bool _autoScroll = false;
-
   var currentAnalyzeLog = Rx<LogEvent?>(null);
+
+  /// 修复的插件
+  CommandInfo? commandInfo;
 
   AnalyzerDetailController(
     this.packageInfo,
     this.packageConfig,
     this.packageDependency,
+    this.commandInfo,
   ) {
     final allDependences = _getPackageAllDependencies(packageInfo.name);
 
@@ -83,6 +83,7 @@ class AnalyzerDetailController extends GetxController {
     Future.delayed(const Duration(microseconds: 500), () async {
       showHUD();
       await analyzerGenerateCode();
+
       hideHUD();
     });
   }
@@ -105,6 +106,7 @@ class AnalyzerDetailController extends GetxController {
       progress: (percent) => progress.value = 0.8 * percent,
       logCallback: (event) => currentAnalyzeLog.value = event,
       analyzeProgress: (progress) => _updateProgress(progress),
+      commandInfo: commandInfo,
     );
     await generateRuntimePackage.generate();
     _updateProgress(GenerateRuntimePackageProgress(
@@ -165,8 +167,6 @@ class AnalyzerDetailController extends GetxController {
       "pubName": specName,
       "pubPath": info.packagePath,
       'override': !['flutter'].contains(info.name),
-      'flutterRuntimePath':
-          join(shellEnvironment['PWD']!, 'packages', 'flutter_runtime')
     });
     await File(pubspecFile).writeString(pubspecContent);
   }
@@ -185,17 +185,6 @@ class AnalyzerDetailController extends GetxController {
       packages.addAll(_getPackageAllDependencies(package));
     }
     return packages;
-  }
-
-  Future<void> _deleteExitCache(PackageInfo info) async {
-    final cachePath = join(
-      AnalyzerPackageManager.defaultRuntimePath,
-      'runtime',
-      info.cacheName,
-    );
-    if (await Directory(cachePath).exists()) {
-      await Directory(cachePath).delete(recursive: true);
-    }
   }
 
   double getItemProgress(String name) {

@@ -2,17 +2,20 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:analyze_cache/analyze_cache.dart' hide StringPrivate, ListFirst;
+import 'package:darty_json_safe/darty_json_safe.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
-import 'package:flutter_runtime_ide/analyzer/conver_runtime_package.dart';
+import 'package:flutter_runtime_ide/common/command_run.dart';
+import 'package:flutter_runtime_ide/common/define.dart';
+import 'package:flutter_runtime_ide/common/plugin_manager.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
+import 'package:plugin_channel/plugin_channel.dart';
 
 import '../common/common_function.dart';
-import 'cache/analyzer_file_cache.dart';
-import 'cache/analyzer_import_cache.dart';
 import 'file_runtime_generate.dart';
 import 'mustache/mustache.dart';
 import 'mustache/mustache_manager.dart';
@@ -42,6 +45,9 @@ class GenerateRuntimePackage {
   /// 是否允许生成完毕初始化工程 默认 true
   final bool allowInitProject;
 
+  /// 修复的命令
+  final CommandInfo? commandInfo;
+
   /// 创建运行库生成器
   /// [info] 依赖库信息
   /// [packageConfig] 当前工程的第三方库的配置
@@ -54,6 +60,7 @@ class GenerateRuntimePackage {
     this.logCallback,
     this.analyzeProgress,
     this.allowInitProject = true,
+    this.commandInfo,
   });
 
   // 分析依赖
@@ -119,6 +126,7 @@ class GenerateRuntimePackage {
       infos[0],
       packageConfig,
       true,
+      commandInfo,
     );
     index++;
     analysisDartFile.progress.listen((p0) {
@@ -205,8 +213,6 @@ $dart format ./
       "pubName": info.name,
       "pubPath": info.packagePath,
       'override': !['flutter'].contains(info.name),
-      'flutterRuntimePath':
-          join(shellEnvironment['PWD']!, 'packages', 'flutter_runtime')
     });
     await File(pubspecFile).writeString(pubspecContent);
   }
@@ -299,8 +305,13 @@ class _PreAnalysisDartFile extends _AnalysisDartFile {
 class _GenerateDartFile extends _AnalysisDartFile {
   final PackageConfig packageConfig;
   final bool useCache;
-  _GenerateDartFile(PackageInfo info, this.packageConfig, this.useCache)
-      : super(info);
+  final CommandInfo? commandInfo;
+  _GenerateDartFile(
+    PackageInfo info,
+    this.packageConfig,
+    this.useCache,
+    this.commandInfo,
+  ) : super(info);
 
   @override
   Future<void> analysisDartFile(String filePath) async {
@@ -311,17 +322,63 @@ class _GenerateDartFile extends _AnalysisDartFile {
     // FixConfig? fixConfig = fixRuntimeConfiguration?.fixs
     //     .firstWhereOrNull((element) => element.path == libraryPath);
 
-    final result = await AnalyzerPackageManager()
+    var result = await AnalyzerPackageManager()
         .getAnalyzerFileCache(info, filePath, useCache);
-
-    if (result == null) return;
 
     final sourcePath = 'package:${info.name}/$libraryPath';
 
     final contentData = {
       'uriContent': sourcePath,
     };
-    result.imports.add(AnalyzerImportCache(contentData, contentData));
+    result?.imports.add(AnalyzerImportCache(contentData, contentData));
+
+    /// 启动修复插件让插件进行修复
+    if (commandInfo != null) {
+      /// 需要修复的数据
+      final data = result?.toJson();
+
+      /// 生成通道 ID
+      final id = ChannelIdentifier.fromPluginName(commandInfo!.cli.name);
+
+      /// 通道的数据
+      final request = ChannelResponse.success(data);
+
+      /// 请求资源
+      final resouce = ChannelResource(id);
+
+      /// 保存通道数据
+      await resouce.saveRequestResource(request);
+
+      /// 运行修复命令
+      try {
+        if (JSON(commandInfo?.isDeveloper).boolValue) {
+          final name = commandInfo!.cli.name;
+          await CommandRun(
+            'dart',
+            'run ${join(commandInfo!.cli.installPath, 'bin', '$name.dart')} $fixCommandName -i $id',
+          ).run();
+        } else {
+          await CommandRun(
+            'dcm',
+            'run -n ${commandInfo!.cli.name}@${commandInfo!.cli.ref} -c $fixCommandName -i $id',
+          ).run();
+        }
+
+        /// 获取返回内容
+        final response = await resouce.readResponseResource();
+        result = AnalyzerFileCache(response.data, response.data);
+
+        /// 删除请求和返回的资源
+        await resouce.removeRequestResource();
+        await resouce.removeResponseResource();
+      } on ShellException catch (e) {
+        logger.e(e.result?.stdout);
+      } catch (e) {
+        logger.e(e.toString());
+      }
+    }
+
+    if (result == null) return;
 
     // final importAnalysisList = await getImportAnalysis(result);
     FileRuntimeGenerate generate = FileRuntimeGenerate(

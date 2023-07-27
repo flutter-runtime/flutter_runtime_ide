@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
 
 import 'package:get/get.dart';
-import 'package:logger/logger.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../controllers/progress_hud_view_controller.dart';

@@ -1,12 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/analyzer/configs/package_config.dart';
 import 'package:flutter_runtime_ide/app/modules/analyzer_detail/controllers/analyzer_detail_controller.dart';
+import 'package:flutter_runtime_ide/app/modules/plugin_market/controllers/plugin_market_controller.dart';
+import 'package:flutter_runtime_ide/app/utils/progress_hud_util.dart';
+import 'package:flutter_runtime_ide/common/common_function.dart';
 import 'package:get/get.dart';
 import '../../analyzer_detail/views/analyzer_detail_view.dart';
-import '../../fix_config/controllers/fix_runtime_config_controller.dart';
-import '../../fix_config/views/fix_runtime_config_view.dart';
+import '../../plugin_market/views/plugin_market_view.dart';
 import '../controllers/home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -19,20 +20,12 @@ class HomeView extends GetView<HomeController> {
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () => controller.analyzerAllPackageCode(),
-            icon: const Icon(Icons.analytics),
+            onPressed: () => _showPluginMarketView(),
+            icon: const Icon(Icons.apps),
           ),
           IconButton(
-            onPressed: () async {
-              final manager = AnalyzerPackageManager();
-              await manager.loadFixRuntimeConfiguration();
-              final controller = FixRuntimeConfigController();
-              Get.dialog(
-                Dialog(child: FixRuntimeConfigView(controller: controller)),
-                barrierDismissible: false,
-              );
-            },
-            icon: const Icon(Icons.bug_report),
+            onPressed: () => controller.analyzerAllPackageCode(),
+            icon: const Icon(Icons.analytics),
           ),
           IconButton(
             onPressed: () => controller.generateGlobaleRuntimePackage(),
@@ -118,13 +111,22 @@ class HomeView extends GetView<HomeController> {
                           right: 20,
                           child: Align(
                             alignment: Alignment.centerRight,
-                            child: IconButton(
-                              onPressed: () {
-                                // controller
-                                //     .analyzerPackageCode(packageInfo.name);
-                                _showAnalyzerDetailView(packageInfo);
-                              },
-                              icon: const Icon(Icons.analytics),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  onPressed: () {
+                                    _showEditCustomVersionDialog(packageInfo);
+                                  },
+                                  icon: const Icon(Icons.edit),
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    _showAnalyzerDetailView(packageInfo);
+                                  },
+                                  icon: const Icon(Icons.analytics),
+                                )
+                              ],
                             ),
                           ),
                         ),
@@ -168,9 +170,32 @@ class HomeView extends GetView<HomeController> {
             packageInfo,
             controller.packageConfig.value!,
             controller.dependency,
+            controller.getFixPlugin(packageInfo),
           ),
         ),
       ),
     );
+  }
+
+  /// 显示插件市场界面
+  _showPluginMarketView() {
+    Get.dialog(
+      Dialog(
+        child: PluginMarketView(
+          PluginMarketController(controller.progectPath.value),
+        ),
+      ),
+    );
+  }
+
+  _showEditCustomVersionDialog(PackageInfo packageInfo) async {
+    final String? version = await showAddValue('请输入版本号', packageInfo.version);
+    if (version == null) {
+      return;
+    }
+    if (packageInfo.version == version) return;
+    showHUD();
+    await controller.setPackageVersion(packageInfo, version);
+    hideHUD();
   }
 }
