@@ -19,6 +19,7 @@ class CommandDetailView extends GetView<PluginMarketController> {
   @override
   Widget build(BuildContext context) {
     final functions = info.functions;
+    final developerController = TextEditingController(text: info.developerPath);
     return Row(
       children: [
         SizedBox(
@@ -69,6 +70,14 @@ class CommandDetailView extends GetView<PluginMarketController> {
                       child: const Text('安装其他版本'),
                     ),
                     const Spacer(),
+                    SizedBox(
+                      width: 300,
+                      child: TextField(
+                        decoration: const InputDecoration(hintText: '开发的仓库地址:'),
+                        controller: developerController,
+                        onSubmitted: (value) => info.developerPath = value,
+                      ),
+                    ),
                     SizedBox(
                       width: 300,
                       child: SwitchListTile(

@@ -176,7 +176,9 @@ class CommandInfo {
   /// 是否开发模式
   bool isDeveloper = false;
 
-  CommandInfo(this.cli, this.yaml);
+  String developerPath;
+
+  CommandInfo(this.cli, this.yaml) : developerPath = cli.installPath;
 
   /// 获取描述
   String get description => yaml.description.unsafe ?? '';

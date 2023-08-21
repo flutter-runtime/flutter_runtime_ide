@@ -208,4 +208,10 @@ class PluginMarketController extends GetxController {
       );
     }
   }
+
+  switchDeveloperPath(CommandInfo info, String value) {
+    currentPluginInfo.update((val) {
+      val?.developerPath = value;
+    });
+  }
 }
