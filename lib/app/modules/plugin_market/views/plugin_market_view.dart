@@ -87,6 +87,12 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                                 widget.controller.getInstalledVersion(name);
                             return ExpansionTile(
                               title: Text(name),
+                              onExpansionChanged: (value) {
+                                widget.controller.onExpansionChanged(
+                                  value,
+                                  versions,
+                                );
+                              },
                               children: List.generate(versions.length, (index) {
                                 return Obx(() {
                                   final info =
@@ -95,10 +101,16 @@ class _PluginMarketViewState extends State<PluginMarketView> {
                                   return Obx(
                                     () => CupertinoListTile(
                                       title: Text(version.value.cli.ref),
-                                      subtitle: Text(version.value.description),
+                                      subtitle: FutureBuilder(
+                                        future: version.value.description,
+                                        builder: (context, snapshot) {
+                                          return Text(snapshot.data ?? '');
+                                        },
+                                      ),
                                       trailing: Icon(
                                         Icons.check_circle,
-                                        color: version.value.isActive
+                                        color: version.value.activePluginInfo !=
+                                                null
                                             ? Colors.green.shade400
                                             : Colors.grey,
                                       ),

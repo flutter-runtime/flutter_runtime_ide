@@ -35,10 +35,12 @@ dependencies:
     git:
       url: https://github.com/josercc/dcm.git
       ref: 1.3.0
+  # analyze_cache:
+  #   git:
+  #     url: https://github.com/flutter-runtime/analyze_cache.git
+  #     ref: main
   analyze_cache:
-    git:
-      url: https://github.com/flutter-runtime/analyze_cache.git
-      ref: main
+    path: packages/analyze_cache
   pubspec_yaml: ^3.1.0
   markdown_widget: ^2.2.0
   plugin_channel:

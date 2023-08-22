@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 
 import 'package:analyze_cache/analyze_cache.dart' hide StringPrivate, ListFirst;
@@ -327,7 +328,7 @@ class _GenerateDartFile extends _AnalysisDartFile {
 
     final sourcePath = 'package:${info.name}/$libraryPath';
 
-    final contentData = {
+    Map<String, dynamic> contentData = {
       'uriContent': sourcePath,
     };
     result?.imports.add(AnalyzerImportCache(contentData, contentData));
@@ -351,16 +352,16 @@ class _GenerateDartFile extends _AnalysisDartFile {
 
       /// 运行修复命令
       try {
-        if (JSON(commandInfo?.isDeveloper).boolValue) {
+        if (JSON(commandInfo?.activePluginInfo?.isDeveloper).boolValue) {
           final name = commandInfo!.cli.name;
           await CommandRun(
             'dart',
-            'run ${join(commandInfo!.cli.installPath, 'bin', '$name.dart')} $fixCommandName -i $id',
+            'run ${join(commandInfo!.cliPath, 'bin', '$name.dart')} $fixCommandName -i ${id.identifier}',
           ).run();
         } else {
           await CommandRun(
             'dcm',
-            'run -n ${commandInfo!.cli.name}@${commandInfo!.cli.ref} -c $fixCommandName -i $id',
+            'run -n ${commandInfo!.cli.name}@${commandInfo!.cli.ref} -c $fixCommandName -i ${id.identifier}',
           ).run();
         }
 

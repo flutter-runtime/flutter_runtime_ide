@@ -19,30 +19,33 @@ class CommandDetailView extends GetView<PluginMarketController> {
   @override
   Widget build(BuildContext context) {
     final functions = info.functions;
-    final developerController = TextEditingController(text: info.developerPath);
+    final developerController = TextEditingController(text: info.cliPath);
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: 400,
-          child: Column(
-            children: [
-              ListView.separated(
-                itemCount: 1,
+          child: FutureBuilder(
+            future: functions,
+            builder: (context, data) {
+              final list = data.data ?? [];
+              return ListView.separated(
+                itemCount: list.length,
                 shrinkWrap: true,
                 physics: const ScrollPhysics(),
                 separatorBuilder: (BuildContext context, int index) {
                   return const Divider();
                 },
                 itemBuilder: (BuildContext context, int index) {
-                  final function = functions[index];
+                  final function = list[index];
                   return CupertinoListTile(
                     title: Text(function.name),
                     backgroundColor: Colors.green.shade100,
                     onTap: () {},
                   );
                 },
-              ),
-            ],
+              );
+            },
           ),
         ),
         const VerticalDivider(),
@@ -72,14 +75,6 @@ class CommandDetailView extends GetView<PluginMarketController> {
                     const Spacer(),
                     SizedBox(
                       width: 300,
-                      child: TextField(
-                        decoration: const InputDecoration(hintText: '开发的仓库地址:'),
-                        controller: developerController,
-                        onSubmitted: (value) => info.developerPath = value,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 300,
                       child: SwitchListTile(
                         value: info.isDeveloper,
                         title: const Text('开发'),
@@ -92,25 +87,54 @@ class CommandDetailView extends GetView<PluginMarketController> {
                   ],
                 ),
               ),
+              if (info.isDeveloper)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CupertinoListTile(
+                        title: const Text('开发的仓库地址:'),
+                        trailing: Expanded(
+                          child: TextField(
+                            controller: developerController,
+                            onSubmitted: (value) {
+                              controller.switchDeveloperPath(info, value);
+                            },
+                          ),
+                        ),
+                      ),
+                      CupertinoListTile(
+                        title: ElevatedButton(
+                          onPressed: () => controller.rebuild(info),
+                          child: const Text('重新编译脚本'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               Expanded(
-                child: FutureBuilder(
-                  future: loadRedemeMarkdown(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.none) {
-                      return Container();
-                    }
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const CupertinoActivityIndicator();
-                    }
-                    if (snapshot.connectionState == ConnectionState.done) {
-                      if (snapshot.hasError) {
-                        throw Text('${snapshot.error}');
-                      } else {
-                        return MarkdownWidget(data: snapshot.data ?? '');
+                child: Container(
+                  color: Colors.grey.shade100,
+                  child: FutureBuilder(
+                    future: loadRedemeMarkdown(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.none) {
+                        return Container();
                       }
-                    }
-                    return Container();
-                  },
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const CupertinoActivityIndicator();
+                      }
+                      if (snapshot.connectionState == ConnectionState.done) {
+                        if (snapshot.hasError) {
+                          throw Text('${snapshot.error}');
+                        } else {
+                          return MarkdownWidget(data: snapshot.data ?? '');
+                        }
+                      }
+                      return Container();
+                    },
+                  ),
                 ),
               ),
             ],

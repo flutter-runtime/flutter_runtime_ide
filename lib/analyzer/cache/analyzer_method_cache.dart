@@ -10,11 +10,13 @@ class AnalyzerFunctionElementCacheImpl
   AnalyzerFunctionElementCacheImpl(super.element, super.map, [super.parent]);
 
   @override
-  void fromMap(Map map) {
+  void fromMap(Map<String, dynamic> map) {
     super.fromMap(map);
     parameters = element.parameters
-        .map((e) => AnalyzerParameterElementCacheImpl(e as ParameterElementImpl,
-            JSON(map)['parameters'][e.name].mapValue, this))
+        .map((e) => AnalyzerParameterElementCacheImpl(
+            e as ParameterElementImpl,
+            JSON(map)['parameters'][e.name].mapValue as Map<String, dynamic>,
+            this))
         .toList();
     isStatic = element.isStatic;
     name = element.name;
@@ -26,7 +28,7 @@ class AnalyzerConstructorElementCacheImpl
   AnalyzerConstructorElementCacheImpl(super.element, super.map, [super.parent]);
 
   @override
-  void fromMap(Map map) {
+  void fromMap(Map<String, dynamic> map) {
     super.fromMap(map);
     parameters = element.parameters
         .map((e) => AnalyzerParameterElementCacheImpl(
@@ -41,7 +43,7 @@ class AnalyzerMethodElementCacheImpl
     extends AnalyzerMethodCache<MethodElementImpl> {
   AnalyzerMethodElementCacheImpl(super.element, super.map, [super.parent]);
   @override
-  void fromMap(Map map) {
+  void fromMap(Map<String, dynamic> map) {
     super.fromMap(map);
     parameters = element.parameters
         .map((e) => AnalyzerParameterElementCacheImpl(
@@ -53,7 +55,7 @@ class AnalyzerMethodElementCacheImpl
 }
 
 extension on Map {
-  Map? getParameter(String name) {
+  Map<String, dynamic>? getParameter(String name) {
     return JSON(this)['parameters'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });

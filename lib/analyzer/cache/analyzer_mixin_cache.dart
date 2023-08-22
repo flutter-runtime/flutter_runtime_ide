@@ -11,7 +11,7 @@ class AnalyzerMixinElementCacheImpl
   AnalyzerMixinElementCacheImpl(super.element, super.map, [super.parent]);
 
   @override
-  void fromMap(Map map) {
+  void fromMap(Map<String, dynamic> map) {
     super.fromMap(map);
     constructors = element.constructors
         .map((e) => AnalyzerConstructorElementCacheImpl(
@@ -30,19 +30,19 @@ class AnalyzerMixinElementCacheImpl
 }
 
 extension on Map {
-  Map? getConstructor(String name) {
+  Map<String, dynamic>? getConstructor(String name) {
     return JSON(this)['constructors'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map? getMethod(String name) {
+  Map<String, dynamic>? getMethod(String name) {
     return JSON(this)['methods'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map? getFields(String name) {
+  Map<String, dynamic>? getFields(String name) {
     return JSON(this)['fields'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });

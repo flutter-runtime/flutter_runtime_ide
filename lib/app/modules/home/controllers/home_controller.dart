@@ -32,17 +32,16 @@ class HomeController extends GetxController {
 
   late PackageDependency dependency;
 
-  /// 当前启用的插件信息列表
-  late List<CommandInfo> activePlugins;
-
   HomeController() {
     progectPath.value = Get.arguments as String;
     Future.delayed(Duration.zero).then((value) async {
       await readPackageConfig();
-      activePlugins = await PluginManager()
-          .allInstalled(progectPath.value)
-          .then((value) => value.where((element) => element.isActive).toList());
     });
+  }
+
+  Future<List<CommandInfo>> get activePlugins async {
+    return await PluginManager().allInstalled(progectPath.value).then((value) =>
+        value.where((element) => element.activePluginInfo != null).toList());
   }
 
   // 读取当前工程的第三方库的配置
@@ -119,7 +118,7 @@ class HomeController extends GetxController {
           );
         },
         analyzeProgress: (progress) => updateProgressHudText(progress),
-        commandInfo: getFixPlugin(info),
+        commandInfo: await getFixPlugin(info),
       );
       await generateRuntime.generate();
     }
@@ -205,16 +204,20 @@ $dart format ./
   }
 
   /// 获取指定库所关联的修复命令
-  CommandInfo? getFixPlugin(PackageInfo info) {
-    return activePlugins.firstWhereOrNull((element) {
-      return element.functions.any((element) {
+  Future<CommandInfo?> getFixPlugin(PackageInfo info) async {
+    final activePlugins0 = await activePlugins;
+    for (var element in activePlugins0) {
+      final functions = await element.functions;
+      final commandInfo = functions.firstWhereOrNull((element) {
         final name = JSON(element.parameters)['name'].stringValue;
         final version = JSON(element.parameters)['version'].stringValue;
         return element.name == fixCommandName &&
             name == info.name &&
             version == info.version;
       });
-    });
+      if (commandInfo != null) return element;
+    }
+    return null;
   }
 
   setPackageVersion(PackageInfo packageInfo, String version) async {

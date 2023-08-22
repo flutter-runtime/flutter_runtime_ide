@@ -10,7 +10,7 @@ class AnalyzerImportDirectiveCacheImpl
     extends AnalyzerImportCache<ImportDirectiveImpl> {
   AnalyzerImportDirectiveCacheImpl(super.element, super.map, [super.parent]);
   @override
-  void fromMap(Map map) {
+  void fromMap(Map<String, dynamic> map) {
     super.fromMap(map);
     uriContent = element.uriContent;
     asName = element.asName;
@@ -58,7 +58,7 @@ extension ImportDirectiveImplAnalyzer on ImportDirectiveImpl {
           .map(
             (e) => AnalyzerNameSpaceCacheImpl(
               e,
-              JSON(map)['namespaces'].mapValue,
+              JSON(map)['namespaces'].mapValue as Map<String, dynamic>,
               importCache,
             ),
           )

@@ -7,7 +7,7 @@ class AnalyzerNameSpaceCacheImpl extends AnalyzerNameSpaceCache<Namespace> {
   AnalyzerNameSpaceCacheImpl(super.element, super.map, [super.parent]);
 
   @override
-  void fromMap(Map map) {
+  void fromMap(Map<String, dynamic> map) {
     super.fromMap(map);
     exportNames = element.definedNames.keys.toList();
   }

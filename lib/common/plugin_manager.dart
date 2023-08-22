@@ -6,6 +6,7 @@ import 'package:dcm/dcm.dart';
 import 'package:flutter_runtime_ide/analyzer/analyzer_package_manager.dart';
 import 'package:flutter_runtime_ide/app/modules/home/controllers/home_controller.dart';
 import 'package:flutter_runtime_ide/common/command_run.dart';
+import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'package:process_run/process_run.dart';
 import 'package:pubspec_yaml/pubspec_yaml.dart';
@@ -44,17 +45,14 @@ class PluginManager {
       final allCli =
           JSON(result.stdout).listValue.map((e) => Cli.fromJson(e)).toList();
       final activePlugins = await loadActivePlugins(projectPath);
-      final commandInfos = await Future.wait(allCli.map((e) async {
-        final pubYamlPath = join(e.installPath, 'pubspec.yaml');
-        final yaml = await File(pubYamlPath)
-            .readAsString()
-            .then((value) => PubspecYaml.loadFromYamlString(value));
-        return CommandInfo(e, yaml)
-          ..isActive = activePlugins.any((element) {
-            return element.name == e.name && element.ref == e.ref;
-          });
-      }).toList());
-      return commandInfos;
+      return allCli.map((e) {
+        return CommandInfo(
+          e,
+          activePlugins.firstWhereOrNull(
+            (element) => element.name == e.name && element.ref == e.ref,
+          ),
+        );
+      }).toList();
     } catch (e) {
       return [];
     }
@@ -126,7 +124,7 @@ class PluginManager {
   Future<void> saveActivePlugins(
       List<ActivePluginInfo> plugins, String projectPath) async {
     final file = File(activePluginPath(projectPath));
-    await file.writeAsString(const JsonEncoder.withIndent(' ')
+    await file.writeString(const JsonEncoder.withIndent(' ')
         .convert(plugins.map((e) => e.toJson()).toList()));
   }
 
@@ -167,28 +165,41 @@ class PluginManager {
 }
 
 class CommandInfo {
+  /// 插件命令信息
   final Cli cli;
-  final PubspecYaml yaml;
 
-  /// 是否激活
-  bool isActive = false;
+  /// 激活的插件信息
+  ActivePluginInfo? activePluginInfo;
 
-  /// 是否开发模式
-  bool isDeveloper = false;
+  CommandInfo(this.cli, [this.activePluginInfo]);
 
-  String developerPath;
+  /// 获取插件描述
+  Future<String> get description =>
+      yaml.then((value) => value.description.unsafe ?? '');
 
-  CommandInfo(this.cli, this.yaml) : developerPath = cli.installPath;
+  bool get isDeveloper => activePluginInfo?.isDeveloper ?? false;
 
-  /// 获取描述
-  String get description => yaml.description.unsafe ?? '';
+  /// 获取插件支持的命令方法数组
+  Future<List<CommandFunction>> get functions async {
+    final customFields = await yaml.then((value) => value.customFields);
+    return JSON(customFields)['commands']
+        .mapValue
+        .entries
+        .map((e) => CommandFunction(e.key, e.value))
+        .toList();
+  }
 
-  /// 获取命令支持的方法
-  List<CommandFunction> get functions => JSON(yaml.customFields)['commands']
-      .mapValue
-      .entries
-      .map((e) => CommandFunction(e.key, e.value))
-      .toList();
+  /// 获取当前插件的 YAML 配置信息
+  Future<PubspecYaml> get yaml => File(yamlPath)
+      .readAsString()
+      .then((value) => PubspecYaml.loadFromYamlString(value));
+
+  /// 获取当前插件 YAML 配置地址
+  String get yamlPath {
+    return join(cliPath, 'pubspec.yaml');
+  }
+
+  String get cliPath => activePluginInfo?.developerPath ?? cli.installPath;
 }
 
 class CommandFunction {
@@ -199,8 +210,17 @@ class CommandFunction {
 
 /// 激活的插件信息
 class ActivePluginInfo {
+  /// 插件名称
   late String name;
+
+  /// 插件版本
   late String ref;
+
+  /// 开发调试的插件地址 默认为安装的本地路径
+  late String developerPath;
+
+  /// 当前插件是否是开发模式
+  bool isDeveloper = false;
 
   ActivePluginInfo();
 
@@ -208,9 +228,16 @@ class ActivePluginInfo {
     final json = JSON(map);
     name = json['name'].stringValue;
     ref = json['ref'].stringValue;
+    developerPath = json['developerPath'].stringValue;
+    isDeveloper = json['isDeveloper'].boolValue;
   }
 
   Map<String, dynamic> toJson() {
-    return {'name': name, 'ref': ref};
+    return {
+      'name': name,
+      'ref': ref,
+      'isDeveloper': isDeveloper,
+      'developerPath': developerPath
+    };
   }
 }

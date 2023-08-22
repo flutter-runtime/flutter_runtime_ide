@@ -166,27 +166,39 @@ class PluginMarketController extends GetxController {
   }
 
   Future<void> activePlugin(Rx<CommandInfo> info) async {
-    bool isActive = !info.value.isActive;
+    bool active = info.value.activePluginInfo != null;
 
     /// 其他的版本失去激活
     for (var infoR in installedPlugins) {
       if (infoR == info) {
-        infoR.update((val) => val?..isActive = isActive);
+        setPluginActive(!active, info);
       } else {
-        infoR.update((val) => val?..isActive = !isActive);
+        setPluginActive(false, info);
       }
     }
 
-    /// 让当激活的自动选中
-    currentPluginInfo.value = info.value;
+    currentPluginInfo.value = !active ? info.value : null;
 
+    await updateActivePluginCache();
+  }
+
+  setPluginActive(bool active, Rx<CommandInfo> info) {
+    info.update((val) {
+      final activeInfo = ActivePluginInfo()
+        ..name = info.value.cli.name
+        ..ref = info.value.cli.ref
+        ..developerPath = info.value.cliPath;
+      val?.activePluginInfo = active ? activeInfo : null;
+    });
+  }
+
+  /// 更新激活插件的参数保存在本地
+  updateActivePluginCache() async {
     /// 获取当前已经激活的列表
     final plugins = installedPlugins
         .map((e) => e.value)
-        .where((element) => element.isActive)
-        .map((e) => ActivePluginInfo()
-          ..name = e.cli.name
-          ..ref = e.cli.ref)
+        .map((element) => element.activePluginInfo)
+        .whereType<ActivePluginInfo>()
         .toList();
     showHUD();
     await PluginManager().saveActivePlugins(plugins, projectPath);
@@ -195,23 +207,35 @@ class PluginMarketController extends GetxController {
 
   switchDeveloper(bool isDeveloper) async {
     currentPluginInfo.update((val) {
-      val?.isDeveloper = isDeveloper;
+      val?.activePluginInfo?.isDeveloper = isDeveloper;
     });
-    final info = currentPluginInfo.value;
-    if (info == null) return;
-    if (!isDeveloper) {
-      /// 如果不是开发模式 则重新编译插件
-      await Get.dialog(
-        RunCommandView(
-          RunCommandController([PluginManager().rebuildCommand(info)]),
-        ),
-      );
-    }
+    await updateActivePluginCache();
   }
 
-  switchDeveloperPath(CommandInfo info, String value) {
+  switchDeveloperPath(CommandInfo info, String value) async {
     currentPluginInfo.update((val) {
-      val?.developerPath = value;
+      val?.activePluginInfo?.developerPath = value;
     });
+    await updateActivePluginCache();
+  }
+
+  /// 点击打开或者关闭插件列表
+  /// 如果打开插件列表 则展示当前激活的插件
+  /// 如果关闭插件列表 则关闭展示当前激活的插件
+  onExpansionChanged(bool value, List<Rx<CommandInfo>> versions) {
+    currentPluginInfo.value = versions
+        .map((e) => e.value)
+        .toList()
+        .firstWhereOrNull(
+            (element) => element.activePluginInfo != null && value);
+  }
+
+  /// 重新编译脚本
+  rebuild(CommandInfo info) async {
+    await Get.dialog(
+      RunCommandView(RunCommandController(
+        [PluginManager().rebuildCommand(info)],
+      )),
+    );
   }
 }
