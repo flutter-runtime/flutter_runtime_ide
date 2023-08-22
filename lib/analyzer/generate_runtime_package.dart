@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:isolate';
 import 'dart:math';
 
 import 'package:analyze_cache/analyze_cache.dart' hide StringPrivate, ListFirst;
@@ -361,7 +360,7 @@ class _GenerateDartFile extends _AnalysisDartFile {
         } else {
           await CommandRun(
             'dcm',
-            'run -n ${commandInfo!.cli.name}@${commandInfo!.cli.ref} -c $fixCommandName -i ${id.identifier}',
+            'run -n ${commandInfo!.cli.name}@${commandInfo!.cli.ref} $fixCommandName -i ${id.identifier}',
           ).run();
         }
 

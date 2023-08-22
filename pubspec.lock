@@ -12,9 +12,11 @@ packages:
   analyze_cache:
     dependency: "direct main"
     description:
-      path: "packages/analyze_cache"
-      relative: true
-    source: path
+      path: "."
+      ref: main
+      resolved-ref: "0e3ad2e9f085c28bb8fbb6735e13780a76bc080d"
+      url: "https://github.com/flutter-runtime/analyze_cache.git"
+    source: git
     version: "1.0.0"
   analyzer:
     dependency: "direct main"
