@@ -1,0 +1,29 @@
+name: "build flutter macos app"
+on:
+  push:
+    branches:
+      - main
+env:
+  mac_release_path: build/macos/Build/Products/Release
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: env
+      - name: Get flutter version
+        id: get_flutter_version
+        uses: its404/get-flutter-version@v1.0.0
+      - uses: subosito/flutter-action@v1
+        with:
+          flutter-version: '3.7.12'
+      - run: flutter build macos --release
+      - run: zip -r flutter_runtime_ide.zip ${{env.mac_release_path}}/flutter_runtime_ide.app
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: ${{ steps.get_flutter_version.outputs.version_number }}
+          prerelease: true
+          title: "Development Build"
+          files: |
+            flutter_runtime_ide.zip
