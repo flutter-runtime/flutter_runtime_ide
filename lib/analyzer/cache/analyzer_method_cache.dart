@@ -13,10 +13,8 @@ class AnalyzerFunctionElementCacheImpl
   void fromMap(Map<String, dynamic> map) {
     super.fromMap(map);
     parameters = element.parameters
-        .map((e) => AnalyzerParameterElementCacheImpl(
-            e as ParameterElementImpl,
-            JSON(map)['parameters'][e.name].mapValue as Map<String, dynamic>,
-            this))
+        .map((e) => AnalyzerParameterElementCacheImpl(e as ParameterElementImpl,
+            JSON(map)['parameters'][e.name].mapValue, this))
         .toList();
     isStatic = element.isStatic;
     name = element.name;

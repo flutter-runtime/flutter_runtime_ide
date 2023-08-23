@@ -58,7 +58,7 @@ extension ImportDirectiveImplAnalyzer on ImportDirectiveImpl {
           .map(
             (e) => AnalyzerNameSpaceCacheImpl(
               e,
-              JSON(map)['namespaces'].mapValue as Map<String, dynamic>,
+              JSON(map)['namespaces'].mapValue,
               importCache,
             ),
           )

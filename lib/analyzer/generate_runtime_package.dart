@@ -332,8 +332,16 @@ class _GenerateDartFile extends _AnalysisDartFile {
     };
     result?.imports.add(AnalyzerImportCache(contentData, contentData));
 
+    final files = await Unwrap(commandInfo).map((e) async {
+          final yaml = await e.yaml;
+          return JSON(yaml.customFields)['commands']['fix_runtime']['files']
+              .listValue;
+        }).value ??
+        [];
+    final path = join('lib', libraryPath);
+
     /// 启动修复插件让插件进行修复
-    if (commandInfo != null) {
+    if (commandInfo != null && files.contains(path)) {
       /// 需要修复的数据
       final data = result?.toJson();
 
@@ -341,7 +349,10 @@ class _GenerateDartFile extends _AnalysisDartFile {
       final id = ChannelIdentifier.fromPluginName(commandInfo!.cli.name);
 
       /// 通道的数据
-      final request = ChannelResponse.success(data);
+      final request = ChannelResponse.success({
+        'filePath': path,
+        'cacheData': data,
+      });
 
       /// 请求资源
       final resouce = ChannelResource(id);
