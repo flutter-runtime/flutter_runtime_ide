@@ -18,7 +18,7 @@ jobs:
         with:
           flutter-version: '3.7.12'
       - run: flutter build macos --release
-      - run: zip -r ${{env.mac_release_path}}/flutter_runtime_ide.zip ${{env.mac_release_path}}/flutter_runtime_ide.app
+      - run: zip -r flutter_runtime_ide.zip ${{env.mac_release_path}}/flutter_runtime_ide.app
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
@@ -26,4 +26,4 @@ jobs:
           prerelease: true
           title: "Development Build"
           files: |
-            ${{env.mac_release_path}}/flutter_runtime_ide.zip
+            flutter_runtime_ide.zip
