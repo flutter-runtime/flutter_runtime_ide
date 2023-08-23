@@ -3,13 +3,13 @@ on:
   push:
     branches:
       - main
-env:
-  FLUTTER_VERSION: "3.7.12"
 jobs:
   build:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
+      - name: echo env
+      - run: env
       - name: Get flutter version
         id: get_flutter_version
         uses: its404/get-flutter-version@v1.0.0
