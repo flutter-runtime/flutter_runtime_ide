@@ -327,13 +327,21 @@ class _GenerateDartFile extends _AnalysisDartFile {
 
     final sourcePath = 'package:${info.name}/$libraryPath';
 
-    final contentData = {
+    Map<String, dynamic> contentData = {
       'uriContent': sourcePath,
     };
     result?.imports.add(AnalyzerImportCache(contentData, contentData));
 
+    final files = await Unwrap(commandInfo).map((e) async {
+          final yaml = await e.yaml;
+          return JSON(yaml.customFields)['commands']['fix_runtime']['files']
+              .listValue;
+        }).value ??
+        [];
+    final path = join('lib', libraryPath);
+
     /// 启动修复插件让插件进行修复
-    if (commandInfo != null) {
+    if (commandInfo != null && files.contains(path)) {
       /// 需要修复的数据
       final data = result?.toJson();
 
@@ -341,7 +349,10 @@ class _GenerateDartFile extends _AnalysisDartFile {
       final id = ChannelIdentifier.fromPluginName(commandInfo!.cli.name);
 
       /// 通道的数据
-      final request = ChannelResponse.success(data);
+      final request = ChannelResponse.success({
+        'filePath': path,
+        'cacheData': data,
+      });
 
       /// 请求资源
       final resouce = ChannelResource(id);
@@ -351,16 +362,16 @@ class _GenerateDartFile extends _AnalysisDartFile {
 
       /// 运行修复命令
       try {
-        if (JSON(commandInfo?.isDeveloper).boolValue) {
+        if (JSON(commandInfo?.activePluginInfo?.isDeveloper).boolValue) {
           final name = commandInfo!.cli.name;
           await CommandRun(
             'dart',
-            'run ${join(commandInfo!.cli.installPath, 'bin', '$name.dart')} $fixCommandName -i $id',
+            'run ${join(commandInfo!.cliPath, 'bin', '$name.dart')} $fixCommandName -i ${id.identifier}',
           ).run();
         } else {
           await CommandRun(
             'dcm',
-            'run -n ${commandInfo!.cli.name}@${commandInfo!.cli.ref} -c $fixCommandName -i $id',
+            'run -n ${commandInfo!.cli.name}@${commandInfo!.cli.ref} $fixCommandName -i ${id.identifier}',
           ).run();
         }
 

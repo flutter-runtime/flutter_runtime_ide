@@ -14,7 +14,7 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: "85ea0b6a5aa49dc6015090a4c6c73817cd79d2a4"
+      resolved-ref: "0e3ad2e9f085c28bb8fbb6735e13780a76bc080d"
       url: "https://github.com/flutter-runtime/analyze_cache.git"
     source: git
     version: "1.0.0"

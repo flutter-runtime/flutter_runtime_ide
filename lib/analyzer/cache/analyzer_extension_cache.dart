@@ -13,7 +13,7 @@ class AnalyzerExtensionElementCacheImpl
   AnalyzerExtensionElementCacheImpl(super.element, super.map, [super.parent]);
 
   @override
-  void fromMap(Map map) {
+  void fromMap(Map<String, dynamic> map) {
     super.fromMap(map);
     fields = element.fields
         .map((e) =>
@@ -57,13 +57,13 @@ class AnalyzerExtensionElementCacheImpl
 }
 
 extension on Map {
-  Map? getField(String name) {
+  Map<String, dynamic>? getField(String name) {
     return JSON(this)['fields'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map? getMethod(String name) {
+  Map<String, dynamic>? getMethod(String name) {
     return JSON(this)['methods'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });

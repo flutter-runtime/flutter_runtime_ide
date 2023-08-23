@@ -13,7 +13,7 @@ class AnalyzerPropertyAccessorElementCacheImpl
       [super.parent]);
 
   @override
-  void fromMap(Map map) {
+  void fromMap(Map<String, dynamic> map) {
     super.fromMap(map);
 
     isStatic = element.isStatic;
@@ -28,7 +28,7 @@ class AnalyzerParameterElementCacheImpl
   AnalyzerParameterElementCacheImpl(super.element, super.map, [super.parent]);
 
   @override
-  void fromMap(Map map) {
+  void fromMap(Map<String, dynamic> map) {
     super.fromMap(map);
 
     isStatic = element.isStatic;
@@ -55,7 +55,7 @@ class AnalyzerFieldElementCacheImpl
   AnalyzerFieldElementCacheImpl(super.element, super.map, [super.parent]);
 
   @override
-  void fromMap(Map map) {
+  void fromMap(Map<String, dynamic> map) {
     super.fromMap(map);
 
     isStatic = element.isStatic;
@@ -69,7 +69,7 @@ class AnalyzerTopLevelVariableElementCacheImpl
       [super.parent]);
 
   @override
-  void fromMap(Map map) {
+  void fromMap(Map<String, dynamic> map) {
     super.fromMap(map);
     isStatic = element.isStatic;
     name = element.name;

@@ -120,37 +120,37 @@ extension ResolvedLibraryResultAnalyzer on ResolvedLibraryResult {
 }
 
 extension on Map {
-  Map? getClass(String name) {
+  Map<String, dynamic>? getClass(String name) {
     return JSON(this)['classs'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map? getEnum(String name) {
+  Map<String, dynamic>? getEnum(String name) {
     return JSON(this)['enums'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map? getMixin(String name) {
+  Map<String, dynamic>? getMixin(String name) {
     return JSON(this)['mixins'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map? getExtension(String name) {
+  Map<String, dynamic>? getExtension(String name) {
     return JSON(this)['extensions'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map? getFunction(String name) {
+  Map<String, dynamic>? getFunction(String name) {
     return JSON(this)['functions'].listValue.firstWhereOrNull((element) {
       return JSON(element)['name'].stringValue == name;
     });
   }
 
-  Map? getTopLevelVariable(String name) {
+  Map<String, dynamic>? getTopLevelVariable(String name) {
     return JSON(this)['topLevelVariables']
         .listValue
         .firstWhereOrNull((element) {

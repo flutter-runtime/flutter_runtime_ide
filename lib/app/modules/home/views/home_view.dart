@@ -162,7 +162,7 @@ class HomeView extends GetView<HomeController> {
     ]);
   }
 
-  _showAnalyzerDetailView(PackageInfo packageInfo) {
+  _showAnalyzerDetailView(PackageInfo packageInfo) async {
     Get.dialog(
       Dialog(
         child: AnalyzerDetailView(
@@ -170,7 +170,7 @@ class HomeView extends GetView<HomeController> {
             packageInfo,
             controller.packageConfig.value!,
             controller.dependency,
-            controller.getFixPlugin(packageInfo),
+            await controller.getFixPlugin(packageInfo),
           ),
         ),
       ),
