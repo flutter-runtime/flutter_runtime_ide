@@ -10,11 +10,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Get Flutter Version
-        id: flutter_version
-        uses: bungabear/flutter_version_read@main
-        with:
-          file: $PWD/pubspec.yml
+      - name: Get flutter version
+        id: get_flutter_version
+        uses: its404/get-flutter-version@v1.0.0
       - uses: subosito/flutter-action@v1
         with:
           flutter-version: '3.7.12'
@@ -22,7 +20,7 @@ jobs:
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: ${{ steps.flutter_version.outputs.version_number }}
+          automatic_release_tag: ${{ steps.get_flutter_version.outputs.version_number }}
           prerelease: true
           title: "Development Build"
           files: |
