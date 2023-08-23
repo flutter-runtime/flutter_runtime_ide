@@ -14,7 +14,7 @@ jobs:
         id: flutter_version
         uses: bungabear/flutter_version_read@main
         with:
-          file: ./pubspec.yml
+          file: $PWD/pubspec.yml
       - uses: subosito/flutter-action@v1
         with:
           flutter-version: '3.7.12'
