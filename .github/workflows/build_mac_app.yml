@@ -23,4 +23,4 @@ jobs:
           prerelease: true
           title: "Development Build"
           files: |
-            *.app
+            build/macos/Build/Products/Release/flutter_runtime_ide.app
